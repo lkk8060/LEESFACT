@@ -127,7 +127,7 @@ table.mt tr.sub-row:hover{background:#060d1a}
 <div class="card"><div class="slbl">✏️ 직접 입력</div>
 <div class="g5" style="margin-bottom:10px">
 <div class="fg"><label class="fl">입고일자 *</label><input type="date" id="p-dt"></div>
-<div class="fg"><label class="fl">품번 *</label><input id="p-cd" placeholder="예: JP7147"></div>
+<div class="fg"><label class="fl">품번 * <span style="color:var(--tl)">(SKU MASTER 검색)</span></label><input id="p-cd" list="sku-options" placeholder="품번 입력 또는 SKU MASTER 검색"><datalist id="sku-options"></datalist><button type="button" class="bs" id="btn-p-sku-apply" style="margin-top:5px;padding:5px 10px;font-size:10px;width:100%">SKU 정보 적용</button></div>
 <div class="fg"><label class="fl">품명</label><input id="p-nm" placeholder="직접 입력"></div>
 <div class="fg"><label class="fl">브랜드</label><input id="p-br" placeholder="예: ADIDAS"></div>
 <div class="fg"><label class="fl">Set No.</label><input id="p-sn" placeholder="Set-01"></div></div>
@@ -135,7 +135,7 @@ table.mt tr.sub-row:hover{background:#060d1a}
 <div class="fg"><label class="fl">카테고리</label><select id="p-ct"><option value="">선택</option><option>신발</option><option>상의</option><option>하의</option><option>아우터</option><option>가방</option><option>액세서리</option><option>기타</option></select></div>
 <div class="fg"><label class="fl">소비자가격 (원)</label><input type="number" id="p-rp" min="0" placeholder="0"></div>
 <div class="fg"><label class="fl">공급가 부가세포함 (원)</label><input type="number" id="p-sp" min="0" placeholder="0"></div>
-<div class="fg"><label class="fl">컬러</label><input id="p-cl" placeholder="블랙"></div>
+<div class="fg"><label class="fl">켤러</label><input id="p-cl" placeholder="블랙"></div>
 <div class="fg"><label class="fl">메모</label><input id="p-mm"></div></div><hr>
 <div class="st-row"><span style="font-size:10px;color:#64748b;text-transform:uppercase">사이즈 타입:</span><button class="stb on" id="st-shoe">👟 신발(mm)</button><button class="stb" id="st-cloth">👕 의류</button><button class="stb" id="st-free">FREE</button></div>
 <div class="sgw"><table class="sg" id="sgt"></table></div>
@@ -227,21 +227,56 @@ function sbSet(k,v){return fetchWithTimeout(SB+"/rest/v1/kv_store",{method:"POST
 function SS(s){var l=document.getElementById("led"),b=document.getElementById("sbadge");if(!l||!b)return;var m={ok:["ok","b-ok","☁ 동기화됨"],ing:["ing","b-ing","↑ 저장 중..."],load:["ing","b-ing","↓ 로딩 중..."],err:["err","b-err","✗ 연결 오류"]};var x=m[s]||m.err;l.className="led "+x[0];b.className="sbadge "+x[1];b.textContent=x[2];}
 function SC(){clearTimeout(saveTimer);saveTimer=setTimeout(function(){SS("ing");Promise.all([sbSet("purchase_db",PDB),sbSet("sales_db",SDB),sbSet("sku_master",SKUDB)]).then(function(){SS("ok");}).catch(function(e){console.error("SAVE ERROR",e);SS("err");});},800);}
 function safeGet(k){return sbGet(k).then(function(v){return{ok:true,key:k,value:v};}).catch(function(e){console.warn("LOAD FAIL",k,e);return{ok:false,key:k,value:null,error:e};});}
-function repaintAfterLoad(){UH();if(curTab==="sku")rSku();if(curTab==="pdb")rP();if(curTab==="sdb")rS();if(curTab==="si")FSC();if(curTab==="stk")rStk();if(curTab==="mar")rMar();}
+function repaintAfterLoad(){UH();fillPurchaseSkuOptions();if(curTab==="sku")rSku();if(curTab==="pdb")rP();if(curTab==="sdb")rS();if(curTab==="si")FSC();if(curTab==="stk")rStk();if(curTab==="mar")rMar();}
 function LA(){SS("load");Promise.all([safeGet("purchase_db"),safeGet("sales_db"),safeGet("sku_master")]).then(function(res){var failed=[];for(var i=0;i<res.length;i++){var x=res[i];if(x.key==="purchase_db"&&x.ok)PDB=Array.isArray(x.value)?x.value:[];if(x.key==="sales_db"&&x.ok)SDB=Array.isArray(x.value)?x.value:[];if(x.key==="sku_master"&&x.ok)SKUDB=Array.isArray(x.value)?x.value:[];if(!x.ok)failed.push(x.key);}repaintAfterLoad();if(failed.length){SS("err");SM("sku-msg","mw","일부 데이터 로딩 실패/지연: "+failed.join(", ")+". 새로고침을 다시 눌러주세요.");}else SS("ok");}).catch(function(e){console.error("LOAD ERROR",e);SS("err");repaintAfterLoad();SM("sku-msg","md","Supabase 연결 실패: "+(e&&e.message?e.message:e));});}
 function today(){return new Date().toISOString().slice(0,10);}
 function UH(){document.getElementById("hcnt").textContent="매입 "+PDB.length+"건 · 매출 "+SDB.length+"건";UUI();}
 function SM(id,c,t){var e=document.getElementById(id);if(!e)return;e.className="msg on "+c;e.textContent=t;clearTimeout(MT[id]);if(c==="ms"||c==="mi")MT[id]=setTimeout(function(){e.classList.remove("on");},5000);}
 function MC(l,v,c){return"<div class=\"mc\"><div class=\"mcl\">"+l+"</div><div class=\"mcv\" style=\"color:"+c+"\">"+v+"</div></div>";}
+function escHtml(v){return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 function skuFind(code){code=String(code||"").trim();for(var i=0;i<SKUDB.length;i++)if(String(SKUDB[i].itemCode||"").trim()===code)return SKUDB[i];return null;}
 function skuInfo(code,fallback){var m=skuFind(code),f=fallback||{};var rp=(m&&m.retailPrice!=null)?m.retailPrice:f.retailPrice;return{itemCode:code||f.itemCode||"",productName:(m&&m.productName)||f.productName||"",brand:(m&&m.brand)||f.brand||"",category:(m&&m.category)||f.category||"",sizeType:(m&&m.sizeType)||f.sizeType||"",color:(m&&m.color)||f.color||"",retailPrice:Number(rp)||0,memo:(m&&m.memo)||f.memo||""};}
-function clearSkuForm(){["sku-code","sku-name","sku-brand","sku-color","sku-retail","sku-memo"].forEach(function(id){var e=document.getElementById(id);if(e)e.value="";});var c=document.getElementById("sku-category");if(c)c.value="";var st=document.getElementById("sku-sizetype");if(st)st.value="shoe";}
-function saveSku(){var code=(document.getElementById("sku-code").value||"").trim();var name=(document.getElementById("sku-name").value||"").trim();if(!code||!name){SM("sku-msg","md","품번과 품명은 필수입니다.");return;}var row={id:code,itemCode:code,productName:name,brand:document.getElementById("sku-brand").value||"",category:document.getElementById("sku-category").value||"",sizeType:document.getElementById("sku-sizetype").value||"shoe",color:document.getElementById("sku-color").value||"",retailPrice:parseFloat(document.getElementById("sku-retail").value)||0,memo:document.getElementById("sku-memo").value||"",updated_at:new Date().toISOString()};var old=skuFind(code);BAK(old?"SKU MASTER 수정":"SKU MASTER 저장");if(old){for(var k in row)old[k]=row[k];}else SKUDB.unshift(row);SC();rSku();FSC();SM("sku-msg","ms","✓ SKU MASTER 저장 완료");}
-function editSku(code){var m=skuFind(code);if(!m)return;document.getElementById("sku-code").value=m.itemCode||"";document.getElementById("sku-name").value=m.productName||"";document.getElementById("sku-brand").value=m.brand||"";document.getElementById("sku-category").value=m.category||"";document.getElementById("sku-sizetype").value=m.sizeType||"shoe";document.getElementById("sku-color").value=m.color||"";document.getElementById("sku-retail").value=Number(m.retailPrice)||0;document.getElementById("sku-memo").value=m.memo||"";document.getElementById("sku-code").focus();}
-function deleteSku(code){if(!confirm("SKU MASTER에서 "+code+" 항목을 삭제할까요?"))return;BAK("SKU MASTER 삭제");SKUDB=SKUDB.filter(function(x){return x.itemCode!==code;});SC();rSku();REPAINT();}
-function selectedSkuCodes(){return Array.prototype.slice.call(document.querySelectorAll(".skuchk:checked")).map(function(x){return x.getAttribute("data-code");}).filter(Boolean);}
-function updateSkuSelectInfo(){var n=selectedSkuCodes().length,e=document.getElementById("sku-sel-info");if(e)e.textContent="선택 "+n+"건";var all=document.getElementById("sku-check-all"),boxes=document.querySelectorAll(".skuchk");if(all){all.checked=boxes.length>0&&n===boxes.length;all.indeterminate=n>0&&n<boxes.length;}}
-function deleteSelectedSku(){var codes=selectedSkuCodes();if(!codes.length){alert("삭제할 SKU를 선택해주세요.");return;}if(!confirm("선택한 SKU MASTER "+codes.length+"건을 삭제할까요?"))return;if(!confirm("정말 삭제하시겠습니까? 복구가 필요하면 실행취소를 사용하세요."))return;var m={};codes.forEach(function(c){m[c]=true;});BAK("SKU MASTER 선택삭제 "+codes.length+"건");SKUDB=SKUDB.filter(function(x){return !m[x.itemCode];});SC();rSku();REPAINT();}
+function fillPurchaseSkuOptions(){
+  var dl=document.getElementById("sku-options");
+  if(!dl)return;
+  var rows=(SKUDB||[]).slice().sort(function(a,b){return String(a.itemCode||"").localeCompare(String(b.itemCode||""));});
+  var h="";
+  for(var i=0;i<rows.length;i++){
+    var x=rows[i]||{}, code=String(x.itemCode||"").trim();
+    if(!code)continue;
+    var label=[x.productName,x.brand,x.category].filter(Boolean).join(" / ");
+    h+='<option value="'+escHtml(code)+'" label="'+escHtml(label)+'"></option>';
+  }
+  dl.innerHTML=h;
+}
+function findSkuLoose(v){
+  v=String(v||"").trim();
+  if(!v)return null;
+  var exact=skuFind(v);
+  if(exact)return exact;
+  var q=v.toLowerCase();
+  for(var i=0;i<SKUDB.length;i++){
+    var x=SKUDB[i]||{};
+    var hay=[x.itemCode,x.productName,x.brand,x.category,x.color].join(" ").toLowerCase();
+    if(hay.indexOf(q)>=0)return x;
+  }
+  return null;
+}
+function applySkuToPurchase(){
+  var inp=document.getElementById("p-cd");
+  if(!inp)return;
+  var m=findSkuLoose(inp.value);
+  if(!m){SM("pi-msg","mw","SKU MASTER에서 일치하는 품번을 찾지 못했습니다. 직접 입력값으로 저장할 수 있습니다.");return;}
+  inp.value=m.itemCode||"";
+  var e;
+  e=document.getElementById("p-nm");if(e)e.value=m.productName||"";
+  e=document.getElementById("p-br");if(e)e.value=m.brand||"";
+  e=document.getElementById("p-ct");if(e)e.value=m.category||"";
+  e=document.getElementById("p-cl");if(e)e.value=m.color||"";
+  e=document.getElementById("p-rp");if(e)e.value=Number(m.retailPrice)||"";
+  if(m.sizeType)ST(m.sizeType);
+  SM("pi-msg","mi","SKU MASTER 정보 적용: "+(m.itemCode||"")+" / "+(m.productName||""));
+}
 function deleteAllSku(){
   if(!SKUDB.length){alert("삭제할 SKU MASTER 데이터가 없습니다.");return;}
   if(!confirm("SKU MASTER 전체 "+SKUDB.length+"건을 삭제할까요?"))return;
@@ -249,11 +284,17 @@ function deleteAllSku(){
   BAK("SKU MASTER 전체삭제 "+SKUDB.length+"건");
   SKUDB=[];
   clearSkuForm();
-  SC();
-  rSku();
-  REPAINT();
+  SC();rSku();fillPurchaseSkuOptions();REPAINT();
 }
-function importSkuFromPurchase(){var add=0,upd=0,map={};for(var i=0;i<PDB.length;i++){var it=PDB[i],code=it.itemCode;if(!code)continue;if(!map[code]||(it.date||"")>(map[code].date||""))map[code]=it;}BAK("매입DB에서 SKU MASTER 생성");Object.keys(map).forEach(function(code){var it=map[code],old=skuFind(code),row={id:code,itemCode:code,productName:it.productName||"",brand:it.brand||"",category:it.category||"",sizeType:it.sizeType||"shoe",color:it.color||"",retailPrice:Number(it.retailPrice)||0,memo:"",updated_at:new Date().toISOString()};if(old){["productName","brand","category","sizeType","color","retailPrice"].forEach(function(k){if(row[k]&&!old[k])old[k]=row[k];});old.updated_at=row.updated_at;upd++;}else{SKUDB.unshift(row);add++;}});SC();rSku();REPAINT();SM("sku-msg","ms","✓ SKU MASTER 생성 완료: 신규 "+add+"건 / 보완 "+upd+"건");}
+
+function clearSkuForm(){["sku-code","sku-name","sku-brand","sku-color","sku-retail","sku-memo"].forEach(function(id){var e=document.getElementById(id);if(e)e.value="";});var c=document.getElementById("sku-category");if(c)c.value="";var st=document.getElementById("sku-sizetype");if(st)st.value="shoe";}
+function saveSku(){var code=(document.getElementById("sku-code").value||"").trim();var name=(document.getElementById("sku-name").value||"").trim();if(!code||!name){SM("sku-msg","md","품번과 품명은 필수입니다.");return;}var row={id:code,itemCode:code,productName:name,brand:document.getElementById("sku-brand").value||"",category:document.getElementById("sku-category").value||"",sizeType:document.getElementById("sku-sizetype").value||"shoe",color:document.getElementById("sku-color").value||"",retailPrice:parseFloat(document.getElementById("sku-retail").value)||0,memo:document.getElementById("sku-memo").value||"",updated_at:new Date().toISOString()};var old=skuFind(code);BAK(old?"SKU MASTER 수정":"SKU MASTER 저장");if(old){for(var k in row)old[k]=row[k];}else SKUDB.unshift(row);SC();rSku();fillPurchaseSkuOptions();FSC();SM("sku-msg","ms","✓ SKU MASTER 저장 완료");}
+function editSku(code){var m=skuFind(code);if(!m)return;document.getElementById("sku-code").value=m.itemCode||"";document.getElementById("sku-name").value=m.productName||"";document.getElementById("sku-brand").value=m.brand||"";document.getElementById("sku-category").value=m.category||"";document.getElementById("sku-sizetype").value=m.sizeType||"shoe";document.getElementById("sku-color").value=m.color||"";document.getElementById("sku-retail").value=Number(m.retailPrice)||0;document.getElementById("sku-memo").value=m.memo||"";document.getElementById("sku-code").focus();}
+function deleteSku(code){if(!confirm("SKU MASTER에서 "+code+" 항목을 삭제할까요?"))return;BAK("SKU MASTER 삭제");SKUDB=SKUDB.filter(function(x){return x.itemCode!==code;});SC();rSku();fillPurchaseSkuOptions();REPAINT();}
+function selectedSkuCodes(){return Array.prototype.slice.call(document.querySelectorAll(".skuchk:checked")).map(function(x){return x.getAttribute("data-code");}).filter(Boolean);}
+function updateSkuSelectInfo(){var n=selectedSkuCodes().length,e=document.getElementById("sku-sel-info");if(e)e.textContent="선택 "+n+"건";var all=document.getElementById("sku-check-all"),boxes=document.querySelectorAll(".skuchk");if(all){all.checked=boxes.length>0&&n===boxes.length;all.indeterminate=n>0&&n<boxes.length;}}
+function deleteSelectedSku(){var codes=selectedSkuCodes();if(!codes.length){alert("삭제할 SKU를 선택해주세요.");return;}if(!confirm("선택한 SKU MASTER "+codes.length+"건을 삭제할까요?"))return;if(!confirm("정말 삭제하시겠습니까? 복구가 필요하면 실행취소를 사용하세요."))return;var m={};codes.forEach(function(c){m[c]=true;});BAK("SKU MASTER 선택삭제 "+codes.length+"건");SKUDB=SKUDB.filter(function(x){return !m[x.itemCode];});SC();rSku();fillPurchaseSkuOptions();REPAINT();}
+function importSkuFromPurchase(){var add=0,upd=0,map={};for(var i=0;i<PDB.length;i++){var it=PDB[i],code=it.itemCode;if(!code)continue;if(!map[code]||(it.date||"")>(map[code].date||""))map[code]=it;}BAK("매입DB에서 SKU MASTER 생성");Object.keys(map).forEach(function(code){var it=map[code],old=skuFind(code),row={id:code,itemCode:code,productName:it.productName||"",brand:it.brand||"",category:it.category||"",sizeType:it.sizeType||"shoe",color:it.color||"",retailPrice:Number(it.retailPrice)||0,memo:"",updated_at:new Date().toISOString()};if(old){["productName","brand","category","sizeType","color","retailPrice"].forEach(function(k){if(row[k]&&!old[k])old[k]=row[k];});old.updated_at=row.updated_at;upd++;}else{SKUDB.unshift(row);add++;}});SC();rSku();fillPurchaseSkuOptions();REPAINT();SM("sku-msg","ms","✓ SKU MASTER 생성 완료: 신규 "+add+"건 / 보완 "+upd+"건");}
 function rSku(){var q=(document.getElementById("sku-search")&&document.getElementById("sku-search").value||"").toLowerCase(),cf=(document.getElementById("sku-cat-filter")&&document.getElementById("sku-cat-filter").value)||"";var L=[];for(var i=0;i<SKUDB.length;i++){var it=SKUDB[i];var m=!q||[it.itemCode,it.productName,it.brand,it.memo].some(function(v){return(v||"").toLowerCase().indexOf(q)>=0;});if(m&&(!cf||it.category===cf))L.push(it);}L.sort(function(a,b){return String(a.itemCode||"").localeCompare(String(b.itemCode||""));});var cnt=document.getElementById("sku-count");if(cnt)cnt.textContent="SKU "+L.length+"건 / 전체 "+SKUDB.length+"건";if(!L.length){document.getElementById("skuw").innerHTML="<div class=\"emp\">SKU MASTER 데이터가 없습니다.</div>";updateSkuSelectInfo();return;}var h="<table class=\"mt\"><thead><tr><th style=\"text-align:center\"><input type=\"checkbox\" id=\"sku-check-all\"></th><th>품번</th><th>품명</th><th>브랜드</th><th>카테고리</th><th>사이즈타입</th><th>컬러</th><th class=\"r\">소비자가</th><th>메모</th><th>수정</th><th>삭제</th></tr></thead><tbody>";for(var j=0;j<L.length;j++){var x=L[j];h+="<tr><td style=\"text-align:center\"><input type=\"checkbox\" class=\"skuchk\" data-code=\""+(x.itemCode||"")+"\"></td><td class=\"cl-tl bld\">"+(x.itemCode||"")+"</td><td>"+(x.productName||"")+"</td><td>"+(x.brand||"")+"</td><td>"+(x.category||"")+"</td><td>"+(x.sizeType||"")+"</td><td>"+(x.color||"")+"</td><td class=\"r\">"+(x.retailPrice?"₩"+Number(x.retailPrice).toLocaleString():"")+"</td><td class=\"cl-sl\" style=\"max-width:180px;overflow:hidden;text-overflow:ellipsis\">"+(x.memo||"")+"</td><td><button class=\"xbtn\" data-sku-edit=\""+x.itemCode+"\">수정</button></td><td><button class=\"bd_\" data-sku-del=\""+x.itemCode+"\">삭제</button></td></tr>";}h+="</tbody></table>";document.getElementById("skuw").innerHTML=h;document.querySelectorAll("#skuw button[data-sku-edit]").forEach(function(b){b.onclick=function(){editSku(this.getAttribute("data-sku-edit"));};});document.querySelectorAll("#skuw button[data-sku-del]").forEach(function(b){b.onclick=function(){deleteSku(this.getAttribute("data-sku-del"));};});document.querySelectorAll(".skuchk").forEach(function(chk){chk.onchange=updateSkuSelectInfo;});var all=document.getElementById("sku-check-all");if(all)all.onchange=function(){document.querySelectorAll(".skuchk").forEach(function(chk){chk.checked=all.checked;});updateSkuSelectInfo();};updateSkuSelectInfo();}
 function NSZ(sz){
   var x=String(sz==null?"":sz).trim().toUpperCase();
@@ -504,88 +545,32 @@ function rMar(){
   document.querySelectorAll("#marw th.sortable").forEach(function(th){th.onclick=function(){var k=this.getAttribute("data-k");if(marSk===k)marSd=marSd==="desc"?"asc":"desc";else{marSk=k;marSd="desc";}rMar();};});
 }
 function EX(type){if(!window.XLSX){alert("쟠시 후 다시 시도해주세요.");return;}var wb=XLSX.utils.book_new(),ws,name;if(type==="sku"){var rows0=[];for(var si=0;si<SKUDB.length;si++){var x=SKUDB[si];rows0.push({"품번":x.itemCode,"품명":x.productName,"브랜드":x.brand,"카테고리":x.category,"사이즈타입":x.sizeType,"컬러":x.color,"소비자가":x.retailPrice,"메모":x.memo});}ws=XLSX.utils.json_to_sheet(rows0);name="SKU_MASTER";}else if(type==="purchase"){var rows=[],grp=groupByCode(PDB);for(var gi=0;gi<grp.order.length;gi++){var g=grp.map[grp.order[gi]],sz="",ks=Object.keys(g.sizes);for(var k=0;k<ks.length;k++)if(Number(g.sizes[ks[k]])>0)sz+=(sz?", ":"")+ks[k]+":"+g.sizes[ks[k]];rows.push({"품번":g.itemCode,"품명":g.productName,"브랜드":g.brand,"최근입고일":g.latestDate,"입고횟수":g.records.length,"사이즈별합산":sz,"총수량":g.quantity,"매입역액":g.totalPrice,"매입평균가(개당)":g.avgPrice});}ws=XLSX.utils.json_to_sheet(rows);name="매입DB";}else if(type==="sales"){var rows2=[];for(var j=0;j<SDB.length;j++){var it2=SDB[j],s2=it2.sizes||{},ks2=Object.keys(s2),sz2="";for(var k2=0;k2<ks2.length;k2++)if(Number(s2[ks2[k2]])>0)sz2+=(sz2?", ":"")+ks2[k2]+":"+s2[ks2[k2]];rows2.push({"날짜":it2.date||it2.period,"기간":it2.periodLabel,"단위":it2.unit==="week"?"주":"월","품번":it2.itemCode,"품명":it2.productName,"사이즈별판매":sz2,"판매수량":it2.soldQty,"정산단가":it2.salePrice,"매출평균가(개당)":((Number(it2.soldQty)||0)>0?Math.round(SA(it2)/(Number(it2.soldQty)||0)):0),"정산금액":SA(it2),"수수료":SF(it2),"매출액":SG(it2),"채널":it2.channel,"메모":it2.memo});}ws=XLSX.utils.json_to_sheet(rows2);name="매출DB";}else if(type==="stock"){var stock=calcStk(),rows3=[];for(var si=0;si<stock.length;si++){var st=stock[si],sz3="",ks3=Object.keys(st.remSizes);for(var k3=0;k3<ks3.length;k3++)if(Number(st.remSizes[ks3[k3]])!==0)sz3+=(sz3?", ":"")+ks3[k3]+":"+st.remSizes[ks3[k3]];rows3.push({"품번":st.itemCode,"품명":st.productName,"브랜드":st.brand,"최근입고일":st.latestDate,"매입수량":st.boughtQty,"판매수량":st.soldQty,"현재고":st.remQty,"사이즈별현재고":sz3,"평균매입가":st.avgPrice,"현재고매입금액":st.remValue,"상태":st.remQty<0?"재고부족":(st.remQty===0?"소진":"재고있음")});}ws=XLSX.utils.json_to_sheet(rows3);name="현재고";}else{var mr=calcMargin(),rows4=[];for(var mi=0;mi<mr.length;mi++){var m=mr[mi];rows4.push({"품번":m.itemCode,"품명":m.productName,"브랜드":m.brand,"매입수량":m.boughtQty,"판매수량":m.soldQty,"현재고":m.remQty,"평균원가":m.avgPrice,"잔여매입가":m.remValue,"정산금액":m.totalSales,"수수료":m.totalFee||0,"매출액":m.grossSales||m.totalSales,"추정원가":m.costKnown?m.cogs:"원가미확인","마진액":m.grossProfit,"마진율":m.totalSales>0?m.marginRate.toFixed(1)+"%":"","상태":!m.costKnown&&m.soldQty>0?"원가미확인":(m.remQty<0?"재고부족":"정상")});}ws=XLSX.utils.json_to_sheet(rows4);name="SKU별판매마진";}XLSX.utils.book_append_sheet(wb,ws,name);XLSX.writeFile(wb,"LEESFACT_"+name+"_"+today()+".xlsx");}
-function bindEvents(){
-  function el(id){return document.getElementById(id);}
-  function on(id,evt,fn){var e=el(id);if(e)e[evt]=fn;}
+document.getElementById("btn-undo").onclick=UNDO;UUI();
+document.getElementById("tab-pi").onclick=function(){GT("pi");};document.getElementById("tab-pdb").onclick=function(){GT("pdb");};document.getElementById("tab-si").onclick=function(){GT("si");};document.getElementById("tab-sdb").onclick=function(){GT("sdb");};document.getElementById("tab-stk").onclick=function(){GT("stk");};document.getElementById("tab-mar").onclick=function(){GT("mar");};
+document.getElementById("st-shoe").onclick=function(){ST("shoe");};document.getElementById("st-cloth").onclick=function(){ST("cloth");};document.getElementById("st-free").onclick=function(){ST("free");};
+document.getElementById("p-sp").oninput=CGT;document.getElementById("btn-manual").onclick=SVM;document.getElementById("btn-pj").onclick=PJsave;
+document.getElementById("btn-ref-p").onclick=LA;document.getElementById("btn-exp-p").onclick=function(){EX("purchase");};document.getElementById("ps").oninput=rP;document.getElementById("p-from").onchange=rP;document.getElementById("p-to").onchange=rP;document.getElementById("btn-p-date-clear").onclick=function(){document.getElementById("p-from").value="";document.getElementById("p-to").value="";rP();};document.getElementById("pcf").onchange=rP;document.getElementById("ptf").onchange=rP;
+document.getElementById("uw").onclick=function(){SU("week");};document.getElementById("um").onclick=function(){SU("month");};
+document.getElementById("si-pd").oninput=UPL;document.getElementById("si-pr").oninput=CST;document.getElementById("si-fee").oninput=CST;
+document.getElementById("si-cd").onchange=function(){RSG2();document.getElementById("si-qd").textContent="0";document.getElementById("si-pu").textContent="₩0";document.getElementById("si-td").textContent="₩0";};
+document.getElementById("btn-sales").onclick=SVS;document.getElementById("btn-sj").onclick=SJsave;
+document.getElementById("btn-ref-s").onclick=LA;document.getElementById("btn-exp-s").onclick=function(){EX("sales");};document.getElementById("btn-del-sel-p").onclick=function(){deletePurchasesByIds(selectedPurchaseIds());};document.getElementById("btn-del-all-p").onclick=deleteAllPurchases;document.getElementById("btn-save-purchase-edit").onclick=savePurchaseEdit;document.getElementById("btn-cancel-purchase-edit").onclick=hidePurchaseEdit;document.getElementById("btn-del-sel-s").onclick=function(){deleteSalesByIds(selectedSalesIds());};document.getElementById("btn-del-all-s").onclick=deleteAllSales;document.getElementById("btn-save-sale-edit").onclick=saveSaleEdit;document.getElementById("btn-cancel-sale-edit").onclick=hideSaleEdit;document.getElementById("ss").oninput=rS;document.getElementById("s-from").onchange=rS;document.getElementById("s-to").onchange=rS;document.getElementById("btn-s-date-clear").onclick=function(){document.getElementById("s-from").value="";document.getElementById("s-to").value="";rS();};document.getElementById("suf").onchange=rS;
+document.getElementById("btn-ref-stk").onclick=rStk;document.getElementById("btn-exp-stk").onclick=function(){EX("stock");};document.getElementById("stks").oninput=rStk;document.getElementById("stkf").onchange=rStk;document.getElementById("btn-ref-mar").onclick=rMar;document.getElementById("btn-exp-mar").onclick=function(){EX("margin");};document.getElementById("mars").oninput=rMar;document.getElementById("marf").onchange=rMar;
 
-  on("btn-undo","onclick",UNDO);UUI();
-
-  // 탭 이동
-  on("tab-sku","onclick",function(){GT("sku");});
-  on("tab-pi","onclick",function(){GT("pi");});
-  on("tab-pdb","onclick",function(){GT("pdb");});
-  on("tab-si","onclick",function(){GT("si");});
-  on("tab-sdb","onclick",function(){GT("sdb");});
-  on("tab-stk","onclick",function(){GT("stk");});
-  on("tab-mar","onclick",function(){GT("mar");});
-
-  // SKU MASTER
-  on("btn-sku-save","onclick",saveSku);
-  on("btn-sku-clear","onclick",clearSkuForm);
-  on("btn-sku-import","onclick",importSkuFromPurchase);
-  on("btn-sku-del-sel","onclick",deleteSelectedSku);
-  on("btn-sku-del-all","onclick",deleteAllSku);
-  on("btn-ref-sku","onclick",function(){LA();});
-  on("btn-exp-sku","onclick",function(){EX("sku");});
-  on("sku-search","oninput",rSku);
-  on("sku-cat-filter","onchange",rSku);
-
-  // 매입 입력/DB
-  on("st-shoe","onclick",function(){ST("shoe");});
-  on("st-cloth","onclick",function(){ST("cloth");});
-  on("st-free","onclick",function(){ST("free");});
-  on("p-sp","oninput",CGT);
-  on("btn-manual","onclick",SVM);
-  on("btn-pj","onclick",PJsave);
-  on("btn-ref-p","onclick",LA);
-  on("btn-exp-p","onclick",function(){EX("purchase");});
-  on("ps","oninput",rP);
-  on("p-from","onchange",rP);
-  on("p-to","onchange",rP);
-  on("btn-p-date-clear","onclick",function(){if(el("p-from"))el("p-from").value="";if(el("p-to"))el("p-to").value="";rP();});
-  on("pcf","onchange",rP);
-  on("ptf","onchange",rP);
-  on("btn-del-sel-p","onclick",function(){deletePurchasesByIds(selectedPurchaseIds());});
-  on("btn-del-all-p","onclick",deleteAllPurchases);
-  on("btn-save-purchase-edit","onclick",savePurchaseEdit);
-  on("btn-cancel-purchase-edit","onclick",hidePurchaseEdit);
-
-  // 매출 입력/DB
-  on("uw","onclick",function(){SU("week");});
-  on("um","onclick",function(){SU("month");});
-  on("si-pd","oninput",UPL);
-  on("si-pr","oninput",CST);
-  on("si-fee","oninput",CST);
-  on("si-cd","onchange",function(){RSG2();if(el("si-qd"))el("si-qd").textContent="0";if(el("si-pu"))el("si-pu").textContent="₩0";if(el("si-td"))el("si-td").textContent="₩0";});
-  on("btn-sales","onclick",SVS);
-  on("btn-sj","onclick",SJsave);
-  on("btn-ref-s","onclick",LA);
-  on("btn-exp-s","onclick",function(){EX("sales");});
-  on("btn-del-sel-s","onclick",function(){deleteSalesByIds(selectedSalesIds());});
-  on("btn-del-all-s","onclick",deleteAllSales);
-  on("btn-save-sale-edit","onclick",saveSaleEdit);
-  on("btn-cancel-sale-edit","onclick",hideSaleEdit);
-  on("ss","oninput",rS);
-  on("s-from","onchange",rS);
-  on("s-to","onchange",rS);
-  on("btn-s-date-clear","onclick",function(){if(el("s-from"))el("s-from").value="";if(el("s-to"))el("s-to").value="";rS();});
-  on("suf","onchange",rS);
-
-  // 현재고/마진
-  on("btn-ref-stk","onclick",rStk);
-  on("btn-exp-stk","onclick",function(){EX("stock");});
-  on("stks","oninput",rStk);
-  on("stkf","onchange",rStk);
-  on("btn-ref-mar","onclick",rMar);
-  on("btn-exp-mar","onclick",function(){EX("margin");});
-  on("mars","oninput",rMar);
-  on("marf","onchange",rMar);
-}
-
-bindEvents();
-var _pdt=document.getElementById("p-dt");if(_pdt)_pdt.value=today();
-RSG();
-LA();
+function bindSafe(id,ev,fn){var e=document.getElementById(id);if(e)e[ev]=fn;}
+bindSafe("tab-sku","onclick",function(){GT("sku");});
+bindSafe("btn-sku-save","onclick",saveSku);
+bindSafe("btn-sku-clear","onclick",clearSkuForm);
+bindSafe("btn-sku-import","onclick",importSkuFromPurchase);
+bindSafe("btn-sku-del-sel","onclick",deleteSelectedSku);
+bindSafe("btn-sku-del-all","onclick",deleteAllSku);
+bindSafe("btn-ref-sku","onclick",LA);
+bindSafe("btn-exp-sku","onclick",function(){EX("sku");});
+bindSafe("sku-search","oninput",rSku);
+bindSafe("sku-cat-filter","onchange",rSku);
+bindSafe("btn-p-sku-apply","onclick",applySkuToPurchase);
+bindSafe("p-cd","onchange",applySkuToPurchase);
+document.getElementById("p-dt").value=today();RSG();LA();
 </script>
 <!-- LEESFACT build: date-range-filter-v1 -->
 </body></html>

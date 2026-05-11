@@ -159,7 +159,7 @@ table.mt tr.sub-row:hover{background:#060d1a}
 <div class="st-row"><span style="font-size:10px;color:#64748b;text-transform:uppercase">사이즈 타입:</span><button class="stb on" id="st-shoe">👟 신발(mm)</button><button class="stb" id="st-cloth">👕 의류</button><button class="stb" id="st-free">FREE</button></div>
 <div class="sgw"><table class="sg" id="sgt"></table></div>
 <div class="gtbar"><div class="gi"><div class="gl">전체 수량</div><div class="gv" id="gt-q">0</div></div><div class="gi"><div class="gl">공급단가</div><div class="gv" id="gt-u">₩0</div></div><div class="gi"><div class="gl">매입 금액</div><div class="gv g" id="gt-t">₩0</div></div><button class="bp" id="btn-manual" style="margin-left:auto">☁ 저장</button></div></div>
-<div class="card"><div class="slbl">📋 Claude AI → 매입 JSON 붙여넣기</div><p style="font-size:11px;color:#64748b;margin-bottom:10px;line-height:1.7">Claude 대화잡에 이미지·엑셋 올리고 "매입 JSON으로 변환해줘" → 아래에 붙여넣고 저장</p><div class="fg"><label class="fl">JSON 데이터</label><textarea id="pj-paste" rows="3" placeholder='[{"date":"2026-01-15","itemCode":"JP7147","brand":"ADIDAS","sizeType":"shoe","sizes":{"225":5,"230":15},"supplyPrice":135850}]'></textarea></div><button class="bp" id="btn-pj">☁ 매입 JSON 저장</button></div></div>
+<div class="card"><div class="slbl">📋 Claude AI → 매입 JSON 붙여넣기</div><p style="font-size:11px;color:#64748b;margin-bottom:10px;line-height:1.7">Claude 대화잡에 이미지·엑셋 올리고 "매입 JSON으로 변환해줘" → 아래에 붙여넣고 저장</p><div class="fg"><label class="fl">JSON 데이터</label><textarea id="pj-paste" rows="3" placeholder='[{"purchaseDate":"2025-11-21","itemCode":"JP7147","brand":"ADIDAS","sizeType":"shoe","sizes":{"225":5,"230":15},"unitPrice":135850}]'></textarea></div><button class="bp" id="btn-pj">☁ 매입 JSON 저장</button></div></div>
 <div id="pg-pdb" class="pg"><div class="tool-row"><button class="bg_" id="btn-exp-p">⬇ Excel</button><button class="bs" id="btn-ref-p">↻ 새로고침</button><button class="bd_" id="btn-del-sel-p">선택삭제</button><button class="bd_" id="btn-del-all-p">전체삭제</button><span id="p-sel-info" style="font-size:10px;color:#64748b">선택 0건</span></div><div class="mcs" id="pmcs"></div>
 <div id="p-edit-card" class="card" style="display:none">
   <div class="slbl">✏️ 매입 수정</div>
@@ -418,7 +418,96 @@ function RSG(){var tb=document.getElementById("sgt");if(!tb)return;if(sType==="f
 function GQ(){var sz=sType==="shoe"?SHOE:sType==="cloth"?CLOTH:["FREE"];var o={},t=0;for(var i=0;i<sz.length;i++){var el=document.getElementById("sz-"+sz[i]),v=el?(parseFloat(el.value)||0):0;if(v>0)o[String(sz[i])]=v;t+=v;}return{obj:o,tot:t};}
 function CGT(){var r=GQ(),sp=parseFloat(document.getElementById("p-sp").value)||0;var q=document.getElementById("gt-q"),u=document.getElementById("gt-u"),t=document.getElementById("gt-t"),s=document.getElementById("sg-tot");if(q)q.textContent=r.tot.toLocaleString();if(u)u.textContent="₩"+sp.toLocaleString();if(t)t.textContent="₩"+(r.tot*sp).toLocaleString();if(s)s.textContent=r.tot.toLocaleString();}
 function SVM(){var dt=document.getElementById("p-dt").value,cd=(document.getElementById("p-cd").value||"").trim();if(!dt||!cd){SM("pi-msg","md","날짜와 품번은 필수입니다.");return;}var r=GQ(),sp=parseFloat(document.getElementById("p-sp").value)||0;BAK("매입 직접입력 저장");PDB.unshift({id:String(Date.now()),date:dt,itemCode:cd,productName:document.getElementById("p-nm").value,brand:document.getElementById("p-br").value,setNo:document.getElementById("p-sn").value,category:document.getElementById("p-ct").value,sizeType:sType,sizes:r.obj,color:document.getElementById("p-cl").value,retailPrice:parseFloat(document.getElementById("p-rp").value)||0,unitPrice:sp,supplyPrice:sp,quantity:r.tot,totalPrice:r.tot*sp,memo:document.getElementById("p-mm").value});UH();["p-cd","p-nm","p-br","p-sn","p-cl","p-rp","p-sp","p-mm"].forEach(function(id){var e=document.getElementById(id);if(e)e.value="";});var ct=document.getElementById("p-ct");if(ct)ct.value="";document.getElementById("p-dt").value=today();RSG();CGT();SC();SM("pi-msg","ms","✓ 저장 완료!");}
-function PJsave(){var raw=(document.getElementById("pj-paste").value||"").trim();if(!raw){SM("pi-msg","md","JSON을 붙여넣어주세요.");return;}var items;try{items=JSON.parse(raw);}catch(e){SM("pi-msg","md","JSON 오류: "+e.message);return;}if(!Array.isArray(items))items=[items];var ts=Date.now(),sv=[];for(var i=0;i<items.length;i++){var it=items[i],s=it.sizes||{},ks=Object.keys(s),tot=0;for(var k=0;k<ks.length;k++)tot+=parseFloat(s[ks[k]])||0;var sp=parseFloat(it.supplyPrice||it.unitPrice)||0;sv.push({id:String(ts)+"_"+i,date:it.date||today(),itemCode:it.itemCode||"",productName:it.productName||"",brand:it.brand||"",setNo:it.setNo||"",category:it.category||"신발",sizeType:it.sizeType||"shoe",sizes:s,color:it.color||"",retailPrice:parseFloat(it.retailPrice)||0,unitPrice:sp,supplyPrice:sp,quantity:tot,totalPrice:tot*sp,memo:it.memo||""});}BAK("매입 JSON "+sv.length+"건 저장");PDB=sv.concat(PDB);UH();document.getElementById("pj-paste").value="";SC();SM("pi-msg","ms","✓ "+sv.length+"개 저장 완료!");}
+function normPurchaseDate(it){
+  var v = (it && (it.date || it.purchaseDate || it.orderDate || it.purchasedAt || it.buyDate)) || "";
+  v = String(v || "").trim();
+
+  if(!v) return "";
+
+  // 2025-11-21 / 2025.11.21 / 2025/11/21
+  var m = v.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})$/);
+  if(m){
+    return m[1]+"-"+String(m[2]).padStart(2,"0")+"-"+String(m[3]).padStart(2,"0");
+  }
+
+  // 25.11.21 / 25-11-21 / 25/11/21
+  m = v.match(/^(\d{2})[-./](\d{1,2})[-./](\d{1,2})$/);
+  if(m){
+    return "20"+m[1]+"-"+String(m[2]).padStart(2,"0")+"-"+String(m[3]).padStart(2,"0");
+  }
+
+  // 12.09.2025처럼 일.월.년 형식도 대응
+  m = v.match(/^(\d{1,2})[-./](\d{1,2})[-./](\d{4})$/);
+  if(m){
+    return m[3]+"-"+String(m[2]).padStart(2,"0")+"-"+String(m[1]).padStart(2,"0");
+  }
+
+  return v.slice(0,10);
+}
+
+function PJsave(){
+  var raw=(document.getElementById("pj-paste").value||"").trim();
+  if(!raw){SM("pi-msg","md","JSON을 붙여넣어주세요.");return;}
+
+  var items;
+  try{items=JSON.parse(raw);}
+  catch(e){SM("pi-msg","md","JSON 오류: "+e.message);return;}
+
+  if(!Array.isArray(items))items=[items];
+
+  var ts=Date.now(),sv=[],missingDate=0;
+
+  for(var i=0;i<items.length;i++){
+    var it=items[i]||{},
+        s=NSZO(it.sizes||{}),
+        ks=Object.keys(s),
+        tot=0;
+
+    for(var k=0;k<ks.length;k++)tot+=parseFloat(s[ks[k]])||0;
+
+    var sp=parseFloat(it.supplyPrice||it.unitPrice)||0;
+    var total=Number(it.totalPrice);
+    if(!total) total = tot*sp;
+
+    var pDate = normPurchaseDate(it);
+    if(!pDate){pDate=today();missingDate++;}
+
+    sv.push({
+      id:String(ts)+"_"+i,
+      date:pDate,
+      purchaseDate:pDate,
+      itemCode:it.itemCode||it.productCode||"",
+      productName:it.productName||"",
+      brand:it.brand||"",
+      setNo:it.setNo||it.purchaseId||it.orderNumber||"",
+      category:it.category||"신발",
+      sizeType:it.sizeType||"shoe",
+      sizes:s,
+      color:it.color||"",
+      retailPrice:parseFloat(it.retailPrice)||0,
+      unitPrice:sp,
+      supplyPrice:sp,
+      quantity:tot,
+      totalPrice:total,
+      channel:it.channel||"",
+      seller:it.seller||"",
+      status:it.status||"",
+      memo:it.memo||""
+    });
+  }
+
+  BAK("매입 JSON "+sv.length+"건 저장");
+  PDB=sv.concat(PDB);
+  UH();
+  document.getElementById("pj-paste").value="";
+  SC();
+
+  if(missingDate){
+    SM("pi-msg","mw","✓ "+sv.length+"개 저장 완료. 단, 날짜 필드가 없는 "+missingDate+"건은 오늘 날짜로 저장되었습니다.");
+  }else{
+    SM("pi-msg","ms","✓ "+sv.length+"개 저장 완료!");
+  }
+}
 function groupByCode(arr){var map={},order=[];for(var i=0;i<arr.length;i++){var it=arr[i],code=it.itemCode||"(품번없음)";if(!map[code]){map[code]={itemCode:code,productName:it.productName,brand:it.brand,category:it.category,sizeType:it.sizeType,sizes:{},quantity:0,totalPrice:0,avgPrice:0,records:[],latestDate:""};order.push(code);}var g=map[code];if((it.date||"")>g.latestDate){g.latestDate=it.date||"";g.productName=it.productName||g.productName;g.brand=it.brand||g.brand;}var s=it.sizes||{},ks=Object.keys(s);for(var k=0;k<ks.length;k++)g.sizes[ks[k]]=(g.sizes[ks[k]]||0)+(Number(s[ks[k]])||0);g.quantity+=Number(it.quantity)||0;g.totalPrice+=Number(it.totalPrice)||0;g.records.push(it);}for(var c=0;c<order.length;c++){var g2=map[order[c]];g2.avgPrice=g2.quantity>0?Math.round(g2.totalPrice/g2.quantity):0;}return{map:map,order:order};}
 function TH(l,k,sk,sd){var on=sk===k,arr=on?(sd==="desc"?" ↓":" ↑"):"";return"<th class=\"sortable\" data-k=\""+k+"\">"+l+"<span class=\"sarr"+(on?" son":"")+"\">" +arr+"</span></th>";}
 function SA(row){return window.LF_NET?LF_NET(row):(Number(row.settlementAmount!=null?row.settlementAmount:row.totalSales)||0);}

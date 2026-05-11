@@ -233,12 +233,13 @@ table.mt tr.sub-row:hover{background:#060d1a}
           <th>품명</th>
           <th>판매수량</th>
           <th>총매출</th>
+          <th>매입원가</th>
           <th>총마진</th>
           <th>마진율</th>
         </tr>
       </thead>
       <tbody id="margin-top-body">
-        <tr><td colspan="7" class="emp">데이터 분석 로딩중...</td></tr>
+        <tr><td colspan="8" class="emp">데이터 분석 로딩중...</td></tr>
       </tbody>
     </table>
   </div>
@@ -635,7 +636,111 @@ function anaData(){var rows=anaFilterSales(),cost=anaCostMap(),byCh={},byBrand={
 return{rows:rows,tot:tot,byCh:byCh,byBrand:byBrand,bySku:Object.keys(bySku).map(function(k){return bySku[k];}),bySize:bySize,trend:trend,range:anaRangeLabel(DVAL("ana-from"),DVAL("ana-to"))};}
 function drawPie(id,obj){var cv=document.getElementById(id);if(!cv)return;var ctx=cv.getContext("2d"),w=cv.clientWidth,h=cv.clientHeight;cv.width=w*2;cv.height=h*2;ctx.scale(2,2);ctx.clearRect(0,0,w,h);var data=Object.keys(obj).map(function(k){return{k:k,v:Number(obj[k])||0};}).filter(function(x){return x.v>0;}).sort(function(a,b){return b.v-a.v;});var total=data.reduce(function(a,b){return a+b.v;},0);if(!total){ctx.fillStyle="#64748b";ctx.font="12px monospace";ctx.fillText("데이터 없음",20,30);return;}var cx=w*0.34,cy=h*0.52,r=Math.min(w,h)*0.28,st=-Math.PI/2;var colors=["#0ea5e9","#22c55e","#f59e0b","#a855f7","#ef4444","#14b8a6","#eab308","#64748b"];for(var i=0;i<data.length;i++){var ang=data[i].v/total*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,st,st+ang);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.fill();st+=ang;}ctx.fillStyle="#e2e8f0";ctx.font="11px monospace";var lx=w*0.62,ly=35;for(var j=0;j<data.length&&j<8;j++){ctx.fillStyle=colors[j%colors.length];ctx.fillRect(lx,ly-9,9,9);ctx.fillStyle="#cbd5e1";ctx.fillText(data[j].k+" "+(data[j].v/total*100).toFixed(1)+"%",lx+15,ly);ly+=22;}}
 function drawBar(id,obj,limit){var cv=document.getElementById(id);if(!cv)return;var ctx=cv.getContext("2d"),w=cv.clientWidth,h=cv.clientHeight;cv.width=w*2;cv.height=h*2;ctx.scale(2,2);ctx.clearRect(0,0,w,h);var data=Object.keys(obj).map(function(k){return{k:k,v:Number(obj[k])||0};}).filter(function(x){return x.v>0;}).sort(function(a,b){return b.v-a.v;}).slice(0,limit||8);if(!data.length){ctx.fillStyle="#64748b";ctx.font="12px monospace";ctx.fillText("데이터 없음",20,30);return;}var max=Math.max.apply(null,data.map(function(x){return x.v;})),left=90,top=20,bh=Math.max(14,(h-45)/data.length-8),gap=8;ctx.font="10px monospace";for(var i=0;i<data.length;i++){var y=top+i*(bh+gap),bw=(w-left-30)*(data[i].v/max);ctx.fillStyle="#0ea5e9";ctx.fillRect(left,y,bw,bh);ctx.fillStyle="#cbd5e1";ctx.fillText(data[i].k.slice(0,12),10,y+bh-2);ctx.fillStyle="#94a3b8";ctx.fillText("₩"+Math.round(data[i].v).toLocaleString(),left+bw+5,y+bh-2);}}
-function drawLine(id,obj){var cv=document.getElementById(id);if(!cv)return;var ctx=cv.getContext("2d"),w=cv.clientWidth,h=cv.clientHeight;cv.width=w*2;cv.height=h*2;ctx.scale(2,2);ctx.clearRect(0,0,w,h);var keys=Object.keys(obj).sort(),vals=keys.map(function(k){return Number(obj[k])||0;});if(!keys.length){ctx.fillStyle="#64748b";ctx.font="12px monospace";ctx.fillText("데이터 없음",20,30);return;}var max=Math.max.apply(null,vals.concat([1])),pad=34;ctx.strokeStyle="#334155";ctx.beginPath();ctx.moveTo(pad,15);ctx.lineTo(pad,h-pad);ctx.lineTo(w-10,h-pad);ctx.stroke();ctx.strokeStyle="#22c55e";ctx.lineWidth=2;ctx.beginPath();for(var i=0;i<keys.length;i++){var x=pad+(w-pad-18)*(keys.length===1?0.5:i/(keys.length-1)),y=(h-pad)-(h-pad-25)*(vals[i]/max);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();ctx.fillStyle="#cbd5e1";ctx.font="10px monospace";for(var j=0;j<keys.length;j++){var x2=pad+(w-pad-18)*(keys.length===1?0.5:j/(keys.length-1)),y2=(h-pad)-(h-pad-25)*(vals[j]/max);ctx.beginPath();ctx.arc(x2,y2,3,0,Math.PI*2);ctx.fill();if(j===0||j===keys.length-1||keys.length<=6)ctx.fillText(keys[j],x2-20,h-10);}}
+function drawLine(id,obj){
+  var cv=document.getElementById(id);
+  if(!cv)return;
+  var ctx=cv.getContext("2d"),w=cv.clientWidth,h=cv.clientHeight;
+  cv.width=w*2;cv.height=h*2;ctx.scale(2,2);
+  ctx.clearRect(0,0,w,h);
+
+  var keys=Object.keys(obj).sort();
+  var vals=keys.map(function(k){return Number(obj[k])||0;});
+
+  if(!keys.length){
+    ctx.fillStyle="#64748b";
+    ctx.font="12px monospace";
+    ctx.fillText("데이터 없음",20,30);
+    return;
+  }
+
+  var rawMax=Math.max.apply(null,vals.concat([1]));
+  var unit=1000000; // 백만원 단위
+  var maxMil=Math.ceil(rawMax/unit);
+  if(maxMil<1)maxMil=1;
+
+  // 보기 좋은 Y축 최대값 보정
+  if(maxMil<=5) maxMil=5;
+  else if(maxMil<=10) maxMil=10;
+  else if(maxMil<=20) maxMil=20;
+  else maxMil=Math.ceil(maxMil/10)*10;
+
+  var max=maxMil*unit;
+
+  var padL=58, padR=14, padT=28, padB=34;
+  var plotW=w-padL-padR;
+  var plotH=h-padT-padB;
+
+  // 단위 표기
+  ctx.fillStyle="#64748b";
+  ctx.font="10px monospace";
+  ctx.textAlign="left";
+  ctx.fillText("단위: 백만원",padL,padT-10);
+
+  // Y축 눈금/그리드
+  var tickCount=5;
+  ctx.textAlign="right";
+  ctx.textBaseline="middle";
+  ctx.font="10px monospace";
+  for(var t=0;t<=tickCount;t++){
+    var tv=max/tickCount*t;
+    var y=padT+plotH-(plotH*(tv/max));
+    ctx.strokeStyle=t===0?"#334155":"rgba(148,163,184,.16)";
+    ctx.lineWidth=1;
+    ctx.beginPath();
+    ctx.moveTo(padL,y);
+    ctx.lineTo(w-padR,y);
+    ctx.stroke();
+
+    ctx.fillStyle="#94a3b8";
+    ctx.fillText(String(Math.round(tv/unit)),padL-8,y);
+  }
+
+  // 축
+  ctx.strokeStyle="#334155";
+  ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(padL,padT);
+  ctx.lineTo(padL,padT+plotH);
+  ctx.lineTo(w-padR,padT+plotH);
+  ctx.stroke();
+
+  // 라인
+  ctx.strokeStyle="#22c55e";
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  for(var i=0;i<keys.length;i++){
+    var x=padL+plotW*(keys.length===1?0.5:i/(keys.length-1));
+    var y=padT+plotH-(plotH*(vals[i]/max));
+    if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+
+  // 포인트 및 실제 매출 라벨
+  ctx.fillStyle="#cbd5e1";
+  ctx.font="10px monospace";
+  ctx.textAlign="center";
+  ctx.textBaseline="alphabetic";
+  for(var j=0;j<keys.length;j++){
+    var x2=padL+plotW*(keys.length===1?0.5:j/(keys.length-1));
+    var y2=padT+plotH-(plotH*(vals[j]/max));
+
+    ctx.beginPath();
+    ctx.arc(x2,y2,3,0,Math.PI*2);
+    ctx.fill();
+
+    // 데이터 값: 1.2백만 형태
+    ctx.fillStyle="#e2e8f0";
+    var label=(vals[j]/unit).toFixed(vals[j]>=unit?1:2).replace(/\.0$/,"");
+    ctx.fillText(label,x2,Math.max(14,y2-9));
+    ctx.fillStyle="#cbd5e1";
+
+    if(j===0||j===keys.length-1||keys.length<=8){
+      ctx.fillStyle="#94a3b8";
+      ctx.fillText(keys[j],x2,h-10);
+      ctx.fillStyle="#cbd5e1";
+    }
+  }
+}
 function rAna(){var d=anaData(),rate=d.tot.sales>0?d.tot.profit/d.tot.sales*100:0;var f=DVAL("ana-from"),t=DVAL("ana-to");document.getElementById("anamcs").innerHTML=MC("분석기간",d.range,"var(--tl)")+MC("판매수량",d.tot.qty.toLocaleString()+"개","var(--gn)")+MC("정산금액","₩"+Math.round(d.tot.sales).toLocaleString(),"var(--gn)")+MC("추정이익","₩"+Math.round(d.tot.profit).toLocaleString()+" ("+rate.toFixed(1)+"%)",d.tot.profit>=0?"var(--am)":"var(--rd)");document.getElementById("ana-channel-note").textContent=d.rows.length+"건";document.getElementById("ana-trend-note").textContent=f||t?"선택기간":"전체기간";drawPie("ana-channel",d.byCh);drawBar("ana-brand",d.byBrand,8);drawLine("ana-trend",d.trend);drawBar("ana-size",d.bySize,10);var sku=d.bySku.sort(function(a,b){return b.sales-a.sales;}).slice(0,10),h='<table class="mt"><thead><tr><th>순위</th><th>품번</th><th>품명</th><th>브랜드</th><th class="r">수량</th><th class="r">정산금액</th><th class="r">추정이익</th></tr></thead><tbody>';for(var i=0;i<sku.length;i++){var x=sku[i];h+='<tr><td>'+(i+1)+'</td><td class="cl-tl bld">'+x.itemCode+'</td><td>'+escHtml(x.productName||'')+'</td><td class="cl-sl">'+escHtml(x.brand||'')+'</td><td class="r">'+x.qty.toLocaleString()+'</td><td class="r cl-gn">₩'+Math.round(x.sales).toLocaleString()+'</td><td class="r '+(x.profit>=0?'cl-am':'cl-am')+'">₩'+Math.round(x.profit).toLocaleString()+'</td></tr>';}h+='</tbody></table>';document.getElementById("ana-top-sku").innerHTML=sku.length?h:'<div class="emp">분석할 매출 데이터가 없습니다.</div>';var stock=calcStk();var risk=stock.filter(function(x){return x.remQty>0&&x.soldQty===0;}).sort(function(a,b){return b.remValue-a.remValue;}).slice(0,10);var rh='<table class="mt"><thead><tr><th>체크</th><th>품번</th><th>품명</th><th class="r">현재고</th><th class="r">재고금액</th><th>권장 액션</th></tr></thead><tbody>';for(var r=0;r<risk.length;r++){var z=risk[r];rh+='<tr><td><span class="tag ta">미판매재고</span></td><td class="cl-tl bld">'+z.itemCode+'</td><td>'+escHtml(z.productName||'')+'</td><td class="r cl-gn">'+z.remQty.toLocaleString()+'</td><td class="r cl-am">₩'+Math.round(z.remValue).toLocaleString()+'</td><td class="cl-sl">가격조정 / 노출강화 / 채널전환 검토</td></tr>';}rh+='</tbody></table>';document.getElementById("ana-risk").innerHTML=risk.length?rh:'<div class="emp">큰 재고 리스크가 없습니다.</div>';}
 function EXA(){if(!window.XLSX){alert("잠시 후 다시 시도해주세요.");return;}var d=anaData(),wb=XLSX.utils.book_new();var summary=[{"분석기간":d.range,"판매건수":d.rows.length,"판매수량":d.tot.qty,"정산금액":Math.round(d.tot.sales),"수수료":Math.round(d.tot.fee),"추정원가":Math.round(d.tot.cogs),"추정이익":Math.round(d.tot.profit),"마진율":d.tot.sales>0?(d.tot.profit/d.tot.sales*100).toFixed(1)+"%":""}];XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(summary),"분석요약");XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(Object.keys(d.byCh).map(function(k){return{"채널":k,"정산금액":Math.round(d.byCh[k])};})),"채널별");XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(d.bySku),"SKU별");XLSX.writeFile(wb,"LEESFACT_데이터분석_"+today()+".xlsx");}
 
@@ -680,23 +785,55 @@ document.getElementById("p-dt").value=today();RSG();setAnaPeriod("this_month");L
 </script>
 <!-- LEESFACT build: logo-favicon-v1 / verified from uploaded index(22).html -->
 
+
 <script>
 (function(){
+  function sumSizes(obj){
+    var total = 0;
+    var sizes = obj || {};
+    Object.keys(sizes).forEach(function(k){
+      total += Number(sizes[k]) || 0;
+    });
+    return total;
+  }
+
+  function saleAmount(row){
+    // 매출 DB에서 실제 정산/매출액으로 쓰는 필드 우선순위
+    return Number(
+      row.settlementAmount != null ? row.settlementAmount :
+      row.totalSales != null ? row.totalSales :
+      row.sales != null ? row.sales :
+      0
+    ) || 0;
+  }
+
+  function saleFee(row){
+    return Number(
+      row.totalFee != null ? row.totalFee :
+      row.fee != null ? row.fee :
+      row.commission != null ? row.commission :
+      0
+    ) || 0;
+  }
+
   function renderMarginTopSku(){
     try{
       if(typeof SDB==='undefined' || typeof PDB==='undefined') return;
 
       var costMap = {};
+
+      // 1) SKU별 평균 매입원가 계산
       for(var i=0;i<PDB.length;i++){
         var p = PDB[i] || {};
         var code = p.itemCode || '';
         if(!code) continue;
 
-        var qty = Number(p.quantity)||0;
-        var total = Number(p.totalPrice)||0;
-        var unit = qty>0 ? total/qty : 0;
+        var qty = Number(p.quantity) || sumSizes(p.sizes);
+        var total = Number(p.totalPrice) || ((Number(p.supplyPrice || p.unitPrice)||0) * qty);
 
-        if(!costMap[code]) costMap[code] = {sum:0, qty:0, name:p.productName||''};
+        if(!costMap[code]){
+          costMap[code] = {sum:0, qty:0, name:p.productName||'', brand:p.brand||''};
+        }
 
         costMap[code].sum += total;
         costMap[code].qty += qty;
@@ -704,51 +841,71 @@ document.getElementById("p-dt").value=today();RSG();setAnaPeriod("this_month");L
 
       var saleMap = {};
 
+      // 2) SKU별 판매수량, 매출, 수수료, 매입원가, 마진 계산
       for(var j=0;j<SDB.length;j++){
         var s = SDB[j] || {};
         var scode = s.itemCode || '';
         if(!scode) continue;
 
-        var sqty = Number(s.quantity)||0;
-        var sales = Number(s.settlementAmount || s.totalSales || 0);
-        var fee = Number(s.totalFee || s.fee || 0);
+        // 기존 오류 방지: 매출 데이터에 quantity가 없으면 sizes 합계로 판매수량 계산
+        var sqty = Number(s.quantity) || sumSizes(s.sizes);
+
+        var sales = saleAmount(s);
+        var fee = saleFee(s);
+
+        // 일부 데이터가 settlementAmount 없이 salePrice만 있을 경우 보정
+        if(!sales && s.salePrice != null){
+          sales = (Number(s.salePrice)||0) * sqty;
+        }
 
         var avgCost = 0;
         if(costMap[scode] && costMap[scode].qty>0){
           avgCost = costMap[scode].sum / costMap[scode].qty;
         }
 
-        var margin = sales - fee - (avgCost * sqty);
+        var cogs = avgCost * sqty;
+        var margin = sales - fee - cogs;
 
         if(!saleMap[scode]){
           saleMap[scode] = {
             code: scode,
-            name: s.productName || (costMap[scode]?.name || ''),
+            name: s.productName || (costMap[scode] ? costMap[scode].name : ''),
+            brand: s.brand || (costMap[scode] ? costMap[scode].brand : ''),
             qty:0,
             sales:0,
-            margin:0
+            fee:0,
+            cogs:0,
+            margin:0,
+            avgCost:avgCost
           };
         }
 
         saleMap[scode].qty += sqty;
         saleMap[scode].sales += sales;
+        saleMap[scode].fee += fee;
+        saleMap[scode].cogs += cogs;
         saleMap[scode].margin += margin;
+        if(avgCost) saleMap[scode].avgCost = avgCost;
       }
 
-      var rows = Object.values(saleMap).sort(function(a,b){
-        return b.margin - a.margin;
-      }).slice(0,10);
+      var rows = Object.values(saleMap)
+        .filter(function(r){ return r.qty > 0 || r.sales > 0; })
+        .sort(function(a,b){ return b.margin - a.margin; })
+        .slice(0,10);
 
       var tbody = document.getElementById('margin-top-body');
       if(!tbody) return;
 
       if(!rows.length){
-        tbody.innerHTML = '<tr><td colspan="7" class="emp">데이터 없음</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="emp">데이터 없음</td></tr>';
         return;
       }
 
       tbody.innerHTML = rows.map(function(r,idx){
+        // 마진율 = 총마진 / 총매출 × 100
         var rate = r.sales>0 ? ((r.margin/r.sales)*100).toFixed(1) : '0.0';
+        var costMissing = (!r.avgCost && r.qty>0);
+
         return `
         <tr>
           <td>${idx+1}</td>
@@ -756,6 +913,7 @@ document.getElementById("p-dt").value=today();RSG();setAnaPeriod("this_month");L
           <td>${r.name||''}</td>
           <td class="r">${r.qty.toLocaleString()}</td>
           <td class="r cl-gn">₩${Math.round(r.sales).toLocaleString()}</td>
+          <td class="r">₩${Math.round(r.cogs).toLocaleString()}${costMissing?' <span class="cl-am">(원가없음)</span>':''}</td>
           <td class="r cl-am bld">₩${Math.round(r.margin).toLocaleString()}</td>
           <td class="r">${rate}%</td>
         </tr>
@@ -778,32 +936,5 @@ document.getElementById("p-dt").value=today();RSG();setAnaPeriod("this_month");L
 </script>
 
 
-<script>
-(function(){
-  function formatMillionTicks(){
-    if(typeof Chart === 'undefined') return;
-
-    const oldBuildTicks = Chart.Ticks?.formatters?.numeric;
-    if(!oldBuildTicks) return;
-  }
-
-  setTimeout(function(){
-    try{
-      if(window.salesTrendChart && window.salesTrendChart.options){
-        const y = window.salesTrendChart.options.scales?.y;
-        if(y){
-          y.ticks = y.ticks || {};
-          y.ticks.callback = function(value){
-            return (value / 1000000);
-          };
-          window.salesTrendChart.update();
-        }
-      }
-    }catch(e){
-      console.log(e);
-    }
-  },1500);
-})();
-</script>
 
 </body></html>

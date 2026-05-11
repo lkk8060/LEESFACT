@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>LEESFACT 재고관리</title>
+<title>LEE · LEESFACT 재고관리</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2216%22%20fill%3D%22%23050b14%22/%3E%0A%3Cpath%20d%3D%22M14%2045%20L24%2017%20M23%2045%20L31%2021%20M24%2045%20C33%2036%2039%2034%2049%2032%20M34%2045%20C42%2038%2047%2037%2053%2037%22%20fill%3D%22none%22%20stroke%3D%22%23f8fafc%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%0A%3Cpath%20d%3D%22M11%2050%20H53%22%20stroke%3D%22%230ea5e9%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.9%22/%3E%0A%3C/svg%3E" type="image/svg+xml">
+<link rel="shortcut icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2216%22%20fill%3D%22%23050b14%22/%3E%0A%3Cpath%20d%3D%22M14%2045%20L24%2017%20M23%2045%20L31%2021%20M24%2045%20C33%2036%2039%2034%2049%2032%20M34%2045%20C42%2038%2047%2037%2053%2037%22%20fill%3D%22none%22%20stroke%3D%22%23f8fafc%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%0A%3Cpath%20d%3D%22M11%2050%20H53%22%20stroke%3D%22%230ea5e9%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.9%22/%3E%0A%3C/svg%3E" type="image/svg+xml">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -19,7 +21,7 @@ button:hover{opacity:.82}button:disabled{opacity:.35;cursor:not-allowed}
 .bd_{background:transparent;color:var(--rd);border:1px solid rgba(239,68,68,.35);padding:3px 9px;font-size:10px}
 .bg_{background:transparent;color:var(--gn);border:1px solid rgba(34,197,94,.35);padding:5px 12px;font-size:11px}
 .hdr{background:#05101f;padding:0 20px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;height:50px;position:sticky;top:0;z-index:200}
-.logo{font-size:15px;font-weight:700;color:#f8fafc;letter-spacing:.04em}.logo b{color:var(--tl)}
+.logo{font-size:15px;font-weight:700;color:#f8fafc;letter-spacing:.04em}.logo b{color:var(--tl)}.brandmark{width:32px;height:32px;border-radius:9px;background:#050b14;border:1px solid rgba(14,165,233,.28);display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 14px rgba(14,165,233,.12);overflow:hidden;flex-shrink:0}.brandmark svg{width:28px;height:28px;display:block}.brandwrap{display:flex;align-items:center;gap:9px}
 .led{width:8px;height:8px;border-radius:50%;flex-shrink:0;transition:all .3s}
 .led.ok{background:var(--gn);box-shadow:0 0 8px var(--gn)}.led.ing{background:var(--am);box-shadow:0 0 8px var(--am)}.led.err{background:var(--rd);box-shadow:0 0 8px var(--rd)}.led.off{background:#334155}
 .sbadge{font-size:10px;padding:2px 10px;border-radius:12px;border:1px solid;margin-left:9px}
@@ -89,14 +91,31 @@ table.mt tr.sub-row:hover{background:#060d1a}
 .xbtn{background:transparent;color:var(--tl);border:1px solid rgba(14,165,233,.25);padding:2px 9px;font-size:10px;border-radius:3px;cursor:pointer}
 .xbtn:hover{background:rgba(14,165,233,.08)}
 .sarr{color:#475569;font-size:9px;margin-left:2px}.son{color:var(--tl)!important}
+
+.ana-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.ana-card{background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:14px;min-height:280px}
+.ana-title{font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;display:flex;justify-content:space-between;gap:8px}
+.ana-chart{width:100%;height:230px;display:block;background:#071426;border:1px solid rgba(30,41,59,.8);border-radius:7px}
+.quick{padding:5px 12px;border-radius:16px;background:transparent;border:1px solid var(--bd2);color:#64748b;font-size:10px}
+.quick.on{background:var(--tl);color:#071426;border-color:var(--tl)}
+@media(max-width:900px){.ana-grid{grid-template-columns:1fr}.ana-chart{height:220px}}
+
+
+.chart-unit-note{
+  font-size:10px;
+  color:#64748b;
+  text-align:right;
+  margin-bottom:6px;
+}
+
 </style>
 </head><body>
-<div class="hdr"><div style="display:flex;align-items:center;gap:9px"><div class="led off" id="led"></div><div class="logo">LEES<b>FACT</b> <span style="color:#475569;font-size:11px;font-weight:400">재고관리</span></div><span class="sbadge b-off" id="sbadge">연결 중...</span></div><div style="display:flex;align-items:center;gap:8px">
+<div class="hdr"><div style="display:flex;align-items:center;gap:9px"><div class="led off" id="led"></div><div class="brandwrap"><span class="brandmark" title="LEES FACT"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#050b14"></rect><path d="M14 45 L24 17 M23 45 L31 21 M24 45 C33 36 39 34 49 32 M34 45 C42 38 47 37 53 37" fill="none" stroke="#f8fafc" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M11 50 H53" stroke="#0ea5e9" stroke-width="3" stroke-linecap="round" opacity="0.9"></path></svg></span><div class="logo">LEES<b>FACT</b> <span style="color:#475569;font-size:11px;font-weight:400">재고관리</span></div></div><span class="sbadge b-off" id="sbadge">연결 중...</span></div><div style="display:flex;align-items:center;gap:8px">
 <button class="bs" id="btn-undo" title="마지막 저장/수정/삭제 작업 실행취소" style="padding:5px 10px;font-size:10px">↩ 실행취소</button>
 <span id="undo-info" style="font-size:10px;color:#475569"></span>
 <span id="hcnt" style="font-size:10px;color:#475569">매입 0건 · 매출 0건</span>
 </div></div>
-<div class="tabs"><button class="tab on" id="tab-sku">🧾 SKU MASTER</button><button class="tab" id="tab-pi">📥 매입 입력</button><button class="tab" id="tab-pdb">📦 매입 DB</button><button class="tab" id="tab-si">💰 매출 입력</button><button class="tab" id="tab-sdb">📊 매출 DB</button><button class="tab" id="tab-stk">📋 현재고</button><button class="tab" id="tab-mar">📈 SKU별 판매마진</button></div>
+<div class="tabs"><button class="tab on" id="tab-sku">🧾 SKU MASTER</button><button class="tab" id="tab-pi">📥 매입 입력</button><button class="tab" id="tab-pdb">📦 매입 DB</button><button class="tab" id="tab-si">💰 매출 입력</button><button class="tab" id="tab-sdb">📊 매출 DB</button><button class="tab" id="tab-stk">📋 현재고</button><button class="tab" id="tab-mar">📈 SKU별 판매마진</button><button class="tab" id="tab-ana">📊 데이터 분석</button></div>
 <div id="pg-sku" class="pg on">
   <div id="sku-msg" class="msg"></div>
   <div class="card">
@@ -174,6 +193,60 @@ table.mt tr.sub-row:hover{background:#060d1a}
 <div id="pg-sdb" class="pg"><div class="tool-row"><button class="bg_" id="btn-exp-s">⬇ Excel</button><button class="bs" id="btn-ref-s">↻ 새로고침</button><button class="bd_" id="btn-del-sel-s">선택삭제</button><button class="bd_" id="btn-del-all-s">전체삭제</button><span id="s-sel-info" style="font-size:10px;color:#64748b">선택 0건</span></div><div class="mcs" id="smcs"></div><div id="s-edit-card" class="card" style="display:none"><div class="slbl">✏️ 매출 수정</div><div class="g5" style="margin-bottom:10px"><div class="fg"><label class="fl">날짜 *</label><input type="date" id="se-date"></div><div class="fg"><label class="fl">집계 단위</label><select id="se-unit"><option value="week">주</option><option value="month">월</option></select></div><div class="fg"><label class="fl">품번 *</label><input id="se-code"></div><div class="fg"><label class="fl">품명</label><input id="se-name"></div><div class="fg"><label class="fl">판매채널</label><select id="se-channel"><option value="">선택</option><option>크림사업자</option><option>크림개인</option><option>POIZON</option><option>스마트스토어</option></select></div></div><div class="g5" style="margin-bottom:10px"><div class="fg"><label class="fl">사이즈/수량 JSON</label><textarea id="se-sizes" rows="2" placeholder='{"250":1,"255":2}'></textarea></div><div class="fg"><label class="fl">정산단가</label><input type="number" id="se-price" min="0"></div><div class="fg"><label class="fl">정산금액</label><input type="number" id="se-settle" min="0"></div><div class="fg"><label class="fl">수수료 총액</label><input type="number" id="se-fee" min="0"></div><div class="fg"><label class="fl">메모</label><input id="se-memo"></div></div><div class="tool-row" style="margin-bottom:0"><button class="bp" id="btn-save-sale-edit">수정 저장</button><button class="bs" id="btn-cancel-sale-edit">취소</button><span id="se-help" style="font-size:10px;color:#64748b">정산금액이 비어 있으면 정산단가 × 수량으로 자동 계산됩니다.</span></div></div><div class="fr"><input id="ss" placeholder="품번·품명·채널·메모 검색..." style="flex:1;max-width:300px"><input type="date" id="s-from" title="매출 시작일"><span style="font-size:10px;color:#64748b">~</span><input type="date" id="s-to" title="매출 종료일"><button class="bs" id="btn-s-date-clear" style="padding:6px 10px;font-size:10px">기간초기화</button><select id="suf" style="width:115px"><option value="">전체 단위</option><option value="week">주</option><option value="month">월</option></select></div><div class="tw" id="stw"><div class="emp">탭 클릭 후 표시</div></div></div>
 <div id="pg-stk" class="pg"><div class="tool-row"><button class="bg_" id="btn-exp-stk">⬇ Excel</button><button class="bs" id="btn-ref-stk">↻ 새로고침</button></div><div class="mcs" id="stkmcs"></div><div class="fr"><input id="stks" placeholder="품번·품명·브랜드 검색..." style="flex:1;max-width:300px"><select id="stkf" style="width:130px"><option value="">전체 상태</option><option value="ok">재고있음</option><option value="zero">소진</option></select></div><div class="tw" id="stkw"><div class="emp">탭 클릭 후 표시</div></div></div>
 <div id="pg-mar" class="pg"><div class="tool-row"><button class="bg_" id="btn-exp-mar">⬇ Excel</button><button class="bs" id="btn-ref-mar">↻ 새로고침</button></div><div class="mcs" id="marmcs"></div><div class="fr"><input id="mars" placeholder="품번·품명·브랜드 검색..." style="flex:1;max-width:300px"><select id="marf" style="width:140px"><option value="">전체</option><option value="sold">판매있음</option><option value="profit">이익</option><option value="loss">손실</option><option value="unknown">원가미확인</option></select></div><div class="tw" id="marw"><div class="emp">탭 클릭 후 표시</div></div></div>
+<div id="pg-ana" class="pg">
+  <div id="ana-msg" class="msg"></div>
+  <div class="card">
+    <div class="slbl">📊 매출·마케팅 데이터 분석</div>
+    <div class="fr">
+      <span style="font-size:10px;color:#64748b;text-transform:uppercase">기간:</span>
+      <button class="quick on" id="ana-this-month">이번달</button>
+      <button class="quick" id="ana-prev-month">전월</button>
+      <button class="quick" id="ana-this-quarter">이번분기</button>
+      <button class="quick" id="ana-this-half">이번반기</button>
+      <button class="quick" id="ana-this-year">올해</button>
+      <button class="quick" id="ana-all">전체</button>
+      <input type="date" id="ana-from" title="분석 시작일">
+      <span style="font-size:10px;color:#64748b">~</span>
+      <input type="date" id="ana-to" title="분석 종료일">
+      <button class="bs" id="btn-ana-apply" style="padding:6px 10px;font-size:10px">적용</button>
+      <button class="bg_" id="btn-exp-ana">⬇ Excel</button>
+    </div>
+  </div>
+  <div class="mcs" id="anamcs"></div>
+  <div class="ana-grid">
+    <div class="ana-card"><div class="ana-title"><span>채널별 매출 비중</span><span id="ana-channel-note" class="cl-sl"></span></div><canvas id="ana-channel" class="ana-chart"></canvas></div>
+    <div class="ana-card"><div class="ana-title"><span>브랜드별 매출 TOP</span><span class="cl-sl">매출액 기준</span></div><canvas id="ana-brand" class="ana-chart"></canvas></div>
+    <div class="ana-card"><div class="ana-title"><span>기간별 매출 추이</span><span id="ana-trend-note" class="cl-sl"></span></div><canvas id="ana-trend" class="ana-chart"></canvas></div>
+    <div class="ana-card"><div class="ana-title"><span>사이즈별 판매 분석</span><span class="cl-sl">판매수량 기준</span></div><canvas id="ana-size" class="ana-chart"></canvas></div>
+  </div>
+  <div class="ana-grid">
+    <div class="card"><div class="slbl">🏆 매출 TOP SKU</div><div class="tw" id="ana-top-sku"><div class="emp">분석할 데이터가 없습니다.</div></div>
+
+<div class="card" id="margin-top-card">
+  <div class="slbl">💎 마진 TOP SKU (TOP 10)</div>
+  <div class="tw">
+    <table class="mt">
+      <thead>
+        <tr>
+          <th>순위</th>
+          <th>품번</th>
+          <th>품명</th>
+          <th>판매수량</th>
+          <th>총매출</th>
+          <th>총마진</th>
+          <th>마진율</th>
+        </tr>
+      </thead>
+      <tbody id="margin-top-body">
+        <tr><td colspan="7" class="emp">데이터 분석 로딩중...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>
+    <div class="card"><div class="slbl">⚠️ 재고/마케팅 체크</div><div class="tw" id="ana-risk"><div class="emp">분석할 데이터가 없습니다.</div></div></div>
+  </div>
+</div>
 <script>
 var SB="https://tuqshqbfpsktulbiscfs.supabase.co";
 var KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR1cXNocWJmcHNrdHVsYmlzY2ZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0MTI1NTUsImV4cCI6MjA5Mjk4ODU1NX0.TEnJN0YQGxH2-v1B7GHpHSP2TDPtSxC98F6T_uoNTxg";
@@ -334,7 +407,7 @@ function SZ(s){
   }
   return a.length?"<div style=\"display:flex;flex-wrap:wrap;gap:2px\">"+a.join("")+"</div>":"<span class=\"cl-sl\">—</span>";
 }
-function GT(id){curTab=id;var ts=["sku","pi","pdb","si","sdb","stk","mar"];for(var i=0;i<ts.length;i++){var t=document.getElementById("tab-"+ts[i]),p=document.getElementById("pg-"+ts[i]);if(t)t.className="tab"+(ts[i]===id?" on":"");if(p)p.className="pg"+(ts[i]===id?" on":"");}if(id==="sku")rSku();if(id==="pdb")rP();if(id==="si"){FSC();RSG2();}if(id==="sdb")rS();if(id==="stk")rStk();if(id==="mar")rMar();}
+function GT(id){curTab=id;var ts=["sku","pi","pdb","si","sdb","stk","mar","ana"];for(var i=0;i<ts.length;i++){var t=document.getElementById("tab-"+ts[i]),p=document.getElementById("pg-"+ts[i]);if(t)t.className="tab"+(ts[i]===id?" on":"");if(p)p.className="pg"+(ts[i]===id?" on":"");}if(id==="sku")rSku();if(id==="pdb")rP();if(id==="si"){FSC();RSG2();}if(id==="sdb")rS();if(id==="stk")rStk();if(id==="mar")rMar();if(id==="ana")rAna();}
 function ST(t){sType=t;["shoe","cloth","free"].forEach(function(s){var e=document.getElementById("st-"+s);if(e)e.className="stb"+(s===t?" on":"");});RSG();CGT();}
 function RSG(){var tb=document.getElementById("sgt");if(!tb)return;if(sType==="free"){tb.innerHTML="<tr><td class=\"lb\">수량</td><td style=\"padding:4px 8px\"><input type=\"number\" min=\"0\" id=\"sz-FREE\" style=\"width:80px\" placeholder=\"0\"></td></tr>";var fe=document.getElementById("sz-FREE");if(fe)fe.oninput=CGT;return;}var sz=sType==="shoe"?SHOE:CLOTH;var h="<thead><tr><th style=\"text-align:left;padding:6px 10px\">구분</th>";for(var i=0;i<sz.length;i++)h+="<th>"+sz[i]+"</th>";h+="<th style=\"color:var(--tl)\">합계</th></tr></thead><tbody><tr class=\"sumr\"><td class=\"lb\">수량</td>";for(var j=0;j<sz.length;j++)h+="<td><input type=\"number\" min=\"0\" id=\"sz-"+sz[j]+"\" placeholder=\"\"></td>";h+="<td id=\"sg-tot\">0</td></tr></tbody>";tb.innerHTML=h;for(var k=0;k<sz.length;k++){(function(s){var el=document.getElementById("sz-"+s);if(el)el.oninput=CGT;})(sz[k]);}}
 function GQ(){var sz=sType==="shoe"?SHOE:sType==="cloth"?CLOTH:["FREE"];var o={},t=0;for(var i=0;i<sz.length;i++){var el=document.getElementById("sz-"+sz[i]),v=el?(parseFloat(el.value)||0):0;if(v>0)o[String(sz[i])]=v;t+=v;}return{obj:o,tot:t};}
@@ -544,9 +617,31 @@ function rMar(){
   document.getElementById("marw").innerHTML='<table class="mt">'+thead+tbody+'</table>';
   document.querySelectorAll("#marw th.sortable").forEach(function(th){th.onclick=function(){var k=this.getAttribute("data-k");if(marSk===k)marSd=marSd==="desc"?"asc":"desc";else{marSk=k;marSd="desc";}rMar();};});
 }
+
+function anaRangeLabel(from,to){return from||to?((from||"처음")+" ~ "+(to||"오늘")):"전체기간";}
+function setQuickOn(id){document.querySelectorAll("#pg-ana .quick").forEach(function(b){b.classList.remove("on");});var e=document.getElementById(id);if(e)e.classList.add("on");}
+function pad2(n){return String(n).padStart(2,"0");}
+function fmtDateObj(d){return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate());}
+function setAnaPeriod(mode){var now=new Date(),y=now.getFullYear(),m=now.getMonth(),from="",to="";if(mode==="this_month"){from=y+"-"+pad2(m+1)+"-01";to=fmtDateObj(new Date(y,m+1,0));setQuickOn("ana-this-month");}
+else if(mode==="prev_month"){from=fmtDateObj(new Date(y,m-1,1));to=fmtDateObj(new Date(y,m,0));setQuickOn("ana-prev-month");}
+else if(mode==="this_quarter"){var qm=Math.floor(m/3)*3;from=fmtDateObj(new Date(y,qm,1));to=fmtDateObj(new Date(y,qm+3,0));setQuickOn("ana-this-quarter");}
+else if(mode==="this_half"){var hm=m<6?0:6;from=fmtDateObj(new Date(y,hm,1));to=fmtDateObj(new Date(y,hm+6,0));setQuickOn("ana-this-half");}
+else if(mode==="this_year"){from=y+"-01-01";to=y+"-12-31";setQuickOn("ana-this-year");}
+else{setQuickOn("ana-all");}
+var f=document.getElementById("ana-from"),t=document.getElementById("ana-to");if(f)f.value=from;if(t)t.value=to;rAna();}
+function anaFilterSales(){var f=DVAL("ana-from"),t=DVAL("ana-to");return SDB.filter(function(x){return INRANGE(x.date||x.period,f,t);});}
+function anaCostMap(){var m={};for(var i=0;i<PDB.length;i++){var p=PDB[i],c=p.itemCode||"";if(!c)continue;if(!m[c])m[c]={qty:0,total:0,brand:p.brand||"",name:p.productName||""};m[c].qty+=Number(p.quantity)||0;m[c].total+=Number(p.totalPrice)||0;if(p.brand)m[c].brand=p.brand;if(p.productName)m[c].name=p.productName;}Object.keys(m).forEach(function(c){m[c].avg=m[c].qty>0?m[c].total/m[c].qty:0;});return m;}
+function anaData(){var rows=anaFilterSales(),cost=anaCostMap(),byCh={},byBrand={},bySku={},bySize={},trend={},tot={sales:0,gross:0,fee:0,cogs:0,profit:0,qty:0};for(var i=0;i<rows.length;i++){var s=rows[i],code=s.itemCode||"?",qty=Number(s.soldQty)||Number(s.quantity)||0,settle=SA(s),fee=SF(s),gross=SG(s),cm=cost[code]||{},brand=(cm.brand||s.brand||skuInfo(code,{}).brand||"미지정"),cogs=(cm.avg||0)*qty,profit=settle-cogs,ch=s.channel||"미지정",dt=String(s.date||s.period||"").slice(0,10),mon=dt?dt.slice(0,7):"미지정";tot.sales+=settle;tot.gross+=gross;tot.fee+=fee;tot.cogs+=cogs;tot.profit+=profit;tot.qty+=qty;byCh[ch]=(byCh[ch]||0)+settle;byBrand[brand]=(byBrand[brand]||0)+settle;trend[mon]=(trend[mon]||0)+settle;if(!bySku[code])bySku[code]={itemCode:code,productName:cm.name||s.productName||skuInfo(code,{}).productName||"",brand:brand,qty:0,sales:0,profit:0,cogs:0,fee:0};bySku[code].qty+=qty;bySku[code].sales+=settle;bySku[code].profit+=profit;bySku[code].cogs+=cogs;bySku[code].fee+=fee;var sz=s.sizes||{},ks=Object.keys(sz);for(var k=0;k<ks.length;k++){var z=NSZ(ks[k]);bySize[z]=(bySize[z]||0)+(Number(sz[ks[k]])||0);}}
+return{rows:rows,tot:tot,byCh:byCh,byBrand:byBrand,bySku:Object.keys(bySku).map(function(k){return bySku[k];}),bySize:bySize,trend:trend,range:anaRangeLabel(DVAL("ana-from"),DVAL("ana-to"))};}
+function drawPie(id,obj){var cv=document.getElementById(id);if(!cv)return;var ctx=cv.getContext("2d"),w=cv.clientWidth,h=cv.clientHeight;cv.width=w*2;cv.height=h*2;ctx.scale(2,2);ctx.clearRect(0,0,w,h);var data=Object.keys(obj).map(function(k){return{k:k,v:Number(obj[k])||0};}).filter(function(x){return x.v>0;}).sort(function(a,b){return b.v-a.v;});var total=data.reduce(function(a,b){return a+b.v;},0);if(!total){ctx.fillStyle="#64748b";ctx.font="12px monospace";ctx.fillText("데이터 없음",20,30);return;}var cx=w*0.34,cy=h*0.52,r=Math.min(w,h)*0.28,st=-Math.PI/2;var colors=["#0ea5e9","#22c55e","#f59e0b","#a855f7","#ef4444","#14b8a6","#eab308","#64748b"];for(var i=0;i<data.length;i++){var ang=data[i].v/total*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,st,st+ang);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.fill();st+=ang;}ctx.fillStyle="#e2e8f0";ctx.font="11px monospace";var lx=w*0.62,ly=35;for(var j=0;j<data.length&&j<8;j++){ctx.fillStyle=colors[j%colors.length];ctx.fillRect(lx,ly-9,9,9);ctx.fillStyle="#cbd5e1";ctx.fillText(data[j].k+" "+(data[j].v/total*100).toFixed(1)+"%",lx+15,ly);ly+=22;}}
+function drawBar(id,obj,limit){var cv=document.getElementById(id);if(!cv)return;var ctx=cv.getContext("2d"),w=cv.clientWidth,h=cv.clientHeight;cv.width=w*2;cv.height=h*2;ctx.scale(2,2);ctx.clearRect(0,0,w,h);var data=Object.keys(obj).map(function(k){return{k:k,v:Number(obj[k])||0};}).filter(function(x){return x.v>0;}).sort(function(a,b){return b.v-a.v;}).slice(0,limit||8);if(!data.length){ctx.fillStyle="#64748b";ctx.font="12px monospace";ctx.fillText("데이터 없음",20,30);return;}var max=Math.max.apply(null,data.map(function(x){return x.v;})),left=90,top=20,bh=Math.max(14,(h-45)/data.length-8),gap=8;ctx.font="10px monospace";for(var i=0;i<data.length;i++){var y=top+i*(bh+gap),bw=(w-left-30)*(data[i].v/max);ctx.fillStyle="#0ea5e9";ctx.fillRect(left,y,bw,bh);ctx.fillStyle="#cbd5e1";ctx.fillText(data[i].k.slice(0,12),10,y+bh-2);ctx.fillStyle="#94a3b8";ctx.fillText("₩"+Math.round(data[i].v).toLocaleString(),left+bw+5,y+bh-2);}}
+function drawLine(id,obj){var cv=document.getElementById(id);if(!cv)return;var ctx=cv.getContext("2d"),w=cv.clientWidth,h=cv.clientHeight;cv.width=w*2;cv.height=h*2;ctx.scale(2,2);ctx.clearRect(0,0,w,h);var keys=Object.keys(obj).sort(),vals=keys.map(function(k){return Number(obj[k])||0;});if(!keys.length){ctx.fillStyle="#64748b";ctx.font="12px monospace";ctx.fillText("데이터 없음",20,30);return;}var max=Math.max.apply(null,vals.concat([1])),pad=34;ctx.strokeStyle="#334155";ctx.beginPath();ctx.moveTo(pad,15);ctx.lineTo(pad,h-pad);ctx.lineTo(w-10,h-pad);ctx.stroke();ctx.strokeStyle="#22c55e";ctx.lineWidth=2;ctx.beginPath();for(var i=0;i<keys.length;i++){var x=pad+(w-pad-18)*(keys.length===1?0.5:i/(keys.length-1)),y=(h-pad)-(h-pad-25)*(vals[i]/max);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();ctx.fillStyle="#cbd5e1";ctx.font="10px monospace";for(var j=0;j<keys.length;j++){var x2=pad+(w-pad-18)*(keys.length===1?0.5:j/(keys.length-1)),y2=(h-pad)-(h-pad-25)*(vals[j]/max);ctx.beginPath();ctx.arc(x2,y2,3,0,Math.PI*2);ctx.fill();if(j===0||j===keys.length-1||keys.length<=6)ctx.fillText(keys[j],x2-20,h-10);}}
+function rAna(){var d=anaData(),rate=d.tot.sales>0?d.tot.profit/d.tot.sales*100:0;var f=DVAL("ana-from"),t=DVAL("ana-to");document.getElementById("anamcs").innerHTML=MC("분석기간",d.range,"var(--tl)")+MC("판매수량",d.tot.qty.toLocaleString()+"개","var(--gn)")+MC("정산금액","₩"+Math.round(d.tot.sales).toLocaleString(),"var(--gn)")+MC("추정이익","₩"+Math.round(d.tot.profit).toLocaleString()+" ("+rate.toFixed(1)+"%)",d.tot.profit>=0?"var(--am)":"var(--rd)");document.getElementById("ana-channel-note").textContent=d.rows.length+"건";document.getElementById("ana-trend-note").textContent=f||t?"선택기간":"전체기간";drawPie("ana-channel",d.byCh);drawBar("ana-brand",d.byBrand,8);drawLine("ana-trend",d.trend);drawBar("ana-size",d.bySize,10);var sku=d.bySku.sort(function(a,b){return b.sales-a.sales;}).slice(0,10),h='<table class="mt"><thead><tr><th>순위</th><th>품번</th><th>품명</th><th>브랜드</th><th class="r">수량</th><th class="r">정산금액</th><th class="r">추정이익</th></tr></thead><tbody>';for(var i=0;i<sku.length;i++){var x=sku[i];h+='<tr><td>'+(i+1)+'</td><td class="cl-tl bld">'+x.itemCode+'</td><td>'+escHtml(x.productName||'')+'</td><td class="cl-sl">'+escHtml(x.brand||'')+'</td><td class="r">'+x.qty.toLocaleString()+'</td><td class="r cl-gn">₩'+Math.round(x.sales).toLocaleString()+'</td><td class="r '+(x.profit>=0?'cl-am':'cl-am')+'">₩'+Math.round(x.profit).toLocaleString()+'</td></tr>';}h+='</tbody></table>';document.getElementById("ana-top-sku").innerHTML=sku.length?h:'<div class="emp">분석할 매출 데이터가 없습니다.</div>';var stock=calcStk();var risk=stock.filter(function(x){return x.remQty>0&&x.soldQty===0;}).sort(function(a,b){return b.remValue-a.remValue;}).slice(0,10);var rh='<table class="mt"><thead><tr><th>체크</th><th>품번</th><th>품명</th><th class="r">현재고</th><th class="r">재고금액</th><th>권장 액션</th></tr></thead><tbody>';for(var r=0;r<risk.length;r++){var z=risk[r];rh+='<tr><td><span class="tag ta">미판매재고</span></td><td class="cl-tl bld">'+z.itemCode+'</td><td>'+escHtml(z.productName||'')+'</td><td class="r cl-gn">'+z.remQty.toLocaleString()+'</td><td class="r cl-am">₩'+Math.round(z.remValue).toLocaleString()+'</td><td class="cl-sl">가격조정 / 노출강화 / 채널전환 검토</td></tr>';}rh+='</tbody></table>';document.getElementById("ana-risk").innerHTML=risk.length?rh:'<div class="emp">큰 재고 리스크가 없습니다.</div>';}
+function EXA(){if(!window.XLSX){alert("잠시 후 다시 시도해주세요.");return;}var d=anaData(),wb=XLSX.utils.book_new();var summary=[{"분석기간":d.range,"판매건수":d.rows.length,"판매수량":d.tot.qty,"정산금액":Math.round(d.tot.sales),"수수료":Math.round(d.tot.fee),"추정원가":Math.round(d.tot.cogs),"추정이익":Math.round(d.tot.profit),"마진율":d.tot.sales>0?(d.tot.profit/d.tot.sales*100).toFixed(1)+"%":""}];XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(summary),"분석요약");XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(Object.keys(d.byCh).map(function(k){return{"채널":k,"정산금액":Math.round(d.byCh[k])};})),"채널별");XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(d.bySku),"SKU별");XLSX.writeFile(wb,"LEESFACT_데이터분석_"+today()+".xlsx");}
+
 function EX(type){if(!window.XLSX){alert("쟠시 후 다시 시도해주세요.");return;}var wb=XLSX.utils.book_new(),ws,name;if(type==="sku"){var rows0=[];for(var si=0;si<SKUDB.length;si++){var x=SKUDB[si];rows0.push({"품번":x.itemCode,"품명":x.productName,"브랜드":x.brand,"카테고리":x.category,"사이즈타입":x.sizeType,"컬러":x.color,"소비자가":x.retailPrice,"메모":x.memo});}ws=XLSX.utils.json_to_sheet(rows0);name="SKU_MASTER";}else if(type==="purchase"){var rows=[],grp=groupByCode(PDB);for(var gi=0;gi<grp.order.length;gi++){var g=grp.map[grp.order[gi]],sz="",ks=Object.keys(g.sizes);for(var k=0;k<ks.length;k++)if(Number(g.sizes[ks[k]])>0)sz+=(sz?", ":"")+ks[k]+":"+g.sizes[ks[k]];rows.push({"품번":g.itemCode,"품명":g.productName,"브랜드":g.brand,"최근입고일":g.latestDate,"입고횟수":g.records.length,"사이즈별합산":sz,"총수량":g.quantity,"매입역액":g.totalPrice,"매입평균가(개당)":g.avgPrice});}ws=XLSX.utils.json_to_sheet(rows);name="매입DB";}else if(type==="sales"){var rows2=[];for(var j=0;j<SDB.length;j++){var it2=SDB[j],s2=it2.sizes||{},ks2=Object.keys(s2),sz2="";for(var k2=0;k2<ks2.length;k2++)if(Number(s2[ks2[k2]])>0)sz2+=(sz2?", ":"")+ks2[k2]+":"+s2[ks2[k2]];rows2.push({"날짜":it2.date||it2.period,"기간":it2.periodLabel,"단위":it2.unit==="week"?"주":"월","품번":it2.itemCode,"품명":it2.productName,"사이즈별판매":sz2,"판매수량":it2.soldQty,"정산단가":it2.salePrice,"매출평균가(개당)":((Number(it2.soldQty)||0)>0?Math.round(SA(it2)/(Number(it2.soldQty)||0)):0),"정산금액":SA(it2),"수수료":SF(it2),"매출액":SG(it2),"채널":it2.channel,"메모":it2.memo});}ws=XLSX.utils.json_to_sheet(rows2);name="매출DB";}else if(type==="stock"){var stock=calcStk(),rows3=[];for(var si=0;si<stock.length;si++){var st=stock[si],sz3="",ks3=Object.keys(st.remSizes);for(var k3=0;k3<ks3.length;k3++)if(Number(st.remSizes[ks3[k3]])!==0)sz3+=(sz3?", ":"")+ks3[k3]+":"+st.remSizes[ks3[k3]];rows3.push({"품번":st.itemCode,"품명":st.productName,"브랜드":st.brand,"최근입고일":st.latestDate,"매입수량":st.boughtQty,"판매수량":st.soldQty,"현재고":st.remQty,"사이즈별현재고":sz3,"평균매입가":st.avgPrice,"현재고매입금액":st.remValue,"상태":st.remQty<0?"재고부족":(st.remQty===0?"소진":"재고있음")});}ws=XLSX.utils.json_to_sheet(rows3);name="현재고";}else{var mr=calcMargin(),rows4=[];for(var mi=0;mi<mr.length;mi++){var m=mr[mi];rows4.push({"품번":m.itemCode,"품명":m.productName,"브랜드":m.brand,"매입수량":m.boughtQty,"판매수량":m.soldQty,"현재고":m.remQty,"평균원가":m.avgPrice,"잔여매입가":m.remValue,"정산금액":m.totalSales,"수수료":m.totalFee||0,"매출액":m.grossSales||m.totalSales,"추정원가":m.costKnown?m.cogs:"원가미확인","마진액":m.grossProfit,"마진율":m.totalSales>0?m.marginRate.toFixed(1)+"%":"","상태":!m.costKnown&&m.soldQty>0?"원가미확인":(m.remQty<0?"재고부족":"정상")});}ws=XLSX.utils.json_to_sheet(rows4);name="SKU별판매마진";}XLSX.utils.book_append_sheet(wb,ws,name);XLSX.writeFile(wb,"LEESFACT_"+name+"_"+today()+".xlsx");}
 document.getElementById("btn-undo").onclick=UNDO;UUI();
-document.getElementById("tab-pi").onclick=function(){GT("pi");};document.getElementById("tab-pdb").onclick=function(){GT("pdb");};document.getElementById("tab-si").onclick=function(){GT("si");};document.getElementById("tab-sdb").onclick=function(){GT("sdb");};document.getElementById("tab-stk").onclick=function(){GT("stk");};document.getElementById("tab-mar").onclick=function(){GT("mar");};
+document.getElementById("tab-ana").onclick=function(){GT("ana");};document.getElementById("tab-pi").onclick=function(){GT("pi");};document.getElementById("tab-pdb").onclick=function(){GT("pdb");};document.getElementById("tab-si").onclick=function(){GT("si");};document.getElementById("tab-sdb").onclick=function(){GT("sdb");};document.getElementById("tab-stk").onclick=function(){GT("stk");};document.getElementById("tab-mar").onclick=function(){GT("mar");};
 document.getElementById("st-shoe").onclick=function(){ST("shoe");};document.getElementById("st-cloth").onclick=function(){ST("cloth");};document.getElementById("st-free").onclick=function(){ST("free");};
 document.getElementById("p-sp").oninput=CGT;document.getElementById("btn-manual").onclick=SVM;document.getElementById("btn-pj").onclick=PJsave;
 document.getElementById("btn-ref-p").onclick=LA;document.getElementById("btn-exp-p").onclick=function(){EX("purchase");};document.getElementById("ps").oninput=rP;document.getElementById("p-from").onchange=rP;document.getElementById("p-to").onchange=rP;document.getElementById("btn-p-date-clear").onclick=function(){document.getElementById("p-from").value="";document.getElementById("p-to").value="";rP();};document.getElementById("pcf").onchange=rP;document.getElementById("ptf").onchange=rP;
@@ -559,6 +654,17 @@ document.getElementById("btn-ref-stk").onclick=rStk;document.getElementById("btn
 
 function bindSafe(id,ev,fn){var e=document.getElementById(id);if(e)e[ev]=fn;}
 bindSafe("tab-sku","onclick",function(){GT("sku");});
+bindSafe("ana-this-month","onclick",function(){setAnaPeriod("this_month");});
+bindSafe("ana-prev-month","onclick",function(){setAnaPeriod("prev_month");});
+bindSafe("ana-this-quarter","onclick",function(){setAnaPeriod("this_quarter");});
+bindSafe("ana-this-half","onclick",function(){setAnaPeriod("this_half");});
+bindSafe("ana-this-year","onclick",function(){setAnaPeriod("this_year");});
+bindSafe("ana-all","onclick",function(){setAnaPeriod("all");});
+bindSafe("btn-ana-apply","onclick",function(){setQuickOn("");rAna();});
+bindSafe("btn-exp-ana","onclick",EXA);
+bindSafe("ana-from","onchange",function(){setQuickOn("");rAna();});
+bindSafe("ana-to","onchange",function(){setQuickOn("");rAna();});
+
 bindSafe("btn-sku-save","onclick",saveSku);
 bindSafe("btn-sku-clear","onclick",clearSkuForm);
 bindSafe("btn-sku-import","onclick",importSkuFromPurchase);
@@ -570,7 +676,134 @@ bindSafe("sku-search","oninput",rSku);
 bindSafe("sku-cat-filter","onchange",rSku);
 bindSafe("btn-p-sku-apply","onclick",applySkuToPurchase);
 bindSafe("p-cd","onchange",applySkuToPurchase);
-document.getElementById("p-dt").value=today();RSG();LA();
+document.getElementById("p-dt").value=today();RSG();setAnaPeriod("this_month");LA();
 </script>
-<!-- LEESFACT build: date-range-filter-v1 -->
+<!-- LEESFACT build: logo-favicon-v1 / verified from uploaded index(22).html -->
+
+<script>
+(function(){
+  function renderMarginTopSku(){
+    try{
+      if(typeof SDB==='undefined' || typeof PDB==='undefined') return;
+
+      var costMap = {};
+      for(var i=0;i<PDB.length;i++){
+        var p = PDB[i] || {};
+        var code = p.itemCode || '';
+        if(!code) continue;
+
+        var qty = Number(p.quantity)||0;
+        var total = Number(p.totalPrice)||0;
+        var unit = qty>0 ? total/qty : 0;
+
+        if(!costMap[code]) costMap[code] = {sum:0, qty:0, name:p.productName||''};
+
+        costMap[code].sum += total;
+        costMap[code].qty += qty;
+      }
+
+      var saleMap = {};
+
+      for(var j=0;j<SDB.length;j++){
+        var s = SDB[j] || {};
+        var scode = s.itemCode || '';
+        if(!scode) continue;
+
+        var sqty = Number(s.quantity)||0;
+        var sales = Number(s.settlementAmount || s.totalSales || 0);
+        var fee = Number(s.totalFee || s.fee || 0);
+
+        var avgCost = 0;
+        if(costMap[scode] && costMap[scode].qty>0){
+          avgCost = costMap[scode].sum / costMap[scode].qty;
+        }
+
+        var margin = sales - fee - (avgCost * sqty);
+
+        if(!saleMap[scode]){
+          saleMap[scode] = {
+            code: scode,
+            name: s.productName || (costMap[scode]?.name || ''),
+            qty:0,
+            sales:0,
+            margin:0
+          };
+        }
+
+        saleMap[scode].qty += sqty;
+        saleMap[scode].sales += sales;
+        saleMap[scode].margin += margin;
+      }
+
+      var rows = Object.values(saleMap).sort(function(a,b){
+        return b.margin - a.margin;
+      }).slice(0,10);
+
+      var tbody = document.getElementById('margin-top-body');
+      if(!tbody) return;
+
+      if(!rows.length){
+        tbody.innerHTML = '<tr><td colspan="7" class="emp">데이터 없음</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = rows.map(function(r,idx){
+        var rate = r.sales>0 ? ((r.margin/r.sales)*100).toFixed(1) : '0.0';
+        return `
+        <tr>
+          <td>${idx+1}</td>
+          <td class="cl-tl bld">${r.code}</td>
+          <td>${r.name||''}</td>
+          <td class="r">${r.qty.toLocaleString()}</td>
+          <td class="r cl-gn">₩${Math.round(r.sales).toLocaleString()}</td>
+          <td class="r cl-am bld">₩${Math.round(r.margin).toLocaleString()}</td>
+          <td class="r">${rate}%</td>
+        </tr>
+        `;
+      }).join('');
+    }catch(e){
+      console.error(e);
+    }
+  }
+
+  window.renderMarginTopSku = renderMarginTopSku;
+
+  setTimeout(renderMarginTopSku,1200);
+
+  document.addEventListener('click',function(){
+    setTimeout(renderMarginTopSku,300);
+  });
+
+})();
+</script>
+
+
+<script>
+(function(){
+  function formatMillionTicks(){
+    if(typeof Chart === 'undefined') return;
+
+    const oldBuildTicks = Chart.Ticks?.formatters?.numeric;
+    if(!oldBuildTicks) return;
+  }
+
+  setTimeout(function(){
+    try{
+      if(window.salesTrendChart && window.salesTrendChart.options){
+        const y = window.salesTrendChart.options.scales?.y;
+        if(y){
+          y.ticks = y.ticks || {};
+          y.ticks.callback = function(value){
+            return (value / 1000000);
+          };
+          window.salesTrendChart.update();
+        }
+      }
+    }catch(e){
+      console.log(e);
+    }
+  },1500);
+})();
+</script>
+
 </body></html>

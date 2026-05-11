@@ -544,7 +544,156 @@ function findSale(id){for(var i=0;i<SDB.length;i++)if(String(SDB[i].id)===String
 function showSaleEdit(id){var row=findSale(id);if(!row){alert("수정할 매출을 찾을 수 없습니다.");return;}editingSaleId=String(id);var card=document.getElementById("s-edit-card");if(card)card.style.display="block";document.getElementById("se-date").value=row.date||row.period||today();document.getElementById("se-unit").value=row.unit||"week";document.getElementById("se-code").value=row.itemCode||"";document.getElementById("se-name").value=row.productName||"";document.getElementById("se-channel").value=row.channel||"";document.getElementById("se-sizes").value=JSON.stringify(row.sizes||{},null,0);document.getElementById("se-price").value=Number(row.salePrice)||0;document.getElementById("se-settle").value=SA(row)||0;document.getElementById("se-fee").value=SF(row)||0;document.getElementById("se-memo").value=row.memo||"";card.scrollIntoView({behavior:"smooth",block:"start"});}
 function hideSaleEdit(){editingSaleId=null;var card=document.getElementById("s-edit-card");if(card)card.style.display="none";}
 function saveSaleEdit(){if(!editingSaleId){alert("수정 중인 매출이 없습니다.");return;}var row=findSale(editingSaleId);if(!row){alert("수정할 매출을 찾을 수 없습니다.");hideSaleEdit();return;}var pd=document.getElementById("se-date").value,code=(document.getElementById("se-code").value||"").trim();if(!pd||!code){alert("날짜와 품번은 필수입니다.");return;}var sizes={};try{sizes=JSON.parse(document.getElementById("se-sizes").value||"{}");}catch(e){alert("사이즈 JSON 오류: "+e.message);return;}var qty=qtyFromSizes(sizes);if(qty<=0){alert("판매 수량을 입력해주세요.");return;}var u=document.getElementById("se-unit").value||"week",price=parseFloat(document.getElementById("se-price").value)||0,settle=parseFloat(document.getElementById("se-settle").value)||0,fee=parseFloat(document.getElementById("se-fee").value)||0;if(!settle)settle=qty*price;if(!price&&qty)price=Math.round(settle/qty);BAK("매출 개별 수정");var found=null;for(var i=0;i<PDB.length;i++)if(PDB[i].itemCode===code){found=PDB[i];break;}found=found||{};row.date=pd;row.period=pd;row.unit=u;row.periodLabel=salePeriodLabel(pd,u);row.itemCode=code;row.productName=document.getElementById("se-name").value||found.productName||"";row.sizeType=found.sizeType||row.sizeType||"shoe";row.sizes=sizes;row.soldQty=qty;row.salePrice=price;row.totalSales=settle;row.settlementAmount=settle;row.totalFee=fee;row.grossSales=settle+fee;row.channel=document.getElementById("se-channel").value;row.memo=document.getElementById("se-memo").value;hideSaleEdit();UH();SC();rS();if(curTab==="stk")rStk();if(curTab==="mar")rMar();}
-function rS(){var q=(document.getElementById("ss").value||"").toLowerCase(),uf=document.getElementById("suf").value,sf=DVAL("s-from"),st=DVAL("s-to"),ff=["itemCode","productName","periodLabel","channel","memo"];var L=[];for(var i=0;i<SDB.length;i++){var it=SDB[i],m=!q;if(!m)for(var f=0;f<ff.length;f++)if((it[ff[f]]||"").toLowerCase().indexOf(q)>=0){m=true;break;}if(m&&INRANGE(it.date||it.period,sf,st)&&(!uf||it.unit===uf))L.push(it);}L.sort(function(a,b){var va=a[sSk]||"",vb=b[sSk]||"",nums=["soldQty","salePrice","avgSalePrice","totalSales","settlementAmount","totalFee","grossSales"];if(nums.indexOf(sSk)>=0){if(sSk==="avgSalePrice"){va=(Number(a.soldQty)||0)>0?Math.round(SA(a)/(Number(a.soldQty)||0)):0;vb=(Number(b.soldQty)||0)>0?Math.round(SA(b)/(Number(b.soldQty)||0)):0;}else if(sSk==="totalFee"){va=SF(a);vb=SF(b);}else if(sSk==="grossSales"){va=SG(a);vb=SG(b);}else if(sSk==="settlementAmount"||sSk==="totalSales"){va=SA(a);vb=SA(b);}return sSd==="desc"?Number(vb)-Number(va):Number(va)-Number(vb);}return sSd==="desc"?String(vb).localeCompare(String(va)):String(va).localeCompare(String(vb));});var tSet=0,tFee=0,tGross=0,tQ=0;for(var j=0;j<L.length;j++){tSet+=SA(L[j]);tFee+=SF(L[j]);tGross+=SG(L[j]);tQ+=Number(L[j].soldQty)||0;}document.getElementById("smcs").innerHTML=MC("기간",DRANGE_LABEL(sf,st),"var(--tl)")+MC("판매수량",tQ.toLocaleString()+"개","var(--gn)")+MC("실정산액","₩"+tSet.toLocaleString(),"var(--gn)")+MC("매출액","₩"+tGross.toLocaleString(),"var(--tl)");if(!L.length){document.getElementById("stw").innerHTML="<div class=\"emp\">"+(SDB.length===0?"매출 데이터가 없습니다.":"검색 결과 없음.")+"</div>";updateSalesSelectInfo();return;}var thead="<thead><tr><th style=\"text-align:center\"><input type=\"checkbox\" id=\"s-check-all\"></th>"+TH("날짜","date",sSk,sSd)+TH("기간","periodLabel",sSk,sSd)+"<th>단위</th>"+TH("품번","itemCode",sSk,sSd)+"<th>품명</th><th>사이즈별판매</th>"+TH("수량","soldQty",sSk,sSd)+TH("실정산단가","salePrice",sSk,sSd)+TH("매출액단가","avgSalePrice",sSk,sSd)+TH("실정산액","settlementAmount",sSk,sSd)+TH("수수료","totalFee",sSk,sSd)+TH("매출액","grossSales",sSk,sSd)+"<th>채널</th><th>메모</th><th>수정</th><th>삭제</th></tr></thead>";var tbody="<tbody>";for(var ri=0;ri<L.length;ri++){var row=L[ri],set=SA(row),fee=SF(row),gross=SG(row);tbody+="<tr><td style=\"text-align:center\"><input type=\"checkbox\" class=\"srowchk\" data-id=\""+row.id+"\"></td><td class=\"cl-sl\">"+(row.date||row.period||"")+"</td><td class=\"bld\">"+(row.periodLabel||"")+"</td><td><span class=\"tag "+(row.unit==="week"?"tt":"ta")+"\">"+(row.unit==="week"?"주":"월")+"</span></td><td class=\"cl-tl\">"+(row.itemCode||"")+"</td><td>"+(row.productName||"")+"</td><td>"+SZ(row.sizes)+"</td><td class=\"r bld\">"+(Number(row.soldQty)||0).toLocaleString()+"</td><td class=\"r\">"+(row.salePrice?"₩"+Number(row.salePrice).toLocaleString():"")+"</td><td class=\"r cl-gn bld\">₩"+set.toLocaleString()+"</td><td class=\"r cl-am\">₩"+fee.toLocaleString()+"</td><td class=\"r cl-tl bld\">₩"+gross.toLocaleString()+"</td><td>"+(row.channel?"<span class=\"tag tp\">"+row.channel+"</span>":"")+"</td><td class=\"cl-sl\" style=\"max-width:80px;overflow:hidden;text-overflow:ellipsis\">"+(row.memo||"")+"</td><td><button class=\"xbtn\" data-edit-sid=\""+row.id+"\">수정</button></td><td><button class=\"bd_\" data-sid=\""+row.id+"\">삭제</button></td></tr>";}tbody+="</tbody>";document.getElementById("stw").innerHTML="<table class=\"mt\">"+thead+tbody+"</table>";document.querySelectorAll("#stw th.sortable").forEach(function(th){th.onclick=function(){var k=this.getAttribute("data-k");if(sSk===k)sSd=sSd==="desc"?"asc":"desc";else{sSk=k;sSd="desc";}rS();};});document.querySelectorAll("#stw button[data-sid]").forEach(function(btn){btn.onclick=function(){deleteSalesByIds([this.getAttribute("data-sid")],"이 매출 건을 삭제할까요?");};});document.querySelectorAll("#stw button[data-edit-sid]").forEach(function(btn){btn.onclick=function(){showSaleEdit(this.getAttribute("data-edit-sid"));};});document.querySelectorAll(".srowchk").forEach(function(chk){chk.onchange=updateSalesSelectInfo;});var all=document.getElementById("s-check-all");if(all)all.onchange=function(){document.querySelectorAll(".srowchk").forEach(function(chk){chk.checked=all.checked;});updateSalesSelectInfo();};updateSalesSelectInfo();}
+
+function rS(){
+  var q=(document.getElementById("ss").value||"").toLowerCase(),
+      uf=document.getElementById("suf").value,
+      sf=DVAL("s-from"),
+      st=DVAL("s-to"),
+      ff=["itemCode","productName","periodLabel","channel","memo"];
+
+  var L=[];
+  for(var i=0;i<SDB.length;i++){
+    var it=SDB[i],m=!q;
+    if(!m){
+      for(var f=0;f<ff.length;f++){
+        if((it[ff[f]]||"").toLowerCase().indexOf(q)>=0){m=true;break;}
+      }
+    }
+    if(m&&INRANGE(it.date||it.period,sf,st)&&(!uf||it.unit===uf))L.push(it);
+  }
+
+  function salesQty(row){
+    return window.LF_SALES_QTY ? LF_SALES_QTY(row) : (Number(row.soldQty||row.quantity)||0);
+  }
+  function netAmt(row){
+    return window.LF_NET ? LF_NET(row) : SA(row);
+  }
+  function feeAmt(row){
+    return window.LF_FEE ? LF_FEE(row) : SF(row);
+  }
+  function grossAmt(row){
+    return window.LF_GROSS ? LF_GROSS(row) : SG(row);
+  }
+  function unitVal(amount,qty){
+    return qty>0 ? Math.round(amount/qty) : 0;
+  }
+
+  L.sort(function(a,b){
+    var va=a[sSk]||"",vb=b[sSk]||"";
+    var nums=["soldQty","salePrice","avgSalePrice","settlementAmount","totalFee","grossSales","totalSales"];
+    if(nums.indexOf(sSk)>=0){
+      var qa=salesQty(a),qb=salesQty(b);
+      if(sSk==="soldQty"){va=qa;vb=qb;}
+      else if(sSk==="salePrice"){va=unitVal(netAmt(a),qa);vb=unitVal(netAmt(b),qb);}
+      else if(sSk==="avgSalePrice"){va=unitVal(grossAmt(a),qa);vb=unitVal(grossAmt(b),qb);}
+      else if(sSk==="totalFee"){va=feeAmt(a);vb=feeAmt(b);}
+      else if(sSk==="grossSales"||sSk==="totalSales"){va=grossAmt(a);vb=grossAmt(b);}
+      else if(sSk==="settlementAmount"){va=netAmt(a);vb=netAmt(b);}
+      return sSd==="desc"?Number(vb)-Number(va):Number(va)-Number(vb);
+    }
+    return sSd==="desc"?String(vb).localeCompare(String(va)):String(va).localeCompare(String(vb));
+  });
+
+  var tNet=0,tFee=0,tGross=0,tQ=0;
+  for(var j=0;j<L.length;j++){
+    var qj=salesQty(L[j]);
+    tQ+=qj;
+    tNet+=netAmt(L[j]);
+    tFee+=feeAmt(L[j]);
+    tGross+=grossAmt(L[j]);
+  }
+
+  document.getElementById("smcs").innerHTML=
+    MC("기간",DRANGE_LABEL(sf,st),"var(--tl)")+
+    MC("판매수량",tQ.toLocaleString()+"개","var(--gn)")+
+    MC("실정산액","₩"+Math.round(tNet).toLocaleString(),"var(--gn)")+
+    MC("매출액","₩"+Math.round(tGross).toLocaleString(),"var(--tl)");
+
+  if(!L.length){
+    document.getElementById("stw").innerHTML="<div class=\"emp\">"+(SDB.length===0?"매출 데이터가 없습니다.":"검색 결과 없음.")+"</div>";
+    updateSalesSelectInfo();
+    return;
+  }
+
+  // 컬럼 순서 고정:
+  // 매출액 = 실정산액 + 수수료
+  // 실마진 계산에는 실정산액 사용
+  var thead=
+    "<thead><tr>"+
+    "<th style=\"text-align:center\"><input type=\"checkbox\" id=\"s-check-all\"></th>"+
+    TH("날짜","date",sSk,sSd)+
+    TH("기간","periodLabel",sSk,sSd)+
+    "<th>단위</th>"+
+    TH("품번","itemCode",sSk,sSd)+
+    "<th>품명</th>"+
+    "<th>사이즈별판매</th>"+
+    TH("수량","soldQty",sSk,sSd)+
+    TH("매출액단가","avgSalePrice",sSk,sSd)+
+    TH("매출액","grossSales",sSk,sSd)+
+    TH("수수료","totalFee",sSk,sSd)+
+    TH("실정산단가","salePrice",sSk,sSd)+
+    TH("실정산액","settlementAmount",sSk,sSd)+
+    "<th>채널</th><th>메모</th><th>수정</th><th>삭제</th>"+
+    "</tr></thead>";
+
+  var tbody="<tbody>";
+  for(var ri=0;ri<L.length;ri++){
+    var row=L[ri],
+        qty=salesQty(row),
+        gross=grossAmt(row),
+        fee=feeAmt(row),
+        net=netAmt(row),
+        grossUnit=unitVal(gross,qty),
+        netUnit=unitVal(net,qty);
+
+    tbody+="<tr>"+
+      "<td style=\"text-align:center\"><input type=\"checkbox\" class=\"srowchk\" data-id=\""+row.id+"\"></td>"+
+      "<td class=\"cl-sl\">"+(row.date||row.period||"")+"</td>"+
+      "<td class=\"bld\">"+(row.periodLabel||"")+"</td>"+
+      "<td><span class=\"tag "+(row.unit==="week"?"tt":"ta")+"\">"+(row.unit==="week"?"주":"월")+"</span></td>"+
+      "<td class=\"cl-tl\">"+(row.itemCode||"")+"</td>"+
+      "<td>"+(row.productName||"")+"</td>"+
+      "<td>"+SZ(row.sizes)+"</td>"+
+      "<td class=\"r bld\">"+qty.toLocaleString()+"</td>"+
+      "<td class=\"r cl-tl\">₩"+grossUnit.toLocaleString()+"</td>"+
+      "<td class=\"r cl-tl bld\">₩"+Math.round(gross).toLocaleString()+"</td>"+
+      "<td class=\"r cl-am\">₩"+Math.round(fee).toLocaleString()+"</td>"+
+      "<td class=\"r cl-gn\">₩"+netUnit.toLocaleString()+"</td>"+
+      "<td class=\"r cl-gn bld\">₩"+Math.round(net).toLocaleString()+"</td>"+
+      "<td>"+(row.channel?"<span class=\"tag tp\">"+row.channel+"</span>":"")+"</td>"+
+      "<td class=\"cl-sl\" style=\"max-width:80px;overflow:hidden;text-overflow:ellipsis\">"+(row.memo||"")+"</td>"+
+      "<td><button class=\"xbtn\" data-edit-sid=\""+row.id+"\">수정</button></td>"+
+      "<td><button class=\"bd_\" data-sid=\""+row.id+"\">삭제</button></td>"+
+      "</tr>";
+  }
+  tbody+="</tbody>";
+
+  document.getElementById("stw").innerHTML="<table class=\"mt\">"+thead+tbody+"</table>";
+
+  document.querySelectorAll("#stw th.sortable").forEach(function(th){
+    th.onclick=function(){
+      var k=this.getAttribute("data-k");
+      if(sSk===k)sSd=sSd==="desc"?"asc":"desc";
+      else{sSk=k;sSd="desc";}
+      rS();
+    };
+  });
+  document.querySelectorAll("#stw button[data-sid]").forEach(function(btn){
+    btn.onclick=function(){deleteSalesByIds([this.getAttribute("data-sid")],"이 매출 건을 삭제할까요?");};
+  });
+  document.querySelectorAll("#stw button[data-edit-sid]").forEach(function(btn){
+    btn.onclick=function(){showSaleEdit(this.getAttribute("data-edit-sid"));};
+  });
+  document.querySelectorAll(".srowchk").forEach(function(chk){chk.onchange=updateSalesSelectInfo;});
+  var all=document.getElementById("s-check-all");
+  if(all)all.onchange=function(){
+    document.querySelectorAll(".srowchk").forEach(function(chk){chk.checked=all.checked;});
+    updateSalesSelectInfo();
+  };
+  updateSalesSelectInfo();
+}
+
 function calcStk(){
   var bought={};
   for(var i=0;i<PDB.length;i++){
@@ -969,6 +1118,12 @@ document.getElementById("p-dt").value=today();RSG();setAnaPeriod("this_month");L
   };
   window.LF_GROSS = function(row){
     var q = window.LF_SALES_QTY(row);
+    var fee = window.LF_FEE(row);
+    var settlement = Number(row && row.settlementAmount != null ? row.settlementAmount : 0) || 0;
+
+    // 최우선 기준: 매출액 = 실정산액 + 수수료
+    if(settlement) return settlement + fee;
+
     var gross = Number(
       row && row.grossSales != null ? row.grossSales :
       row && row.grossAmount != null ? row.grossAmount :
@@ -976,12 +1131,7 @@ document.getElementById("p-dt").value=today();RSG();setAnaPeriod("this_month");L
       row && row.sales != null ? row.sales : 0
     ) || 0;
 
-    // 스마트스토어 등에서 totalSales가 실정산액으로 들어온 경우: 수수료를 더해 매출액 보정
-    var fee = window.LF_FEE(row);
-    var settlement = Number(row && row.settlementAmount != null ? row.settlementAmount : 0) || 0;
     if(!gross && row && row.salePrice != null) gross = (Number(row.salePrice)||0) * q;
-    if(gross && settlement && Math.abs(gross - settlement) < 1 && fee) gross = settlement + fee;
-    if(!gross && settlement) gross = settlement + fee;
     return gross;
   };
   window.LF_NET = function(row){

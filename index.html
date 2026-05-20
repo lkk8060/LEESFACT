@@ -138,6 +138,22 @@ table.mt tr.sub-row:hover{background:#060d1a}
       <button class="bg_" id="btn-sku-import">매입DB에서 마스터 생성</button>
     </div>
   </div>
+  
+  <div class="card">
+    <div class="slbl">📋 SKU MASTER JSON 일괄 입력</div>
+    <p style="font-size:11px;color:#64748b;margin-bottom:10px;line-height:1.7">
+      여러 SKU를 JSON 배열로 붙여넣으면 한 번에 저장/수정됩니다. 기존 품번이 있으면 해당 SKU가 업데이트됩니다.
+    </p>
+    <div class="fg">
+      <label class="fl">SKU JSON 데이터</label>
+      <textarea id="sku-json-paste" rows="4" placeholder='[{"itemCode":"JC7705","productName":"리니어 캘리 그래픽 티셔츠 화이트 블루","brand":"ADIDAS","category":"상의","sizeType":"cloth","color":"화이트 블루","retailPrice":69000,"aliases":["ADIDAS JC7705","리니어 캘리 티셔츠"]}]'></textarea>
+    </div>
+    <div class="tool-row" style="margin-bottom:0">
+      <button class="bp" id="btn-sku-json-save">☁ SKU JSON 저장/수정</button>
+      <button class="bs" id="btn-sku-json-sample">예시 불러오기</button>
+    </div>
+  </div>
+
   <div class="tool-row"><button class="bg_" id="btn-exp-sku">⬇ Excel</button><button class="bs" id="btn-ref-sku">↻ 새로고침</button><button class="bd_" id="btn-sku-del-sel">선택삭제</button><button class="bd_" id="btn-sku-del-all">전체삭제</button><span id="sku-sel-info" style="font-size:10px;color:#64748b">선택 0건</span><span id="sku-count" style="font-size:10px;color:#64748b">SKU 0건</span></div>
   <div class="fr"><input id="sku-search" placeholder="품번·품명·브랜드 검색..." style="flex:1;max-width:340px"><select id="sku-cat-filter" style="width:130px"><option value="">전체 카테고리</option><option>신발</option><option>상의</option><option>하의</option><option>아우터</option><option>가방</option><option>액세서리</option><option>기타</option></select></div>
   <div class="tw" id="skuw"><div class="emp">SKU MASTER를 입력해주세요.</div></div>
@@ -392,6 +408,108 @@ function deleteAllSku(){
   SKUDB=[];
   clearSkuForm();
   SC();rSku();fillPurchaseSkuOptions();REPAINT();
+}
+
+
+function normSkuRow(it){
+  it=it||{};
+  var code=String(it.itemCode||it.productCode||it.code||it.sku||"").trim();
+  var name=String(it.productName||it.name||it.product||"").trim();
+  var cat=it.category||"";
+  var st=it.sizeType||it.type||"shoe";
+  if(st==="bottom"||st==="pants"||cat==="하의")st="pants";
+  if(st==="clothes"||st==="apparel")st="cloth";
+  if(st==="free"||st==="FREE")st="free";
+  return {
+    id:code,
+    itemCode:code,
+    productName:name,
+    brand:String(it.brand||"").trim(),
+    category:cat,
+    sizeType:st,
+    color:String(it.color||"").trim(),
+    retailPrice:Number(it.retailPrice||it.consumerPrice||it.price)||0,
+    memo:String(it.memo||"").trim(),
+    aliases:parseAliases(it.aliases||it.alias||it.keywords||""),
+    updated_at:new Date().toISOString()
+  };
+}
+function saveSkuJson(){
+  var raw=(document.getElementById("sku-json-paste").value||"").trim();
+  if(!raw){SM("sku-msg","md","SKU JSON을 붙여넣어주세요.");return;}
+  var items;
+  try{items=JSON.parse(raw);}
+  catch(e){SM("sku-msg","md","JSON 오류: "+e.message);return;}
+  if(!Array.isArray(items))items=[items];
+
+  var add=0,upd=0,skip=0;
+  BAK("SKU MASTER JSON 일괄 저장");
+
+  for(var i=0;i<items.length;i++){
+    var row=normSkuRow(items[i]);
+    if(!row.itemCode||!row.productName){skip++;continue;}
+    var old=skuFind(row.itemCode);
+    if(old){
+      for(var k in row){
+        if(k==="aliases"){
+          var oldAliases=parseAliases(old.aliases||[]);
+          var newAliases=parseAliases(row.aliases||[]);
+          var merged=oldAliases.slice();
+          for(var a=0;a<newAliases.length;a++){
+            var exists=false;
+            for(var b=0;b<merged.length;b++)if(normText(merged[b])===normText(newAliases[a]))exists=true;
+            if(!exists)merged.push(newAliases[a]);
+          }
+          old.aliases=merged;
+        }else{
+          old[k]=row[k];
+        }
+      }
+      upd++;
+    }else{
+      SKUDB.unshift(row);
+      add++;
+    }
+  }
+
+  SC();
+  rSku();
+  fillPurchaseSkuOptions();
+  FSC();
+  document.getElementById("sku-json-paste").value="";
+  if(skip){
+    SM("sku-msg","mw","SKU JSON 저장 완료: 신규 "+add+"건 / 수정 "+upd+"건 / 스킵 "+skip+"건");
+  }else{
+    SM("sku-msg","ms","SKU JSON 저장 완료: 신규 "+add+"건 / 수정 "+upd+"건");
+  }
+}
+function loadSkuJsonSample(){
+  var sample=[
+    {
+      itemCode:"JC7705",
+      productName:"리니어 캘리 그래픽 티셔츠 화이트 블루",
+      brand:"ADIDAS",
+      category:"상의",
+      sizeType:"cloth",
+      color:"화이트 블루",
+      retailPrice:69000,
+      aliases:["ADIDAS JC7705","리니어 캘리 티셔츠"],
+      memo:""
+    },
+    {
+      itemCode:"EXAMPLE-PANTS",
+      productName:"아디다스 하의 예시",
+      brand:"ADIDAS",
+      category:"하의",
+      sizeType:"pants",
+      color:"BLACK",
+      retailPrice:89000,
+      aliases:["아디다스 팬츠"],
+      memo:"하의 사이즈 24~44"
+    }
+  ];
+  var e=document.getElementById("sku-json-paste");
+  if(e)e.value=JSON.stringify(sample,null,2);
 }
 
 function clearSkuForm(){["sku-code","sku-name","sku-brand","sku-color","sku-retail","sku-memo","sku-aliases"].forEach(function(id){var e=document.getElementById(id);if(e)e.value="";});var c=document.getElementById("sku-category");if(c)c.value="";var st=document.getElementById("sku-sizetype");if(st)st.value="shoe";}
@@ -1211,6 +1329,8 @@ bindSafe("ana-from","onchange",function(){setQuickOn("");rAna();});
 bindSafe("ana-to","onchange",function(){setQuickOn("");rAna();});
 
 bindSafe("btn-sku-save","onclick",saveSku);
+bindSafe("btn-sku-json-save","onclick",saveSkuJson);
+bindSafe("btn-sku-json-sample","onclick",loadSkuJsonSample);
 bindSafe("btn-sku-clear","onclick",clearSkuForm);
 bindSafe("btn-sku-import","onclick",importSkuFromPurchase);
 bindSafe("btn-sku-del-sel","onclick",deleteSelectedSku);

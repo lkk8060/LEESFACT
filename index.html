@@ -842,8 +842,43 @@ function RSG2(){var code=document.getElementById("si-cd").value,wrap=document.ge
 function GSQ(){var code=document.getElementById("si-cd").value,merged={};for(var i=0;i<PDB.length;i++){if(PDB[i].itemCode!==code)continue;var s=PDB[i].sizes||{},ks=Object.keys(s);for(var k=0;k<ks.length;k++)merged[ks[k]]=(merged[ks[k]]||0)+(Number(s[ks[k]])||0);}var ks2=Object.keys(merged).filter(function(k){return merged[k]>0;}),keys=ks2.length?ks2:["FREE"],o={},t=0;for(var j=0;j<keys.length;j++){var el=document.getElementById("siz-"+keys[j]),v=el?(parseFloat(el.value)||0):0;if(v>0)o[keys[j]]=v;t+=v;}return{obj:o,tot:t};}
 function CST(){var r=GSQ(),pr=parseFloat(document.getElementById("si-pr").value)||0;var qd=document.getElementById("si-qd"),pu=document.getElementById("si-pu"),td=document.getElementById("si-td"),st=document.getElementById("si-stot");if(qd)qd.textContent=r.tot.toLocaleString();if(pu)pu.textContent="₩"+pr.toLocaleString();if(td)td.textContent="₩"+(r.tot*pr).toLocaleString();if(st)st.textContent=r.tot.toLocaleString();}
 function SVS(){var pd=document.getElementById("si-pd").value,code=document.getElementById("si-cd").value;if(!pd||!code){SM("si-msg","md","기간과 품번은 필수입니다.");return;}var r=GSQ();if(!r.tot){SM("si-msg","md","판매 수량을 입력해주세요.");return;}var pr=parseFloat(document.getElementById("si-pr").value)||0,fee=parseFloat(document.getElementById("si-fee").value)||0,found=null;for(var i=0;i<PDB.length;i++)if(PDB[i].itemCode===code){found=PDB[i];break;}found=found||{};var label="";if(sUnit==="month"){var p=pd.split("-");label=p[0]+"년 "+parseInt(p[1])+"월";}else{var d=new Date(pd),j2=new Date(d.getFullYear(),0,1);label=d.getFullYear()+"년 "+Math.ceil(((d-j2)/86400000+j2.getDay()+1)/7)+"주차";}var settlement=r.tot*pr;BAK("매출 직접입력 저장");SDB.unshift({id:String(Date.now()),unit:sUnit,period:pd,periodLabel:label,date:pd,itemCode:code,productName:found.productName||"",sizeType:found.sizeType||"",sizes:r.obj,soldQty:r.tot,salePrice:pr,totalSales:settlement,settlementAmount:settlement,totalFee:fee,grossSales:settlement+fee,channel:document.getElementById("si-ch").value,memo:document.getElementById("si-mm").value});UH();["si-pd","si-mm","si-fee"].forEach(function(id){var e=document.getElementById(id);if(e)e.value="";});["si-cd","si-ch"].forEach(function(id){var e=document.getElementById(id);if(e)e.value="";});var pl=document.getElementById("pl");if(pl)pl.textContent="";var sgw=document.getElementById("si-sgw");if(sgw)sgw.innerHTML="";var qd=document.getElementById("si-qd");if(qd)qd.textContent="0";var pu=document.getElementById("si-pu");if(pu)pu.textContent="₩0";var pr2=document.getElementById("si-pr");if(pr2)pr2.value="";var td=document.getElementById("si-td");if(td)td.textContent="₩0";SC();SM("si-msg","ms","✓ 매출 저장 완료!");}
-function SJsave(){var raw=(document.getElementById("sj-paste").value||"").trim();if(!raw){SM("si-msg","md","JSON을 붙여넣어주세요.");return;}var items;try{items=JSON.parse(raw);}catch(e){SM("si-msg","md","JSON 오류: "+e.message);return;}if(!Array.isArray(items))items=[items];var ts=Date.now(),sv=[];for(var i=0;i<items.length;i++){var it=items[i],s=it.sizes||{},ks=Object.keys(s),tot=0;for(var k=0;k<ks.length;k++)tot+=parseFloat(s[ks[k]])||0;var pd=it.date||today(),u=it.unit||"week";var fee=parseFloat(it.totalFee!=null?it.totalFee:(it.fee!=null?it.fee:it.commission))||0;var settlement=parseFloat(it.settlementAmount!=null?it.settlementAmount:(it.totalSales!=null?it.totalSales:it.amount))||0;var pr=parseFloat(it.salePrice||it.unitPrice)||0;if(!settlement)settlement=tot*pr;if(!pr&&tot)pr=Math.round(settlement/tot);var label="";if(u==="month"){var p=pd.split("-");label=p[0]+"년 "+parseInt(p[1])+"월";}else{var d=new Date(pd),j=new Date(d.getFullYear(),0,1);label=d.getFullYear()+"년 "+Math.ceil(((d-j)/86400000+j.getDay()+1)/7)+"주차";}var found=null;for(var fi=0;fi<PDB.length;fi++)if(PDB[fi].itemCode===it.itemCode){found=PDB[fi];break;}found=found||{};sv.push({id:String(ts)+"_"+i,unit:u,period:pd,periodLabel:label,date:pd,itemCode:(function(){var m=autoResolveItemCode(it);return m.code||it.itemCode||it.productCode||"";})(),productName:it.productName||found.productName||"",sizeType:found.sizeType||"shoe",sizes:s,soldQty:tot,salePrice:pr,totalSales:settlement,settlementAmount:settlement,totalFee:fee,grossSales:settlement+fee,channel:it.channel||"",memo:it.memo||""});}BAK("매출 JSON "+sv.length+"건 저장");SDB=sv.concat(SDB);UH();document.getElementById("sj-paste").value="";SC();SM("si-msg","ms","✓ 매출 "+sv.length+"건 저장 완료!");}
-function salePeriodLabel(pd,u){if(!pd)return "";if(u==="month"){var p=pd.split("-");return p[0]+"년 "+parseInt(p[1])+"월";}var d=new Date(pd),j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"년 "+Math.ceil(((d-j)/86400000+j.getDay()+1)/7)+"주차";}
+
+function excelSerialToDate(serial){
+  var n=Number(serial);
+  if(!isFinite(n)||n<20000||n>80000)return "";
+  // Excel serial date: 25569 = 1970-01-01
+  var d=new Date(Math.round((n-25569)*86400*1000));
+  if(isNaN(d.getTime()))return "";
+  return d.toISOString().slice(0,10);
+}
+function normSalesDate(it){
+  var v=(it&&(it.date||it.saleDate||it.orderDate||it.settlementDate||it.period))||"";
+  v=String(v||"").trim();
+  if(!v)return "";
+
+  // Excel serial number as string/number, e.g. 45839
+  if(/^\d{5}$/.test(v)){
+    var ex=excelSerialToDate(v);
+    if(ex)return ex;
+  }
+
+  // YYYY-MM-DD / YYYY.MM.DD / YYYY/MM/DD
+  var m=v.match(/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})/);
+  if(m)return m[1]+"-"+String(m[2]).padStart(2,"0")+"-"+String(m[3]).padStart(2,"0");
+
+  // YY-MM-DD / YY.MM.DD / YY/MM/DD
+  m=v.match(/^(\d{2})[-./](\d{1,2})[-./](\d{1,2})/);
+  if(m)return "20"+m[1]+"-"+String(m[2]).padStart(2,"0")+"-"+String(m[3]).padStart(2,"0");
+
+  // DD.MM.YYYY
+  m=v.match(/^(\d{1,2})[-./](\d{1,2})[-./](\d{4})/);
+  if(m)return m[3]+"-"+String(m[2]).padStart(2,"0")+"-"+String(m[1]).padStart(2,"0");
+
+  return v.slice(0,10);
+}
+
+function SJsave(){var raw=(document.getElementById("sj-paste").value||"").trim();if(!raw){SM("si-msg","md","JSON을 붙여넣어주세요.");return;}var items;try{items=JSON.parse(raw);}catch(e){SM("si-msg","md","JSON 오류: "+e.message);return;}if(!Array.isArray(items))items=[items];var ts=Date.now(),sv=[];for(var i=0;i<items.length;i++){var it=items[i],s=it.sizes||{},ks=Object.keys(s),tot=0;for(var k=0;k<ks.length;k++)tot+=parseFloat(s[ks[k]])||0;var pd=normSalesDate(it)||today(),u=it.unit||"week";var fee=parseFloat(it.totalFee!=null?it.totalFee:(it.fee!=null?it.fee:it.commission))||0;var settlement=parseFloat(it.settlementAmount!=null?it.settlementAmount:(it.totalSales!=null?it.totalSales:it.amount))||0;var pr=parseFloat(it.salePrice||it.unitPrice)||0;if(!settlement)settlement=tot*pr;if(!pr&&tot)pr=Math.round(settlement/tot);var label="";if(u==="month"){var p=pd.split("-");label=p[0]+"년 "+parseInt(p[1])+"월";}else{var d=new Date(pd),j=new Date(d.getFullYear(),0,1);label=d.getFullYear()+"년 "+Math.ceil(((d-j)/86400000+j.getDay()+1)/7)+"주차";}var found=null;for(var fi=0;fi<PDB.length;fi++)if(PDB[fi].itemCode===it.itemCode){found=PDB[fi];break;}found=found||{};sv.push({id:String(ts)+"_"+i,unit:u,period:pd,periodLabel:label,date:pd,itemCode:(function(){var m=autoResolveItemCode(it);return m.code||it.itemCode||it.productCode||"";})(),productName:it.productName||found.productName||"",sizeType:found.sizeType||"shoe",sizes:s,soldQty:tot,salePrice:pr,totalSales:settlement,settlementAmount:settlement,totalFee:fee,grossSales:settlement+fee,channel:it.channel||"",memo:it.memo||""});}BAK("매출 JSON "+sv.length+"건 저장");SDB=sv.concat(SDB);UH();document.getElementById("sj-paste").value="";SC();SM("si-msg","ms","✓ 매출 "+sv.length+"건 저장 완료!");}
+function salePeriodLabel(pd,u){pd=normSalesDate({date:pd});if(!pd)return "";if(u==="month"){var p=pd.split("-");return p[0]+"년 "+parseInt(p[1])+"월";}var d=new Date(pd),j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"년 "+Math.ceil(((d-j)/86400000+j.getDay()+1)/7)+"주차";}
 function qtyFromSizes(s){var t=0,ks=Object.keys(s||{});for(var i=0;i<ks.length;i++)t+=Number(s[ks[i]])||0;return t;}
 function updateSalesSelectInfo(){var n=document.querySelectorAll(".srowchk:checked").length;var e=document.getElementById("s-sel-info");if(e)e.textContent="선택 "+n+"건";var all=document.getElementById("s-check-all"),boxes=document.querySelectorAll(".srowchk");if(all){all.checked=boxes.length>0&&n===boxes.length;all.indeterminate=n>0&&n<boxes.length;}}
 function selectedSalesIds(){return Array.prototype.slice.call(document.querySelectorAll(".srowchk:checked")).map(function(x){return x.getAttribute("data-id");}).filter(Boolean);}

@@ -128,6 +128,13 @@ table.mt{font-size:var(--ui-font-size)!important;background:#ffffff!important}ta
 .pc-ui-toolbar .pc-ui-title{font-weight:800;color:#111827;margin-right:4px}.pc-ui-toolbar label{display:flex;align-items:center;gap:6px;white-space:nowrap;font-weight:600}.pc-ui-toolbar input[type=range]{width:110px;padding:0;border:none!important;background:transparent!important}.pc-ui-toolbar .pc-reset{padding:5px 10px!important;font-size:11px!important}
 @media(max-width:900px){.pc-ui-toolbar{display:none}}
 
+
+/* ===== LEESFACT Analysis Chart Readability FIX ===== */
+.ana-card{background:#ffffff!important;border:1px solid #dbe3ef!important;box-shadow:0 1px 4px rgba(15,23,42,.05)!important}
+.ana-title{color:#334155!important;font-weight:800!important}
+.ana-chart{background:#ffffff!important;border:1px solid #dbe3ef!important;border-radius:8px!important}
+.chart-unit-note{color:#475569!important;font-weight:700!important}
+
 </style>
 </head><body>
 <div class="hdr"><div style="display:flex;align-items:center;gap:9px"><div class="led off" id="led"></div><div class="brandwrap"><span class="brandmark" title="LEES FACT"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#050b14"></rect><path d="M14 45 L24 17 M23 45 L31 21 M24 45 C33 36 39 34 49 32 M34 45 C42 38 47 37 53 37" fill="none" stroke="#f8fafc" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M11 50 H53" stroke="#0ea5e9" stroke-width="3" stroke-linecap="round" opacity="0.9"></path></svg></span><div class="logo">LEES<b>FACT</b> <span style="color:#475569;font-size:11px;font-weight:400">재고관리</span></div></div><span class="sbadge b-off" id="sbadge">연결 중...</span></div><div style="display:flex;align-items:center;gap:8px">
@@ -1159,79 +1166,122 @@ function anaFilterSales(){var f=DVAL("ana-from"),t=DVAL("ana-to");return SDB.fil
 function anaCostMap(){var m={};for(var i=0;i<PDB.length;i++){var p=PDB[i],c=p.itemCode||"";if(!c)continue;if(!m[c])m[c]={qty:0,total:0,brand:p.brand||"",name:p.productName||""};m[c].qty+=Number(p.quantity)||0;m[c].total+=Number(p.totalPrice)||0;if(p.brand)m[c].brand=p.brand;if(p.productName)m[c].name=p.productName;}Object.keys(m).forEach(function(c){m[c].avg=m[c].qty>0?m[c].total/m[c].qty:0;});return m;}
 function anaData(){var rows=anaFilterSales(),cost=anaCostMap(),byCh={},byBrand={},bySku={},bySize={},trend={},tot={sales:0,gross:0,fee:0,cogs:0,profit:0,qty:0};for(var i=0;i<rows.length;i++){var s=rows[i],code=s.itemCode||"?",qty=Number(s.soldQty)||Number(s.quantity)||0,settle=SA(s),fee=SF(s),gross=SG(s),cm=cost[code]||{},brand=(cm.brand||s.brand||skuInfo(code,{}).brand||"미지정"),cogs=(cm.avg||0)*qty,profit=settle-cogs,ch=s.channel||"미지정",dt=String(s.date||s.period||"").slice(0,10),mon=dt?dt.slice(0,7):"미지정";tot.sales+=settle;tot.gross+=gross;tot.fee+=fee;tot.cogs+=cogs;tot.profit+=profit;tot.qty+=qty;byCh[ch]=(byCh[ch]||0)+settle;byBrand[brand]=(byBrand[brand]||0)+settle;trend[mon]=(trend[mon]||0)+settle;if(!bySku[code])bySku[code]={itemCode:code,productName:cm.name||s.productName||skuInfo(code,{}).productName||"",brand:brand,qty:0,sales:0,gross:0,profit:0,cogs:0,fee:0};bySku[code].qty+=qty;bySku[code].sales+=settle;bySku[code].gross+=gross;bySku[code].profit+=profit;bySku[code].cogs+=cogs;bySku[code].fee+=fee;var sz=s.sizes||{},ks=Object.keys(sz);for(var k=0;k<ks.length;k++){var z=NSZ(ks[k]);bySize[z]=(bySize[z]||0)+(Number(sz[ks[k]])||0);}}
 return{rows:rows,tot:tot,byCh:byCh,byBrand:byBrand,bySku:Object.keys(bySku).map(function(k){return bySku[k];}),bySize:bySize,trend:trend,range:anaRangeLabel(DVAL("ana-from"),DVAL("ana-to"))};}
-function drawPie(id,obj){var cv=document.getElementById(id);if(!cv)return;var ctx=cv.getContext("2d"),w=cv.clientWidth,h=cv.clientHeight;cv.width=w*2;cv.height=h*2;ctx.scale(2,2);ctx.clearRect(0,0,w,h);var data=Object.keys(obj).map(function(k){return{k:k,v:Number(obj[k])||0};}).filter(function(x){return x.v>0;}).sort(function(a,b){return b.v-a.v;});var total=data.reduce(function(a,b){return a+b.v;},0);if(!total){ctx.fillStyle="#64748b";ctx.font="12px monospace";ctx.fillText("데이터 없음",20,30);return;}var cx=w*0.34,cy=h*0.52,r=Math.min(w,h)*0.28,st=-Math.PI/2;var colors=["#0ea5e9","#22c55e","#f59e0b","#a855f7","#ef4444","#14b8a6","#eab308","#64748b"];for(var i=0;i<data.length;i++){var ang=data[i].v/total*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,st,st+ang);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.fill();st+=ang;}ctx.fillStyle="#e2e8f0";ctx.font="11px monospace";var lx=w*0.62,ly=35;for(var j=0;j<data.length&&j<8;j++){ctx.fillStyle=colors[j%colors.length];ctx.fillRect(lx,ly-9,9,9);ctx.fillStyle="#cbd5e1";ctx.fillText(data[j].k+" "+(data[j].v/total*100).toFixed(1)+"%",lx+15,ly);ly+=22;}}
-function drawBar(id,obj,limit){var cv=document.getElementById(id);if(!cv)return;var ctx=cv.getContext("2d"),w=cv.clientWidth,h=cv.clientHeight;cv.width=w*2;cv.height=h*2;ctx.scale(2,2);ctx.clearRect(0,0,w,h);var data=Object.keys(obj).map(function(k){return{k:k,v:Number(obj[k])||0};}).filter(function(x){return x.v>0;}).sort(function(a,b){return b.v-a.v;}).slice(0,limit||8);if(!data.length){ctx.fillStyle="#64748b";ctx.font="12px monospace";ctx.fillText("데이터 없음",20,30);return;}var max=Math.max.apply(null,data.map(function(x){return x.v;})),left=90,top=20,bh=Math.max(14,(h-45)/data.length-8),gap=8;ctx.font="10px monospace";for(var i=0;i<data.length;i++){var y=top+i*(bh+gap),bw=(w-left-30)*(data[i].v/max);ctx.fillStyle="#0ea5e9";ctx.fillRect(left,y,bw,bh);ctx.fillStyle="#cbd5e1";ctx.fillText(data[i].k.slice(0,12),10,y+bh-2);ctx.fillStyle="#94a3b8";ctx.fillText("₩"+Math.round(data[i].v).toLocaleString(),left+bw+5,y+bh-2);}}
+function drawPie(id,obj){
+  var cv=document.getElementById(id);if(!cv)return;
+  var ctx=cv.getContext("2d"),w=cv.clientWidth,h=cv.clientHeight;
+  cv.width=w*2;cv.height=h*2;ctx.scale(2,2);
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle="#ffffff";ctx.fillRect(0,0,w,h);
+
+  var data=Object.keys(obj).map(function(k){return{k:k,v:Number(obj[k])||0};}).filter(function(x){return x.v>0;}).sort(function(a,b){return b.v-a.v;});
+  var total=data.reduce(function(a,b){return a+b.v;},0);
+  if(!total){ctx.fillStyle="#64748b";ctx.font="12px 'Malgun Gothic','맑은 고딕',Arial";ctx.fillText("데이터 없음",20,30);return;}
+
+  var cx=w*0.32,cy=h*0.53,r=Math.min(w,h)*0.30,st=-Math.PI/2;
+  var colors=["#2563eb","#16a34a","#f59e0b","#7c3aed","#dc2626","#0891b2","#ca8a04","#64748b"];
+  for(var i=0;i<data.length;i++){
+    var ang=data[i].v/total*Math.PI*2;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,st,st+ang);ctx.closePath();
+    ctx.fillStyle=colors[i%colors.length];ctx.fill();
+    ctx.strokeStyle="#ffffff";ctx.lineWidth=2;ctx.stroke();
+    st+=ang;
+  }
+
+  var lx=w*0.58,ly=36;
+  ctx.font="12px 'Malgun Gothic','맑은 고딕',Arial";
+  ctx.textAlign="left";ctx.textBaseline="middle";
+  for(var j=0;j<data.length&&j<8;j++){
+    ctx.fillStyle=colors[j%colors.length];ctx.fillRect(lx,ly-6,10,10);
+    ctx.fillStyle="#0f172a";ctx.font="700 12px 'Malgun Gothic','맑은 고딕',Arial";
+    ctx.fillText(data[j].k,lx+16,ly);
+    ctx.fillStyle="#475569";ctx.font="12px 'Malgun Gothic','맑은 고딕',Arial";
+    ctx.fillText((data[j].v/total*100).toFixed(1)+"% · ₩"+Math.round(data[j].v).toLocaleString(),lx+16,ly+16);
+    ly+=36;
+  }
+}
+function drawBar(id,obj,limit){
+  var cv=document.getElementById(id);if(!cv)return;
+  var ctx=cv.getContext("2d"),w=cv.clientWidth,h=cv.clientHeight;
+  cv.width=w*2;cv.height=h*2;ctx.scale(2,2);
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle="#ffffff";ctx.fillRect(0,0,w,h);
+
+  var data=Object.keys(obj).map(function(k){return{k:k,v:Number(obj[k])||0};}).filter(function(x){return x.v>0;}).sort(function(a,b){return b.v-a.v;}).slice(0,limit||8);
+  if(!data.length){ctx.fillStyle="#64748b";ctx.font="12px 'Malgun Gothic','맑은 고딕',Arial";ctx.fillText("데이터 없음",20,30);return;}
+
+  var max=Math.max.apply(null,data.map(function(x){return x.v;}));
+  var left=118,top=22,right=92,bh=Math.max(15,(h-48)/data.length-8),gap=8;
+  ctx.font="700 11px 'Malgun Gothic','맑은 고딕',Arial";
+  ctx.textBaseline="middle";
+
+  for(var i=0;i<data.length;i++){
+    var y=top+i*(bh+gap),bw=Math.max(2,(w-left-right)*(data[i].v/max));
+    ctx.fillStyle="#dbeafe";ctx.fillRect(left,y,w-left-right,bh);
+    ctx.fillStyle="#2563eb";ctx.fillRect(left,y,bw,bh);
+    ctx.fillStyle="#0f172a";ctx.textAlign="left";
+    ctx.fillText(String(data[i].k).slice(0,18),12,y+bh/2);
+    ctx.fillStyle="#1e293b";ctx.textAlign="left";
+    var valText="₩"+Math.round(data[i].v).toLocaleString();
+    ctx.fillText(valText,Math.min(left+bw+6,w-right+8),y+bh/2);
+  }
+}
 function drawLine(id,obj){
   var cv=document.getElementById(id);
   if(!cv)return;
   var ctx=cv.getContext("2d"),w=cv.clientWidth,h=cv.clientHeight;
   cv.width=w*2;cv.height=h*2;ctx.scale(2,2);
   ctx.clearRect(0,0,w,h);
+  ctx.fillStyle="#ffffff";ctx.fillRect(0,0,w,h);
 
   var keys=Object.keys(obj).sort();
   var vals=keys.map(function(k){return Number(obj[k])||0;});
-
   if(!keys.length){
     ctx.fillStyle="#64748b";
-    ctx.font="12px monospace";
+    ctx.font="12px 'Malgun Gothic','맑은 고딕',Arial";
     ctx.fillText("데이터 없음",20,30);
     return;
   }
 
   var rawMax=Math.max.apply(null,vals.concat([1]));
-  var unit=1000000; // 백만원 단위
+  var unit=1000000;
   var maxMil=Math.ceil(rawMax/unit);
   if(maxMil<1)maxMil=1;
-
-  // 보기 좋은 Y축 최대값 보정
   if(maxMil<=5) maxMil=5;
   else if(maxMil<=10) maxMil=10;
   else if(maxMil<=20) maxMil=20;
   else maxMil=Math.ceil(maxMil/10)*10;
-
   var max=maxMil*unit;
 
-  var padL=58, padR=14, padT=28, padB=34;
+  var padL=64, padR=24, padT=36, padB=40;
   var plotW=w-padL-padR;
   var plotH=h-padT-padB;
 
-  // 단위 표기
-  ctx.fillStyle="#64748b";
-  ctx.font="10px monospace";
+  ctx.fillStyle="#334155";
+  ctx.font="700 11px 'Malgun Gothic','맑은 고딕',Arial";
   ctx.textAlign="left";
-  ctx.fillText("단위: 백만원",padL,padT-10);
+  ctx.textBaseline="alphabetic";
+  ctx.fillText("단위: 백만원",padL,padT-14);
 
-  // Y축 눈금/그리드
   var tickCount=5;
   ctx.textAlign="right";
   ctx.textBaseline="middle";
-  ctx.font="10px monospace";
+  ctx.font="11px 'Malgun Gothic','맑은 고딕',Arial";
   for(var t=0;t<=tickCount;t++){
     var tv=max/tickCount*t;
     var y=padT+plotH-(plotH*(tv/max));
-    ctx.strokeStyle=t===0?"#334155":"rgba(148,163,184,.16)";
+    ctx.strokeStyle=t===0?"#94a3b8":"#e2e8f0";
     ctx.lineWidth=1;
-    ctx.beginPath();
-    ctx.moveTo(padL,y);
-    ctx.lineTo(w-padR,y);
-    ctx.stroke();
-
-    ctx.fillStyle="#94a3b8";
-    ctx.fillText(String(Math.round(tv/unit)),padL-8,y);
+    ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(w-padR,y);ctx.stroke();
+    ctx.fillStyle="#475569";
+    ctx.fillText(String(Math.round(tv/unit)),padL-9,y);
   }
 
-  // 축
-  ctx.strokeStyle="#334155";
+  ctx.strokeStyle="#94a3b8";
   ctx.lineWidth=1;
-  ctx.beginPath();
-  ctx.moveTo(padL,padT);
-  ctx.lineTo(padL,padT+plotH);
-  ctx.lineTo(w-padR,padT+plotH);
-  ctx.stroke();
+  ctx.beginPath();ctx.moveTo(padL,padT);ctx.lineTo(padL,padT+plotH);ctx.lineTo(w-padR,padT+plotH);ctx.stroke();
 
-  // 라인
-  ctx.strokeStyle="#22c55e";
-  ctx.lineWidth=2;
+  ctx.strokeStyle="#2563eb";
+  ctx.lineWidth=3;
   ctx.beginPath();
   for(var i=0;i<keys.length;i++){
     var x=padL+plotW*(keys.length===1?0.5:i/(keys.length-1));
@@ -1240,31 +1290,45 @@ function drawLine(id,obj){
   }
   ctx.stroke();
 
-  // 포인트 및 실제 매출 라벨
-  ctx.fillStyle="#cbd5e1";
-  ctx.font="10px monospace";
   ctx.textAlign="center";
-  ctx.textBaseline="alphabetic";
   for(var j=0;j<keys.length;j++){
     var x2=padL+plotW*(keys.length===1?0.5:j/(keys.length-1));
     var y2=padT+plotH-(plotH*(vals[j]/max));
 
     ctx.beginPath();
-    ctx.arc(x2,y2,3,0,Math.PI*2);
-    ctx.fill();
+    ctx.arc(x2,y2,4,0,Math.PI*2);
+    ctx.fillStyle="#ffffff";ctx.fill();
+    ctx.strokeStyle="#2563eb";ctx.lineWidth=2;ctx.stroke();
 
-    // 데이터 값: 1.2백만 형태
-    ctx.fillStyle="#e2e8f0";
     var label=(vals[j]/unit).toFixed(vals[j]>=unit?1:2).replace(/\.0$/,"");
-    ctx.fillText(label,x2,Math.max(14,y2-9));
-    ctx.fillStyle="#cbd5e1";
+    ctx.font="700 11px 'Malgun Gothic','맑은 고딕',Arial";
+    var tw=ctx.measureText(label).width+12;
+    var bx=x2-tw/2, by=Math.max(8,y2-26);
+    ctx.fillStyle="#0f172a";
+    roundRect(ctx,bx,by,tw,18,5,true,false);
+    ctx.fillStyle="#ffffff";
+    ctx.textBaseline="middle";
+    ctx.fillText(label,x2,by+9);
 
     if(j===0||j===keys.length-1||keys.length<=8){
-      ctx.fillStyle="#94a3b8";
-      ctx.fillText(keys[j],x2,h-10);
-      ctx.fillStyle="#cbd5e1";
+      ctx.fillStyle="#475569";
+      ctx.font="11px 'Malgun Gothic','맑은 고딕',Arial";
+      ctx.textBaseline="alphabetic";
+      ctx.fillText(keys[j],x2,h-12);
     }
   }
+}
+function roundRect(ctx,x,y,w,h,r,fill,stroke){
+  if(w<2*r)r=w/2;if(h<2*r)r=h/2;
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+  if(fill)ctx.fill();
+  if(stroke)ctx.stroke();
 }
 function rAna(){var d=anaData(),rate=d.tot.sales>0?d.tot.profit/d.tot.sales*100:0;var f=DVAL("ana-from"),t=DVAL("ana-to");document.getElementById("anamcs").innerHTML=MC("분석기간",d.range,"var(--tl)")+MC("판매수량",d.tot.qty.toLocaleString()+"개","var(--gn)")+MC("실정산액","₩"+Math.round(d.tot.sales).toLocaleString(),"var(--gn)")+MC("실마진","₩"+Math.round(d.tot.profit).toLocaleString()+" ("+rate.toFixed(1)+"%)",d.tot.profit>=0?"var(--am)":"var(--rd)");document.getElementById("ana-channel-note").textContent=d.rows.length+"건";document.getElementById("ana-trend-note").textContent=f||t?"선택기간":"전체기간";drawPie("ana-channel",d.byCh);drawBar("ana-brand",d.byBrand,8);drawLine("ana-trend",d.trend);drawBar("ana-size",d.bySize,10);var sku=d.bySku.sort(function(a,b){return b.sales-a.sales;}).slice(0,10),h='<table class="mt"><thead><tr><th>순위</th><th>품번</th><th>품명</th><th>브랜드</th><th class="r">수량</th><th class="r">실정산액</th><th class="r">실마진</th></tr></thead><tbody>';for(var i=0;i<sku.length;i++){var x=sku[i];h+='<tr><td>'+(i+1)+'</td><td class="cl-tl bld">'+x.itemCode+'</td><td>'+escHtml(x.productName||'')+'</td><td class="cl-sl">'+escHtml(x.brand||'')+'</td><td class="r">'+x.qty.toLocaleString()+'</td><td class="r cl-gn">₩'+Math.round(x.sales).toLocaleString()+'</td><td class="r '+(x.profit>=0?'cl-am':'cl-am')+'">₩'+Math.round(x.profit).toLocaleString()+'</td></tr>';}h+='</tbody></table>';document.getElementById("ana-top-sku").innerHTML=sku.length?h:'<div class="emp">분석할 매출 데이터가 없습니다.</div>';var stock=calcStk();var risk=stock.filter(function(x){return x.remQty>0&&x.soldQty===0;}).sort(function(a,b){return b.remValue-a.remValue;}).slice(0,10);var rh='<table class="mt"><thead><tr><th>체크</th><th>품번</th><th>품명</th><th class="r">현재고</th><th class="r">재고금액</th><th>권장 액션</th></tr></thead><tbody>';for(var r=0;r<risk.length;r++){var z=risk[r];rh+='<tr><td><span class="tag ta">미판매재고</span></td><td class="cl-tl bld">'+z.itemCode+'</td><td>'+escHtml(z.productName||'')+'</td><td class="r cl-gn">'+z.remQty.toLocaleString()+'</td><td class="r cl-am">₩'+Math.round(z.remValue).toLocaleString()+'</td><td class="cl-sl">가격조정 / 노출강화 / 채널전환 검토</td></tr>';}rh+='</tbody></table>';document.getElementById("ana-risk").innerHTML=risk.length?rh:'<div class="emp">큰 재고 리스크가 없습니다.</div>';}
 

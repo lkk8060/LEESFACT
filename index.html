@@ -532,6 +532,112 @@ table.mt{font-size:var(--ui-font-size)!important;background:#ffffff!important}ta
 @media(max-width:1300px){#pg-ana #anamcs{grid-template-columns:repeat(3,minmax(0,1fr))!important;}}
 @media(max-width:800px){#pg-ana #anamcs{grid-template-columns:repeat(2,minmax(0,1fr))!important;}}
 
+
+/* ===== LEESFACT Analysis Summary Tables Column Fit FINAL ===== */
+/* 데이터분석 하단 요약표: 오른쪽 실마진/마진율/권장액션이 잘리지 않도록 조정 */
+
+/* 매출 TOP SKU */
+#ana-top-sku table.mt{
+  table-layout:fixed!important;
+}
+#ana-top-sku table.mt th:nth-child(1), #ana-top-sku table.mt td:nth-child(1){
+  width:38px!important;max-width:38px!important;
+}
+#ana-top-sku table.mt th:nth-child(2), #ana-top-sku table.mt td:nth-child(2){
+  width:92px!important;max-width:92px!important;
+}
+#ana-top-sku table.mt th:nth-child(3), #ana-top-sku table.mt td:nth-child(3){
+  width:auto!important;max-width:none!important;
+}
+#ana-top-sku table.mt th:nth-child(4), #ana-top-sku table.mt td:nth-child(4){
+  width:82px!important;max-width:82px!important;
+}
+#ana-top-sku table.mt th:nth-child(5), #ana-top-sku table.mt td:nth-child(5){
+  width:46px!important;max-width:46px!important;
+  text-align:right!important;
+}
+#ana-top-sku table.mt th:nth-child(6), #ana-top-sku table.mt td:nth-child(6),
+#ana-top-sku table.mt th:nth-child(7), #ana-top-sku table.mt td:nth-child(7){
+  width:96px!important;max-width:96px!important;
+  text-align:right!important;
+}
+#ana-top-sku table.mt th:nth-child(8), #ana-top-sku table.mt td:nth-child(8){
+  width:62px!important;max-width:62px!important;
+  text-align:right!important;
+}
+
+/* 실마진 TOP SKU */
+#ana-margin-sku table.mt{
+  table-layout:fixed!important;
+}
+#ana-margin-sku table.mt th:nth-child(1), #ana-margin-sku table.mt td:nth-child(1){
+  width:38px!important;max-width:38px!important;
+}
+#ana-margin-sku table.mt th:nth-child(2), #ana-margin-sku table.mt td:nth-child(2){
+  width:90px!important;max-width:90px!important;
+}
+#ana-margin-sku table.mt th:nth-child(3), #ana-margin-sku table.mt td:nth-child(3){
+  width:auto!important;max-width:none!important;
+}
+#ana-margin-sku table.mt th:nth-child(4), #ana-margin-sku table.mt td:nth-child(4){
+  width:54px!important;max-width:54px!important;
+  text-align:right!important;
+}
+#ana-margin-sku table.mt th:nth-child(5), #ana-margin-sku table.mt td:nth-child(5),
+#ana-margin-sku table.mt th:nth-child(6), #ana-margin-sku table.mt td:nth-child(6){
+  width:92px!important;max-width:92px!important;
+  text-align:right!important;
+}
+#ana-margin-sku table.mt th:nth-child(7), #ana-margin-sku table.mt td:nth-child(7){
+  width:92px!important;max-width:92px!important;
+  text-align:right!important;
+}
+#ana-margin-sku table.mt th:nth-child(8), #ana-margin-sku table.mt td:nth-child(8){
+  width:58px!important;max-width:58px!important;
+  text-align:right!important;
+}
+
+/* 재고/마케팅 체크 */
+#ana-risk table.mt{
+  table-layout:fixed!important;
+}
+#ana-risk table.mt th:nth-child(1), #ana-risk table.mt td:nth-child(1){
+  width:54px!important;max-width:54px!important;
+}
+#ana-risk table.mt th:nth-child(2), #ana-risk table.mt td:nth-child(2){
+  width:96px!important;max-width:96px!important;
+}
+#ana-risk table.mt th:nth-child(3), #ana-risk table.mt td:nth-child(3){
+  width:auto!important;max-width:none!important;
+}
+#ana-risk table.mt th:nth-child(4), #ana-risk table.mt td:nth-child(4){
+  width:54px!important;max-width:54px!important;
+  text-align:right!important;
+}
+#ana-risk table.mt th:nth-child(5), #ana-risk table.mt td:nth-child(5){
+  width:92px!important;max-width:92px!important;
+  text-align:right!important;
+}
+#ana-risk table.mt th:nth-child(6), #ana-risk table.mt td:nth-child(6){
+  width:150px!important;max-width:150px!important;
+}
+
+/* 위 세 표에서는 버튼/태그/금액이 말줄임으로 사라지지 않도록 최소 보정 */
+#ana-top-sku table.mt td,
+#ana-margin-sku table.mt td,
+#ana-risk table.mt td{
+  padding-left:6px!important;
+  padding-right:6px!important;
+}
+#ana-risk table.mt td:nth-child(6){
+  white-space:normal!important;
+  line-height:1.35!important;
+}
+#ana-risk table.mt td:nth-child(1) .tag{
+  padding-left:4px!important;
+  padding-right:4px!important;
+}
+
 </style>
 
 <style>
@@ -556,6 +662,112 @@ table.mt{font-size:var(--ui-font-size)!important;background:#ffffff!important}ta
 @media(max-width:800px){
   #pg-ana #anamcs{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
 }
+
+/* ===== LEESFACT Analysis Summary Tables Column Fit FINAL ===== */
+/* 데이터분석 하단 요약표: 오른쪽 실마진/마진율/권장액션이 잘리지 않도록 조정 */
+
+/* 매출 TOP SKU */
+#ana-top-sku table.mt{
+  table-layout:fixed!important;
+}
+#ana-top-sku table.mt th:nth-child(1), #ana-top-sku table.mt td:nth-child(1){
+  width:38px!important;max-width:38px!important;
+}
+#ana-top-sku table.mt th:nth-child(2), #ana-top-sku table.mt td:nth-child(2){
+  width:92px!important;max-width:92px!important;
+}
+#ana-top-sku table.mt th:nth-child(3), #ana-top-sku table.mt td:nth-child(3){
+  width:auto!important;max-width:none!important;
+}
+#ana-top-sku table.mt th:nth-child(4), #ana-top-sku table.mt td:nth-child(4){
+  width:82px!important;max-width:82px!important;
+}
+#ana-top-sku table.mt th:nth-child(5), #ana-top-sku table.mt td:nth-child(5){
+  width:46px!important;max-width:46px!important;
+  text-align:right!important;
+}
+#ana-top-sku table.mt th:nth-child(6), #ana-top-sku table.mt td:nth-child(6),
+#ana-top-sku table.mt th:nth-child(7), #ana-top-sku table.mt td:nth-child(7){
+  width:96px!important;max-width:96px!important;
+  text-align:right!important;
+}
+#ana-top-sku table.mt th:nth-child(8), #ana-top-sku table.mt td:nth-child(8){
+  width:62px!important;max-width:62px!important;
+  text-align:right!important;
+}
+
+/* 실마진 TOP SKU */
+#ana-margin-sku table.mt{
+  table-layout:fixed!important;
+}
+#ana-margin-sku table.mt th:nth-child(1), #ana-margin-sku table.mt td:nth-child(1){
+  width:38px!important;max-width:38px!important;
+}
+#ana-margin-sku table.mt th:nth-child(2), #ana-margin-sku table.mt td:nth-child(2){
+  width:90px!important;max-width:90px!important;
+}
+#ana-margin-sku table.mt th:nth-child(3), #ana-margin-sku table.mt td:nth-child(3){
+  width:auto!important;max-width:none!important;
+}
+#ana-margin-sku table.mt th:nth-child(4), #ana-margin-sku table.mt td:nth-child(4){
+  width:54px!important;max-width:54px!important;
+  text-align:right!important;
+}
+#ana-margin-sku table.mt th:nth-child(5), #ana-margin-sku table.mt td:nth-child(5),
+#ana-margin-sku table.mt th:nth-child(6), #ana-margin-sku table.mt td:nth-child(6){
+  width:92px!important;max-width:92px!important;
+  text-align:right!important;
+}
+#ana-margin-sku table.mt th:nth-child(7), #ana-margin-sku table.mt td:nth-child(7){
+  width:92px!important;max-width:92px!important;
+  text-align:right!important;
+}
+#ana-margin-sku table.mt th:nth-child(8), #ana-margin-sku table.mt td:nth-child(8){
+  width:58px!important;max-width:58px!important;
+  text-align:right!important;
+}
+
+/* 재고/마케팅 체크 */
+#ana-risk table.mt{
+  table-layout:fixed!important;
+}
+#ana-risk table.mt th:nth-child(1), #ana-risk table.mt td:nth-child(1){
+  width:54px!important;max-width:54px!important;
+}
+#ana-risk table.mt th:nth-child(2), #ana-risk table.mt td:nth-child(2){
+  width:96px!important;max-width:96px!important;
+}
+#ana-risk table.mt th:nth-child(3), #ana-risk table.mt td:nth-child(3){
+  width:auto!important;max-width:none!important;
+}
+#ana-risk table.mt th:nth-child(4), #ana-risk table.mt td:nth-child(4){
+  width:54px!important;max-width:54px!important;
+  text-align:right!important;
+}
+#ana-risk table.mt th:nth-child(5), #ana-risk table.mt td:nth-child(5){
+  width:92px!important;max-width:92px!important;
+  text-align:right!important;
+}
+#ana-risk table.mt th:nth-child(6), #ana-risk table.mt td:nth-child(6){
+  width:150px!important;max-width:150px!important;
+}
+
+/* 위 세 표에서는 버튼/태그/금액이 말줄임으로 사라지지 않도록 최소 보정 */
+#ana-top-sku table.mt td,
+#ana-margin-sku table.mt td,
+#ana-risk table.mt td{
+  padding-left:6px!important;
+  padding-right:6px!important;
+}
+#ana-risk table.mt td:nth-child(6){
+  white-space:normal!important;
+  line-height:1.35!important;
+}
+#ana-risk table.mt td:nth-child(1) .tag{
+  padding-left:4px!important;
+  padding-right:4px!important;
+}
+
 </style>
 
 </head><body>

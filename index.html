@@ -463,7 +463,101 @@ table.mt{font-size:var(--ui-font-size)!important;background:#ffffff!important}ta
   #pg-ana #anamcs{grid-template-columns:repeat(2,minmax(160px,1fr))!important;}
 }
 
+
+/* ===== LEESFACT Analysis KPI Explicit Purchase Card FINAL FIX ===== */
+#pg-ana #anamcs.ana-kpi-row,
+#pg-ana #anamcs{
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  gap:12px!important;
+  width:100%!important;
+  margin-bottom:14px!important;
+  overflow:visible!important;
+}
+#pg-ana #anamcs .mc{
+  display:block!important;
+  visibility:visible!important;
+  opacity:1!important;
+  min-height:66px!important;
+  min-width:0!important;
+  padding:14px 16px!important;
+  background:#ffffff!important;
+  border:1px solid #dbe3ef!important;
+  border-radius:8px!important;
+  box-shadow:0 1px 4px rgba(15,23,42,.05)!important;
+}
+#pg-ana #anamcs .ana-purchase-kpi{
+  background:#fff7ed!important;
+  border:1px solid #fed7aa!important;
+}
+#pg-ana #anamcs .ana-purchase-kpi .mcl{
+  color:#9a3412!important;
+}
+#pg-ana #anamcs .ana-purchase-kpi .mcv{
+  color:#d97706!important;
+}
+@media(max-width:1300px){
+  #pg-ana #anamcs{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
+}
+@media(max-width:800px){
+  #pg-ana #anamcs{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+}
+
+
+/* ===== LEESFACT Analysis KPI Static Update FINAL2 ===== */
+#pg-ana #anamcs{
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  gap:12px!important;
+  width:100%!important;
+  margin-bottom:14px!important;
+}
+#pg-ana #anamcs .mc{
+  display:block!important;
+  visibility:visible!important;
+  opacity:1!important;
+  min-height:66px!important;
+  padding:14px 16px!important;
+  background:#fff!important;
+  border:1px solid #dbe3ef!important;
+  border-radius:8px!important;
+}
+#pg-ana #anamcs .ana-purchase-kpi{
+  display:block!important;
+  background:#fff7ed!important;
+  border:1px solid #f59e0b!important;
+}
+#pg-ana #anamcs .ana-purchase-kpi .mcl{color:#9a3412!important;}
+#pg-ana #anamcs .ana-purchase-kpi .mcv{color:#d97706!important;}
+@media(max-width:1300px){#pg-ana #anamcs{grid-template-columns:repeat(3,minmax(0,1fr))!important;}}
+@media(max-width:800px){#pg-ana #anamcs{grid-template-columns:repeat(2,minmax(0,1fr))!important;}}
+
 </style>
+
+<style>
+/* ===== LEESFACT PURCHASE KPI SAFETY PATCH STYLE v20260523 ===== */
+#pg-ana #anamcs{
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  gap:12px!important;
+}
+#pg-ana #anamcs .ana-purchase-kpi{
+  display:block!important;
+  visibility:visible!important;
+  opacity:1!important;
+  background:#fff7ed!important;
+  border:1px solid #f59e0b!important;
+}
+#pg-ana #anamcs .ana-purchase-kpi .mcl{color:#9a3412!important;}
+#pg-ana #anamcs .ana-purchase-kpi .mcv{color:#d97706!important;}
+@media(max-width:1300px){
+  #pg-ana #anamcs{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
+}
+@media(max-width:800px){
+  #pg-ana #anamcs{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+}
+</style>
+
 </head><body>
 <div class="hdr"><div style="display:flex;align-items:center;gap:9px"><div class="led off" id="led"></div><div class="brandwrap"><span class="brandmark" title="LEES FACT"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#050b14"></rect><path d="M14 45 L24 17 M23 45 L31 21 M24 45 C33 36 39 34 49 32 M34 45 C42 38 47 37 53 37" fill="none" stroke="#f8fafc" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M11 50 H53" stroke="#0ea5e9" stroke-width="3" stroke-linecap="round" opacity="0.9"></path></svg></span><div class="logo">LEES<b>FACT</b> <span style="color:#475569;font-size:11px;font-weight:400">재고관리</span></div></div><span class="sbadge b-off" id="sbadge">연결 중...</span></div><div style="display:flex;align-items:center;gap:8px">
 <button class="bs" id="btn-undo" title="마지막 저장/수정/삭제 작업 실행취소" style="padding:5px 10px;font-size:10px">↩ 실행취소</button>
@@ -595,7 +689,13 @@ table.mt{font-size:var(--ui-font-size)!important;background:#ffffff!important}ta
       <button class="bg_" id="btn-exp-ana">⬇ Excel</button>
     </div>
   </div>
-  <div class="mcs" id="anamcs"></div>
+  <div class="mcs ana-kpi-row" id="anamcs">
+    <div class="mc"><div class="mcl">분석기간</div><div class="mcv" id="ana-kpi-range" style="color:var(--tl)">전체기간</div></div>
+    <div class="mc ana-purchase-kpi"><div class="mcl">매입액</div><div class="mcv" id="ana-kpi-purchase" style="color:var(--am)">₩0</div></div>
+    <div class="mc"><div class="mcl">판매수량</div><div class="mcv" id="ana-kpi-qty" style="color:var(--gn)">0개</div></div>
+    <div class="mc"><div class="mcl">실정산액</div><div class="mcv" id="ana-kpi-sales" style="color:var(--gn)">₩0</div></div>
+    <div class="mc"><div class="mcl">실마진</div><div class="mcv" id="ana-kpi-profit" style="color:var(--am)">₩0</div></div>
+  </div>
   <div class="ana-grid">
     <div class="ana-card"><div class="ana-title"><span>채널별 매출 비중</span><span id="ana-channel-note" class="cl-sl"></span></div><canvas id="ana-channel" class="ana-chart"></canvas></div>
     <div class="ana-card"><div class="ana-title"><span>브랜드별 매출 TOP</span><span class="cl-sl">매출액 기준</span></div><canvas id="ana-brand" class="ana-chart"></canvas></div>
@@ -1672,7 +1772,54 @@ function anaPurchaseTotal(){
   }
   return {amount:total, qty:qty};
 }
-function rAna(){var d=anaData(),rate=d.tot.sales>0?d.tot.profit/d.tot.sales*100:0;var f=DVAL("ana-from"),t=DVAL("ana-to");var pur=anaPurchaseTotal();document.getElementById("anamcs").innerHTML=MC("분석기간",d.range,"var(--tl)")+MC("매입액","₩"+Math.round(pur.amount).toLocaleString(),"var(--am)")+MC("판매수량",d.tot.qty.toLocaleString()+"개","var(--gn)")+MC("실정산액","₩"+Math.round(d.tot.sales).toLocaleString(),"var(--gn)")+MC("실마진","₩"+Math.round(d.tot.profit).toLocaleString()+" ("+rate.toFixed(1)+"%)",d.tot.profit>=0?"var(--am)":"var(--rd)");document.getElementById("ana-channel-note").textContent=d.rows.length+"건";document.getElementById("ana-trend-note").textContent=f||t?"선택기간":"전체기간";drawPie("ana-channel",d.byCh);drawBar("ana-brand",d.byBrand,8);drawLine("ana-trend",d.trend);drawBar("ana-size",d.bySize,10);var sku=d.bySku.sort(function(a,b){return b.sales-a.sales;}).slice(0,10),h='<table class="mt"><thead><tr><th>순위</th><th>품번</th><th>품명</th><th>브랜드</th><th class="r">수량</th><th class="r">실정산액</th><th class="r">실마진</th></tr></thead><tbody>';for(var i=0;i<sku.length;i++){var x=sku[i];h+='<tr><td>'+(i+1)+'</td><td class="cl-tl bld">'+x.itemCode+'</td><td>'+escHtml(x.productName||'')+'</td><td class="cl-sl">'+escHtml(x.brand||'')+'</td><td class="r">'+x.qty.toLocaleString()+'</td><td class="r cl-gn">₩'+Math.round(x.sales).toLocaleString()+'</td><td class="r '+(x.profit>=0?'cl-am':'cl-am')+'">₩'+Math.round(x.profit).toLocaleString()+'</td></tr>';}h+='</tbody></table>';document.getElementById("ana-top-sku").innerHTML=sku.length?h:'<div class="emp">분석할 매출 데이터가 없습니다.</div>';var stock=calcStk();var risk=stock.filter(function(x){return x.remQty>0&&x.soldQty===0;}).sort(function(a,b){return b.remValue-a.remValue;}).slice(0,10);var rh='<table class="mt"><thead><tr><th>체크</th><th>품번</th><th>품명</th><th class="r">현재고</th><th class="r">재고금액</th><th>권장 액션</th></tr></thead><tbody>';for(var r=0;r<risk.length;r++){var z=risk[r];rh+='<tr><td><span class="tag ta">미판매재고</span></td><td class="cl-tl bld">'+z.itemCode+'</td><td>'+escHtml(z.productName||'')+'</td><td class="r cl-gn">'+z.remQty.toLocaleString()+'</td><td class="r cl-am">₩'+Math.round(z.remValue).toLocaleString()+'</td><td class="cl-sl">가격조정 / 노출강화 / 채널전환 검토</td></tr>';}rh+='</tbody></table>';document.getElementById("ana-risk").innerHTML=risk.length?rh:'<div class="emp">큰 재고 리스크가 없습니다.</div>';}
+function rAna(){
+  var d=anaData(), rate=d.tot.sales>0?d.tot.profit/d.tot.sales*100:0;
+  var f=DVAL("ana-from"), t=DVAL("ana-to");
+  var pur=anaPurchaseTotal();
+
+  var kpiBox=document.getElementById("anamcs");
+  if(kpiBox && !document.getElementById("ana-kpi-purchase")){
+    kpiBox.innerHTML=
+      '<div class="mc"><div class="mcl">분석기간</div><div class="mcv" id="ana-kpi-range" style="color:var(--tl)">전체기간</div></div>'+
+      '<div class="mc ana-purchase-kpi"><div class="mcl">매입액</div><div class="mcv" id="ana-kpi-purchase" style="color:var(--am)">₩0</div></div>'+
+      '<div class="mc"><div class="mcl">판매수량</div><div class="mcv" id="ana-kpi-qty" style="color:var(--gn)">0개</div></div>'+
+      '<div class="mc"><div class="mcl">실정산액</div><div class="mcv" id="ana-kpi-sales" style="color:var(--gn)">₩0</div></div>'+
+      '<div class="mc"><div class="mcl">실마진</div><div class="mcv" id="ana-kpi-profit" style="color:var(--am)">₩0</div></div>';
+  }
+
+  var el;
+  el=document.getElementById("ana-kpi-range"); if(el)el.textContent=d.range;
+  el=document.getElementById("ana-kpi-purchase"); if(el)el.textContent="₩"+Math.round(pur.amount).toLocaleString();
+  el=document.getElementById("ana-kpi-qty"); if(el)el.textContent=d.tot.qty.toLocaleString()+"개";
+  el=document.getElementById("ana-kpi-sales"); if(el)el.textContent="₩"+Math.round(d.tot.sales).toLocaleString();
+  el=document.getElementById("ana-kpi-profit"); if(el){el.textContent="₩"+Math.round(d.tot.profit).toLocaleString()+" ("+rate.toFixed(1)+"%)";el.style.color=d.tot.profit>=0?"var(--am)":"var(--rd)";}
+
+  document.getElementById("ana-channel-note").textContent=d.rows.length+"건";
+  document.getElementById("ana-trend-note").textContent=f||t?"선택기간":"전체기간";
+  drawPie("ana-channel",d.byCh);
+  drawBar("ana-brand",d.byBrand,8);
+  drawLine("ana-trend",d.trend);
+  drawBar("ana-size",d.bySize,10);
+
+  var sku=d.bySku.sort(function(a,b){return b.sales-a.sales;}).slice(0,10),
+      h='<table class="mt"><thead><tr><th>순위</th><th>품번</th><th>품명</th><th>브랜드</th><th class="r">수량</th><th class="r">실정산액</th><th class="r">실마진</th></tr></thead><tbody>';
+  for(var i=0;i<sku.length;i++){
+    var x=sku[i];
+    h+='<tr><td>'+(i+1)+'</td><td class="cl-tl bld">'+x.itemCode+'</td><td title="'+escHtml(x.productName||'')+'">'+escHtml(x.productName||'')+'</td><td class="cl-sl">'+escHtml(x.brand||'')+'</td><td class="r">'+x.qty.toLocaleString()+'</td><td class="r cl-gn">₩'+Math.round(x.sales).toLocaleString()+'</td><td class="r '+(x.profit>=0?'cl-am':'cl-am')+'">₩'+Math.round(x.profit).toLocaleString()+'</td></tr>';
+  }
+  h+='</tbody></table>';
+  document.getElementById("ana-top-sku").innerHTML=sku.length?h:'<div class="emp">분석할 매출 데이터가 없습니다.</div>';
+
+  var stock=calcStk();
+  var risk=stock.filter(function(x){return x.remQty>0&&x.soldQty===0;}).sort(function(a,b){return b.remValue-a.remValue;}).slice(0,10);
+  var rh='<table class="mt"><thead><tr><th>체크</th><th>품번</th><th>품명</th><th class="r">현재고</th><th class="r">재고금액</th><th>권장 액션</th></tr></thead><tbody>';
+  for(var r=0;r<risk.length;r++){
+    var z=risk[r];
+    rh+='<tr><td><span class="tag ta">미판매재고</span></td><td class="cl-tl bld">'+z.itemCode+'</td><td title="'+escHtml(z.productName||'')+'">'+escHtml(z.productName||'')+'</td><td class="r cl-gn">'+z.remQty.toLocaleString()+'</td><td class="r cl-am">₩'+Math.round(z.remValue).toLocaleString()+'</td><td class="cl-sl">가격조정 / 노출강화 / 채널전환 검토</td></tr>';
+  }
+  rh+='</tbody></table>';
+  document.getElementById("ana-risk").innerHTML=risk.length?rh:'<div class="emp">큰 재고 리스크가 없습니다.</div>';
+}
 
 function unmappedRows(){
   var rows=[];
@@ -2246,4 +2393,103 @@ document.getElementById("p-dt").value=today();RSG();setAnaPeriod("this_month");L
 
 
 <!-- PURCHASE_KPI_VERIFIED_TRUE: 데이터분석 KPI includes 매입액 card -->
+
+<script>
+/* ===== LEESFACT PURCHASE KPI SAFETY PATCH v20260523 ===== */
+(function(){
+  function _num(v){ return Number(v)||0; }
+  function _dateOnly(v){ return String(v||"").slice(0,10); }
+  function _dval(id){ var e=document.getElementById(id); return e ? (e.value||"") : ""; }
+  function _inRange(dt, from, to){
+    dt=_dateOnly(dt);
+    if(!dt) return false;
+    if(from && dt < from) return false;
+    if(to && dt > to) return false;
+    return true;
+  }
+  function _purchaseTotal(){
+    var from=_dval("ana-from"), to=_dval("ana-to"), total=0, qty=0;
+    var rows=(window.PDB||[]);
+    for(var i=0;i<rows.length;i++){
+      var p=rows[i]||{};
+      if(_inRange(p.date, from, to)){
+        total += _num(p.totalPrice);
+        qty += _num(p.quantity);
+      }
+    }
+    return {amount:total, qty:qty};
+  }
+  function _makeCard(){
+    var card=document.createElement("div");
+    card.className="mc ana-purchase-kpi";
+    card.setAttribute("data-force-kpi","purchase");
+    card.innerHTML='<div class="mcl">매입액</div><div class="mcv" id="ana-kpi-purchase" style="color:var(--am)">₩0</div>';
+    return card;
+  }
+  window.ensurePurchaseKpiCard=function(){
+    var box=document.getElementById("anamcs");
+    if(!box) return;
+
+    var card=document.getElementById("ana-kpi-purchase");
+    if(!card){
+      var newCard=_makeCard();
+      var kids=box.children;
+      // 분석기간 카드 다음, 판매수량 카드 앞에 삽입
+      if(kids && kids.length>=1 && kids[0].nextSibling){
+        box.insertBefore(newCard, kids[0].nextSibling);
+      }else{
+        box.appendChild(newCard);
+      }
+      card=document.getElementById("ana-kpi-purchase");
+    }
+
+    var pur=_purchaseTotal();
+    if(card) card.textContent="₩"+Math.round(pur.amount).toLocaleString();
+
+    // 5개 카드가 보이도록 강제
+    box.style.display="grid";
+    box.style.gridTemplateColumns="repeat(5,minmax(0,1fr))";
+    box.style.gap="12px";
+  };
+
+  // rAna가 기존 4개 KPI로 다시 그린 뒤에도 바로 매입액 카드를 복구
+  function _wrapRAna(){
+    if(typeof window.rAna==="function" && !window.rAna.__purchaseKpiWrapped){
+      var old=window.rAna;
+      window.rAna=function(){
+        var ret=old.apply(this, arguments);
+        try{ window.ensurePurchaseKpiCard(); }catch(e){}
+        return ret;
+      };
+      window.rAna.__purchaseKpiWrapped=true;
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function(){
+    _wrapRAna();
+    setTimeout(window.ensurePurchaseKpiCard, 0);
+    setTimeout(window.ensurePurchaseKpiCard, 300);
+    setTimeout(window.ensurePurchaseKpiCard, 1000);
+
+    ["ana-this-month","ana-prev-month","ana-this-quarter","ana-this-half","ana-this-year","ana-all","btn-ana-apply"].forEach(function(id){
+      var el=document.getElementById(id);
+      if(el) el.addEventListener("click", function(){ setTimeout(window.ensurePurchaseKpiCard, 50); });
+    });
+    ["ana-from","ana-to"].forEach(function(id){
+      var el=document.getElementById(id);
+      if(el) el.addEventListener("change", function(){ setTimeout(window.ensurePurchaseKpiCard, 50); });
+    });
+  });
+
+  // 마지막 안전장치: 탭 이동/렌더링 후에도 복구
+  setInterval(function(){
+    var ana=document.getElementById("pg-ana");
+    if(ana && ana.classList && ana.classList.contains("on")){
+      _wrapRAna();
+      window.ensurePurchaseKpiCard();
+    }
+  }, 1000);
+})();
+</script>
+
 </body></html>

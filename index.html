@@ -108,6 +108,26 @@ table.mt tr.sub-row:hover{background:#060d1a}
   margin-bottom:6px;
 }
 
+
+
+/* ===== LEESFACT PC Light UI / Table Density Override ===== */
+:root{--ui-font-size:12px;--table-x:10px;--table-y:8px;--table-row-h:34px;--tl:#2563eb;--gn:#16a34a;--am:#d97706;--rd:#dc2626;--pu:#7c3aed;--bd:#dbe3ef;--bd2:#cbd5e1;--bg2:#ffffff;--bg3:#f8fafc}
+body{font-family:'Malgun Gothic','맑은 고딕','Apple SD Gothic Neo','Noto Sans KR',Arial,sans-serif!important;background:#f3f6fb!important;color:#111827!important;font-size:var(--ui-font-size)!important;letter-spacing:-.01em}
+.hdr{background:#ffffff!important;border-bottom:1px solid #dbe3ef!important;box-shadow:0 1px 6px rgba(15,23,42,.06)}
+.logo{color:#111827!important}.tabs{background:#ffffff!important;border-bottom:1px solid #dbe3ef!important;box-shadow:0 1px 4px rgba(15,23,42,.04)}
+.tab{color:#64748b!important;font-weight:600}.tab:hover{color:#2563eb!important}.tab.on{color:#2563eb!important;border-bottom-color:#2563eb!important}
+.pg{max-width:1580px!important}.card,.mc{background:#ffffff!important;border:1px solid #dbe3ef!important;box-shadow:0 1px 3px rgba(15,23,42,.04)}
+input,select,textarea{background:#ffffff!important;border:1px solid #cbd5e1!important;color:#111827!important;font-family:inherit!important}
+input:focus,select:focus,textarea:focus{border-color:#2563eb!important;box-shadow:0 0 0 3px rgba(37,99,235,.10)}
+select option{background:#ffffff!important;color:#111827!important}.bs{background:#f8fafc!important;color:#334155!important;border:1px solid #cbd5e1!important}.bp{background:#2563eb!important;color:#ffffff!important}.slbl,.fl,.mcl,.gi .gl,.cl-sl{color:#64748b!important}
+.gtbar,.sg .sumr td{background:#eff6ff!important;border-color:#bfdbfe!important}.tw,.sgw{border-color:#dbe3ef!important;background:#ffffff!important}
+table.mt{font-size:var(--ui-font-size)!important;background:#ffffff!important}table.mt th{background:#f1f5f9!important;color:#334155!important;padding:var(--table-y) var(--table-x)!important;border-bottom:1px solid #dbe3ef!important;height:var(--table-row-h)!important;font-weight:700!important}table.mt td{padding:var(--table-y) var(--table-x)!important;border-bottom:1px solid #e5eaf2!important;height:var(--table-row-h)!important;color:#111827!important}table.mt tr:nth-child(even){background:#fafcff!important}table.mt tr:hover{background:#eff6ff!important}table.mt tr.sub-row td{background:#f8fafc!important;color:#64748b!important}.sg th,.sg td.lb{background:#f1f5f9!important;color:#334155!important;border-color:#dbe3ef!important}.sg td{border-color:#e5eaf2!important}.sg td input{color:#111827!important}.emp{color:#64748b!important}.msg{font-family:inherit!important}
+.cl-tl{color:#2563eb!important}.cl-gn{color:#16a34a!important}.cl-am{color:#d97706!important}.r{text-align:right!important}
+.ana-grid{gap:16px!important}.ana-card canvas{height:300px!important}.ana-card{min-height:370px!important}.mcv{font-weight:800!important}.tag{font-weight:700!important}
+.pc-ui-toolbar{max-width:1580px;margin:12px auto 0;padding:10px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:#ffffff;border:1px solid #dbe3ef;border-radius:10px;box-shadow:0 1px 3px rgba(15,23,42,.04);font-size:12px;color:#334155}
+.pc-ui-toolbar .pc-ui-title{font-weight:800;color:#111827;margin-right:4px}.pc-ui-toolbar label{display:flex;align-items:center;gap:6px;white-space:nowrap;font-weight:600}.pc-ui-toolbar input[type=range]{width:110px;padding:0;border:none!important;background:transparent!important}.pc-ui-toolbar .pc-reset{padding:5px 10px!important;font-size:11px!important}
+@media(max-width:900px){.pc-ui-toolbar{display:none}}
+
 </style>
 </head><body>
 <div class="hdr"><div style="display:flex;align-items:center;gap:9px"><div class="led off" id="led"></div><div class="brandwrap"><span class="brandmark" title="LEES FACT"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#050b14"></rect><path d="M14 45 L24 17 M23 45 L31 21 M24 45 C33 36 39 34 49 32 M34 45 C42 38 47 37 53 37" fill="none" stroke="#f8fafc" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M11 50 H53" stroke="#0ea5e9" stroke-width="3" stroke-linecap="round" opacity="0.9"></path></svg></span><div class="logo">LEES<b>FACT</b> <span style="color:#475569;font-size:11px;font-weight:400">재고관리</span></div></div><span class="sbadge b-off" id="sbadge">연결 중...</span></div><div style="display:flex;align-items:center;gap:8px">
@@ -116,6 +136,14 @@ table.mt tr.sub-row:hover{background:#060d1a}
 <span id="hcnt" style="font-size:10px;color:#475569">매입 0건 · 매출 0건</span>
 </div></div>
 <div class="tabs"><button class="tab on" id="tab-sku">🧾 SKU MASTER</button><button class="tab" id="tab-pi">📥 매입 입력</button><button class="tab" id="tab-pdb">📦 매입 DB</button><button class="tab" id="tab-si">💰 매출 입력</button><button class="tab" id="tab-sdb">📊 매출 DB</button><button class="tab" id="tab-stk">📋 현재고</button><button class="tab" id="tab-mar">📈 SKU별 실마진</button><button class="tab" id="tab-ana">📊 데이터 분석</button><button class="tab" id="tab-map">🔗 미매칭 SKU</button></div>
+<div class="pc-ui-toolbar" id="pc-ui-toolbar">
+  <div class="pc-ui-title">화면/표 설정</div>
+  <label>글씨 <input type="range" id="ui-font" min="11" max="15" value="12"></label>
+  <label>열 간격 <input type="range" id="ui-colpad" min="6" max="22" value="10"></label>
+  <label>행 간격 <input type="range" id="ui-rowpad" min="6" max="18" value="8"></label>
+  <label>행 높이 <input type="range" id="ui-rowh" min="26" max="52" value="34"></label>
+  <button type="button" class="bs pc-reset" id="ui-reset">초기화</button>
+</div>
 <div id="pg-sku" class="pg on">
   <div id="sku-msg" class="msg"></div>
   <div class="card">
@@ -1129,7 +1157,7 @@ else{setQuickOn("ana-all");}
 var f=document.getElementById("ana-from"),t=document.getElementById("ana-to");if(f)f.value=from;if(t)t.value=to;rAna();}
 function anaFilterSales(){var f=DVAL("ana-from"),t=DVAL("ana-to");return SDB.filter(function(x){return INRANGE(x.date||x.period,f,t);});}
 function anaCostMap(){var m={};for(var i=0;i<PDB.length;i++){var p=PDB[i],c=p.itemCode||"";if(!c)continue;if(!m[c])m[c]={qty:0,total:0,brand:p.brand||"",name:p.productName||""};m[c].qty+=Number(p.quantity)||0;m[c].total+=Number(p.totalPrice)||0;if(p.brand)m[c].brand=p.brand;if(p.productName)m[c].name=p.productName;}Object.keys(m).forEach(function(c){m[c].avg=m[c].qty>0?m[c].total/m[c].qty:0;});return m;}
-function anaData(){var rows=anaFilterSales(),cost=anaCostMap(),byCh={},byBrand={},bySku={},bySize={},trend={},tot={sales:0,gross:0,fee:0,cogs:0,profit:0,qty:0};for(var i=0;i<rows.length;i++){var s=rows[i],code=s.itemCode||"?",qty=Number(s.soldQty)||Number(s.quantity)||0,settle=SA(s),fee=SF(s),gross=SG(s),cm=cost[code]||{},brand=(cm.brand||s.brand||skuInfo(code,{}).brand||"미지정"),cogs=(cm.avg||0)*qty,profit=settle-cogs,ch=s.channel||"미지정",dt=String(s.date||s.period||"").slice(0,10),mon=dt?dt.slice(0,7):"미지정";tot.sales+=settle;tot.gross+=gross;tot.fee+=fee;tot.cogs+=cogs;tot.profit+=profit;tot.qty+=qty;byCh[ch]=(byCh[ch]||0)+settle;byBrand[brand]=(byBrand[brand]||0)+settle;trend[mon]=(trend[mon]||0)+settle;if(!bySku[code])bySku[code]={itemCode:code,productName:cm.name||s.productName||skuInfo(code,{}).productName||"",brand:brand,qty:0,sales:0,profit:0,cogs:0,fee:0};bySku[code].qty+=qty;bySku[code].sales+=settle;bySku[code].profit+=profit;bySku[code].cogs+=cogs;bySku[code].fee+=fee;var sz=s.sizes||{},ks=Object.keys(sz);for(var k=0;k<ks.length;k++){var z=NSZ(ks[k]);bySize[z]=(bySize[z]||0)+(Number(sz[ks[k]])||0);}}
+function anaData(){var rows=anaFilterSales(),cost=anaCostMap(),byCh={},byBrand={},bySku={},bySize={},trend={},tot={sales:0,gross:0,fee:0,cogs:0,profit:0,qty:0};for(var i=0;i<rows.length;i++){var s=rows[i],code=s.itemCode||"?",qty=Number(s.soldQty)||Number(s.quantity)||0,settle=SA(s),fee=SF(s),gross=SG(s),cm=cost[code]||{},brand=(cm.brand||s.brand||skuInfo(code,{}).brand||"미지정"),cogs=(cm.avg||0)*qty,profit=settle-cogs,ch=s.channel||"미지정",dt=String(s.date||s.period||"").slice(0,10),mon=dt?dt.slice(0,7):"미지정";tot.sales+=settle;tot.gross+=gross;tot.fee+=fee;tot.cogs+=cogs;tot.profit+=profit;tot.qty+=qty;byCh[ch]=(byCh[ch]||0)+settle;byBrand[brand]=(byBrand[brand]||0)+settle;trend[mon]=(trend[mon]||0)+settle;if(!bySku[code])bySku[code]={itemCode:code,productName:cm.name||s.productName||skuInfo(code,{}).productName||"",brand:brand,qty:0,sales:0,gross:0,profit:0,cogs:0,fee:0};bySku[code].qty+=qty;bySku[code].sales+=settle;bySku[code].gross+=gross;bySku[code].profit+=profit;bySku[code].cogs+=cogs;bySku[code].fee+=fee;var sz=s.sizes||{},ks=Object.keys(sz);for(var k=0;k<ks.length;k++){var z=NSZ(ks[k]);bySize[z]=(bySize[z]||0)+(Number(sz[ks[k]])||0);}}
 return{rows:rows,tot:tot,byCh:byCh,byBrand:byBrand,bySku:Object.keys(bySku).map(function(k){return bySku[k];}),bySize:bySize,trend:trend,range:anaRangeLabel(DVAL("ana-from"),DVAL("ana-to"))};}
 function drawPie(id,obj){var cv=document.getElementById(id);if(!cv)return;var ctx=cv.getContext("2d"),w=cv.clientWidth,h=cv.clientHeight;cv.width=w*2;cv.height=h*2;ctx.scale(2,2);ctx.clearRect(0,0,w,h);var data=Object.keys(obj).map(function(k){return{k:k,v:Number(obj[k])||0};}).filter(function(x){return x.v>0;}).sort(function(a,b){return b.v-a.v;});var total=data.reduce(function(a,b){return a+b.v;},0);if(!total){ctx.fillStyle="#64748b";ctx.font="12px monospace";ctx.fillText("데이터 없음",20,30);return;}var cx=w*0.34,cy=h*0.52,r=Math.min(w,h)*0.28,st=-Math.PI/2;var colors=["#0ea5e9","#22c55e","#f59e0b","#a855f7","#ef4444","#14b8a6","#eab308","#64748b"];for(var i=0;i<data.length;i++){var ang=data[i].v/total*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,st,st+ang);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.fill();st+=ang;}ctx.fillStyle="#e2e8f0";ctx.font="11px monospace";var lx=w*0.62,ly=35;for(var j=0;j<data.length&&j<8;j++){ctx.fillStyle=colors[j%colors.length];ctx.fillRect(lx,ly-9,9,9);ctx.fillStyle="#cbd5e1";ctx.fillText(data[j].k+" "+(data[j].v/total*100).toFixed(1)+"%",lx+15,ly);ly+=22;}}
 function drawBar(id,obj,limit){var cv=document.getElementById(id);if(!cv)return;var ctx=cv.getContext("2d"),w=cv.clientWidth,h=cv.clientHeight;cv.width=w*2;cv.height=h*2;ctx.scale(2,2);ctx.clearRect(0,0,w,h);var data=Object.keys(obj).map(function(k){return{k:k,v:Number(obj[k])||0};}).filter(function(x){return x.v>0;}).sort(function(a,b){return b.v-a.v;}).slice(0,limit||8);if(!data.length){ctx.fillStyle="#64748b";ctx.font="12px monospace";ctx.fillText("데이터 없음",20,30);return;}var max=Math.max.apply(null,data.map(function(x){return x.v;})),left=90,top=20,bh=Math.max(14,(h-45)/data.length-8),gap=8;ctx.font="10px monospace";for(var i=0;i<data.length;i++){var y=top+i*(bh+gap),bw=(w-left-30)*(data[i].v/max);ctx.fillStyle="#0ea5e9";ctx.fillRect(left,y,bw,bh);ctx.fillStyle="#cbd5e1";ctx.fillText(data[i].k.slice(0,12),10,y+bh-2);ctx.fillStyle="#94a3b8";ctx.fillText("₩"+Math.round(data[i].v).toLocaleString(),left+bw+5,y+bh-2);}}
@@ -1709,6 +1737,104 @@ document.getElementById("p-dt").value=today();RSG();setAnaPeriod("this_month");L
   }
   bindPantsSizeType();
   window.addEventListener("load",function(){setTimeout(bindPantsSizeType,200);});
+})();
+</script>
+
+
+
+<script>
+(function(){
+  function won(n){return "₩"+Math.round(Number(n)||0).toLocaleString();}
+  function applyUiDensity(){
+    var cfg=JSON.parse(localStorage.getItem('leesfact_ui_density')||'{}');
+    var font=cfg.font||12,col=cfg.col||10,row=cfg.row||8,rowh=cfg.rowh||34;
+    document.documentElement.style.setProperty('--ui-font-size',font+'px');
+    document.documentElement.style.setProperty('--table-x',col+'px');
+    document.documentElement.style.setProperty('--table-y',row+'px');
+    document.documentElement.style.setProperty('--table-row-h',rowh+'px');
+    var map={font:'ui-font',col:'ui-colpad',row:'ui-rowpad',rowh:'ui-rowh'};
+    Object.keys(map).forEach(function(k){var e=document.getElementById(map[k]);if(e)e.value=cfg[k]||({font:12,col:10,row:8,rowh:34}[k]);});
+  }
+  function saveUiDensity(){
+    var cfg={
+      font:Number((document.getElementById('ui-font')||{}).value)||12,
+      col:Number((document.getElementById('ui-colpad')||{}).value)||10,
+      row:Number((document.getElementById('ui-rowpad')||{}).value)||8,
+      rowh:Number((document.getElementById('ui-rowh')||{}).value)||34
+    };
+    localStorage.setItem('leesfact_ui_density',JSON.stringify(cfg));
+    applyUiDensity();
+    if(typeof rAna==='function'){try{rAna();}catch(e){}}
+  }
+  function bindUiDensity(){
+    ['ui-font','ui-colpad','ui-rowpad','ui-rowh'].forEach(function(id){var e=document.getElementById(id);if(e)e.oninput=saveUiDensity;});
+    var r=document.getElementById('ui-reset');
+    if(r)r.onclick=function(){localStorage.removeItem('leesfact_ui_density');applyUiDensity();if(typeof rAna==='function')rAna();};
+    applyUiDensity();
+  }
+  window.applyUiDensity=applyUiDensity;
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',bindUiDensity);else bindUiDensity();
+
+  window.drawPie=function(id,obj){
+    var cv=document.getElementById(id);if(!cv)return;var ctx=cv.getContext('2d'),w=cv.clientWidth,h=cv.clientHeight;cv.width=w*2;cv.height=h*2;ctx.scale(2,2);ctx.clearRect(0,0,w,h);
+    var data=Object.keys(obj||{}).map(function(k){return{k:k,v:Number(obj[k])||0};}).filter(function(x){return x.v>0;}).sort(function(a,b){return b.v-a.v;});
+    var total=data.reduce(function(a,b){return a+b.v;},0);ctx.font='13px Malgun Gothic, Arial';
+    if(!total){ctx.fillStyle='#64748b';ctx.fillText('데이터 없음',20,32);return;}
+    var cx=w*0.32,cy=h*0.52,r=Math.min(w,h)*0.30,st=-Math.PI/2;var colors=['#2563eb','#16a34a','#f59e0b','#7c3aed','#dc2626','#0891b2','#84cc16','#64748b'];
+    for(var i=0;i<data.length;i++){var ang=data[i].v/total*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,st,st+ang);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.fill();ctx.strokeStyle='#ffffff';ctx.lineWidth=2;ctx.stroke();st+=ang;}
+    var lx=w*0.60,ly=38;ctx.textBaseline='middle';
+    for(var j=0;j<data.length&&j<8;j++){ctx.fillStyle=colors[j%colors.length];ctx.fillRect(lx,ly-6,10,10);ctx.fillStyle='#111827';ctx.font='bold 12px Malgun Gothic, Arial';ctx.fillText(data[j].k,lx+16,ly);ctx.fillStyle='#64748b';ctx.font='12px Malgun Gothic, Arial';ctx.fillText((data[j].v/total*100).toFixed(1)+'% · '+won(data[j].v),lx+16,ly+16);ly+=38;}
+  };
+  window.drawBar=function(id,obj,limit){
+    var cv=document.getElementById(id);if(!cv)return;var ctx=cv.getContext('2d'),w=cv.clientWidth,h=cv.clientHeight;cv.width=w*2;cv.height=h*2;ctx.scale(2,2);ctx.clearRect(0,0,w,h);
+    var data=Object.keys(obj||{}).map(function(k){return{k:k,v:Number(obj[k])||0};}).filter(function(x){return x.v>0;}).sort(function(a,b){return b.v-a.v;}).slice(0,limit||8);
+    if(!data.length){ctx.fillStyle='#64748b';ctx.font='13px Malgun Gothic, Arial';ctx.fillText('데이터 없음',20,32);return;}
+    var max=Math.max.apply(null,data.map(function(x){return x.v;})),left=118,top=24,bh=Math.max(18,(h-50)/data.length-9),gap=9;ctx.font='12px Malgun Gothic, Arial';
+    for(var i=0;i<data.length;i++){var y=top+i*(bh+gap),bw=(w-left-96)*(data[i].v/max);ctx.fillStyle='#dbeafe';ctx.fillRect(left,y,w-left-96,bh);ctx.fillStyle='#2563eb';ctx.fillRect(left,y,bw,bh);ctx.fillStyle='#111827';ctx.fillText(String(data[i].k).slice(0,14),10,y+bh-3);ctx.fillStyle='#334155';ctx.fillText(won(data[i].v),left+bw+6,y+bh-3);}
+  };
+  window.drawLine=function(id,obj){
+    var cv=document.getElementById(id);if(!cv)return;var ctx=cv.getContext('2d'),w=cv.clientWidth,h=cv.clientHeight;cv.width=w*2;cv.height=h*2;ctx.scale(2,2);ctx.clearRect(0,0,w,h);
+    var keys=Object.keys(obj||{}).sort(),vals=keys.map(function(k){return Number(obj[k])||0;});
+    if(!keys.length){ctx.fillStyle='#64748b';ctx.font='13px Malgun Gothic, Arial';ctx.fillText('데이터 없음',20,32);return;}
+    var rawMax=Math.max.apply(null,vals.concat([1])),unit=1000000,maxMil=Math.ceil(rawMax/unit);if(maxMil<5)maxMil=5;else if(maxMil<=10)maxMil=10;else if(maxMil<=20)maxMil=20;else maxMil=Math.ceil(maxMil/10)*10;var max=maxMil*unit;
+    var padL=72,padR=28,padT=46,padB=44,plotW=w-padL-padR,plotH=h-padT-padB;ctx.font='12px Malgun Gothic, Arial';ctx.textAlign='left';ctx.fillStyle='#64748b';ctx.fillText('단위: 백만원',padL,padT-20);
+    ctx.strokeStyle='#e2e8f0';ctx.lineWidth=1;ctx.beginPath();for(var g=0;g<=5;g++){var gy=padT+plotH*g/5;ctx.moveTo(padL,gy);ctx.lineTo(w-padR,gy);}ctx.stroke();
+    ctx.fillStyle='#64748b';ctx.textAlign='right';ctx.font='12px Malgun Gothic, Arial';for(var y=0;y<=5;y++){var val=maxMil*(5-y)/5;var yy=padT+plotH*y/5;ctx.fillText(val.toFixed(val%1?1:0),padL-8,yy+4);}
+    ctx.strokeStyle='#2563eb';ctx.lineWidth=3;ctx.beginPath();for(var i=0;i<keys.length;i++){var x=padL+plotW*(keys.length===1?0.5:i/(keys.length-1));var py=padT+plotH-(plotH*(vals[i]/max));if(i===0)ctx.moveTo(x,py);else ctx.lineTo(x,py);}ctx.stroke();
+    ctx.textAlign='center';
+    for(var j=0;j<keys.length;j++){
+      var x2=padL+plotW*(keys.length===1?0.5:j/(keys.length-1));
+      var y2=padT+plotH-(plotH*(vals[j]/max));
+      ctx.fillStyle='#ffffff';ctx.strokeStyle='#2563eb';ctx.lineWidth=3;ctx.beginPath();ctx.arc(x2,y2,5,0,Math.PI*2);ctx.fill();ctx.stroke();
+      var lab=(vals[j]/unit).toFixed(vals[j]>=unit?1:2).replace(/\.0$/,'');
+      ctx.font='bold 12px Malgun Gothic, Arial';
+      var tw=ctx.measureText(lab).width;
+      var bx=Math.max(padL+4,Math.min(w-padR-tw-18,x2-tw/2-9));
+      var by=Math.max(18,y2-30),bw=tw+18,bh=19;
+      ctx.fillStyle='rgba(15,23,42,.92)';
+      ctx.beginPath();
+      if(ctx.roundRect){ctx.roundRect(bx,by,bw,bh,6);}else{ctx.rect(bx,by,bw,bh);}
+      ctx.fill();
+      ctx.fillStyle='#ffffff';ctx.fillText(lab,bx+bw/2,by+14);
+      if(j===0||j===keys.length-1||keys.length<=8){ctx.fillStyle='#475569';ctx.font='11px Malgun Gothic, Arial';ctx.fillText(keys[j],x2,h-14);}
+    }
+  };
+
+  window.rAna=function(){
+    var d=anaData(),rate=d.tot.sales>0?d.tot.profit/d.tot.sales*100:0;var f=DVAL('ana-from'),t=DVAL('ana-to');
+    document.getElementById('anamcs').innerHTML=MC('분석기간',d.range,'var(--tl)')+MC('판매수량',d.tot.qty.toLocaleString()+'개','var(--gn)')+MC('실정산액',won(d.tot.sales),'var(--gn)')+MC('실마진',won(d.tot.profit)+' ('+rate.toFixed(1)+'%)',d.tot.profit>=0?'var(--am)':'var(--rd)');
+    document.getElementById('ana-channel-note').textContent=d.rows.length+'건';document.getElementById('ana-trend-note').textContent=f||t?'선택기간':'전체기간';
+    drawPie('ana-channel',d.byCh);drawBar('ana-brand',d.byBrand,8);drawLine('ana-trend',d.trend);drawBar('ana-size',d.bySize,10);
+    var sku=d.bySku.map(function(x){x.gross=Number(x.gross)||0;return x;}).sort(function(a,b){return b.gross-a.gross;}).slice(0,10);
+    var h='<table class="mt"><thead><tr><th>순위</th><th>품번</th><th>품명</th><th>브랜드</th><th class="r">수량</th><th class="r">매출액</th><th class="r">실정산액</th><th class="r">실마진</th></tr></thead><tbody>';
+    for(var i=0;i<sku.length;i++){var x=sku[i];h+='<tr><td>'+(i+1)+'</td><td class="cl-tl bld">'+x.itemCode+'</td><td>'+escHtml(x.productName||'')+'</td><td class="cl-sl">'+escHtml(x.brand||'')+'</td><td class="r">'+x.qty.toLocaleString()+'</td><td class="r cl-tl">'+won(x.gross)+'</td><td class="r cl-gn">'+won(x.sales)+'</td><td class="r cl-am">'+won(x.profit)+'</td></tr>';}
+    h+='</tbody></table><div style="margin-top:8px;color:#64748b;font-size:11px">※ 매출 TOP SKU 순위는 실정산액이 아니라 <b>매출액=grossSales/totalSales/customer payment</b> 합계 기준입니다.</div>';
+    document.getElementById('ana-top-sku').innerHTML=sku.length?h:'<div class="emp">분석할 매출 데이터가 없습니다.</div>';
+    var stock=calcStk();var risk=stock.filter(function(x){return x.remQty>0&&x.soldQty===0;}).sort(function(a,b){return b.remValue-a.remValue;}).slice(0,10);
+    var rh='<table class="mt"><thead><tr><th>체크</th><th>품번</th><th>품명</th><th class="r">현재고</th><th class="r">재고금액</th><th>권장 액션</th></tr></thead><tbody>';
+    for(var r=0;r<risk.length;r++){var z=risk[r];rh+='<tr><td><span class="tag ta">미판매재고</span></td><td class="cl-tl bld">'+z.itemCode+'</td><td>'+escHtml(z.productName||'')+'</td><td class="r cl-gn">'+z.remQty.toLocaleString()+'</td><td class="r cl-am">'+won(z.remValue)+'</td><td class="cl-sl">가격조정 / 노출강화 / 채널전환 검토</td></tr>';}
+    rh+='</tbody></table>';document.getElementById('ana-risk').innerHTML=risk.length?rh:'<div class="emp">큰 재고 리스크가 없습니다.</div>';
+  };
 })();
 </script>
 

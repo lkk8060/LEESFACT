@@ -770,6 +770,61 @@ table.mt{font-size:var(--ui-font-size)!important;background:#ffffff!important}ta
 
 </style>
 
+
+<style>
+/* ===== LEESFACT Cashflow / Turnover Analysis Section ===== */
+#cashflow-section{
+  margin-top:14px!important;
+}
+#cashflow-section .cash-kpi{
+  display:grid!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  gap:12px!important;
+  margin-bottom:14px!important;
+}
+#cashflow-section .cash-kpi .mc{
+  min-width:0!important;
+}
+#cashflow-section .cash-kpi .mcv{
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+.cash-positive{color:#16a34a!important}
+.cash-negative{color:#dc2626!important}
+.cash-warn{color:#d97706!important}
+#cashflow-section .ana-chart{
+  background:#fff!important;
+  border:1px solid #dbe3ef!important;
+}
+#cash-table table.mt{
+  table-layout:fixed!important;
+}
+#cash-table table.mt th:nth-child(1), #cash-table table.mt td:nth-child(1){width:80px!important;max-width:80px!important;}
+#cash-table table.mt th:nth-child(2), #cash-table table.mt td:nth-child(2),
+#cash-table table.mt th:nth-child(3), #cash-table table.mt td:nth-child(3),
+#cash-table table.mt th:nth-child(4), #cash-table table.mt td:nth-child(4){width:110px!important;max-width:110px!important;text-align:right!important;}
+#cash-table table.mt th:nth-child(5), #cash-table table.mt td:nth-child(5){width:80px!important;max-width:80px!important;text-align:right!important;}
+#cash-table table.mt th:nth-child(6), #cash-table table.mt td:nth-child(6){width:90px!important;max-width:90px!important;}
+#turnover-table table.mt{
+  table-layout:fixed!important;
+}
+#turnover-table table.mt th:nth-child(1), #turnover-table table.mt td:nth-child(1){width:95px!important;max-width:95px!important;}
+#turnover-table table.mt th:nth-child(2), #turnover-table table.mt td:nth-child(2){width:auto!important;max-width:none!important;}
+#turnover-table table.mt th:nth-child(3), #turnover-table table.mt td:nth-child(3){width:70px!important;max-width:70px!important;}
+#turnover-table table.mt th:nth-child(4), #turnover-table table.mt td:nth-child(4),
+#turnover-table table.mt th:nth-child(5), #turnover-table table.mt td:nth-child(5){width:56px!important;max-width:56px!important;text-align:right!important;}
+#turnover-table table.mt th:nth-child(6), #turnover-table table.mt td:nth-child(6){width:64px!important;max-width:64px!important;text-align:right!important;}
+#turnover-table table.mt th:nth-child(7), #turnover-table table.mt td:nth-child(7){width:96px!important;max-width:96px!important;text-align:right!important;}
+#turnover-table table.mt th:nth-child(8), #turnover-table table.mt td:nth-child(8){width:80px!important;max-width:80px!important;}
+@media(max-width:1300px){
+  #cashflow-section .cash-kpi{grid-template-columns:repeat(3,minmax(0,1fr))!important;}
+}
+@media(max-width:800px){
+  #cashflow-section .cash-kpi{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+}
+</style>
+
 </head><body>
 <div class="hdr"><div style="display:flex;align-items:center;gap:9px"><div class="led off" id="led"></div><div class="brandwrap"><span class="brandmark" title="LEES FACT"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#050b14"></rect><path d="M14 45 L24 17 M23 45 L31 21 M24 45 C33 36 39 34 49 32 M34 45 C42 38 47 37 53 37" fill="none" stroke="#f8fafc" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M11 50 H53" stroke="#0ea5e9" stroke-width="3" stroke-linecap="round" opacity="0.9"></path></svg></span><div class="logo">LEES<b>FACT</b> <span style="color:#475569;font-size:11px;font-weight:400">재고관리</span></div></div><span class="sbadge b-off" id="sbadge">연결 중...</span></div><div style="display:flex;align-items:center;gap:8px">
 <button class="bs" id="btn-undo" title="마지막 저장/수정/삭제 작업 실행취소" style="padding:5px 10px;font-size:10px">↩ 실행취소</button>
@@ -2701,6 +2756,253 @@ document.getElementById("p-dt").value=today();RSG();setAnaPeriod("this_month");L
       window.ensurePurchaseKpiCard();
     }
   }, 1000);
+})();
+</script>
+
+
+<script>
+/* ===== LEESFACT Cashflow / Turnover Analysis v20260523 ===== */
+(function(){
+  function won(v){return "₩"+Math.round(Number(v)||0).toLocaleString();}
+  function pct(v){return (isFinite(v)?Number(v):0).toFixed(1)+"%";}
+  function num(v){return Number(v)||0;}
+  function dval(id){var e=document.getElementById(id);return e?(e.value||""):"";}
+  function dateOnly(v){return String(v||"").slice(0,10);}
+  function inRange(dt,from,to){
+    dt=dateOnly(dt);
+    if(!dt)return false;
+    if(from && dt<from)return false;
+    if(to && dt>to)return false;
+    return true;
+  }
+  function qtyFromObj(s){
+    var t=0,ks=Object.keys(s||{});
+    for(var i=0;i<ks.length;i++)t+=num(s[ks[i]]);
+    return t;
+  }
+  function qSales(s){
+    if(typeof salesQty==="function")return salesQty(s);
+    return num(s.soldQty)||num(s.quantity)||qtyFromObj(s.sizes||{});
+  }
+  function settleAmt(s){
+    if(typeof SA==="function")return SA(s);
+    return num(s.settlementAmount)||num(s.salePrice)||num(s.totalSales)||0;
+  }
+  function grossAmtLocal(s){
+    if(typeof SG==="function")return SG(s);
+    return num(s.grossSales)||num(s.totalSales)||settleAmt(s)+num(s.totalFee);
+  }
+  function feeAmtLocal(s){
+    if(typeof SF==="function")return SF(s);
+    return Math.abs(num(s.totalFee)||num(s.fee)||0);
+  }
+  function anaRange(){
+    return {from:dval("ana-from"),to:dval("ana-to")};
+  }
+  function allDateBounds(){
+    var ds=[];
+    (window.PDB||[]).forEach(function(p){if(p.date)ds.push(dateOnly(p.date));});
+    (window.SDB||[]).forEach(function(s){var d=dateOnly(s.date||s.period);if(d)ds.push(d);});
+    ds=ds.filter(Boolean).sort();
+    return {from:ds[0]||"",to:ds[ds.length-1]||""};
+  }
+  function daysBetween(from,to){
+    if(!from||!to)return 30;
+    var a=new Date(from),b=new Date(to);
+    if(isNaN(a.getTime())||isNaN(b.getTime()))return 30;
+    return Math.max(1,Math.round((b-a)/86400000)+1);
+  }
+  function monthKey(dt){dt=dateOnly(dt);return dt?dt.slice(0,7):"미지정";}
+  function costMap(){
+    if(typeof anaCostMap==="function")return anaCostMap();
+    var m={};
+    (window.PDB||[]).forEach(function(p){
+      var c=p.itemCode||"?";
+      if(!m[c])m[c]={cost:0,qty:0,avg:0,name:p.productName||"",brand:p.brand||""};
+      m[c].cost+=num(p.totalPrice);
+      m[c].qty+=num(p.quantity)||qtyFromObj(p.sizes||{});
+      m[c].name=m[c].name||p.productName||"";
+      m[c].brand=m[c].brand||p.brand||"";
+    });
+    Object.keys(m).forEach(function(c){m[c].avg=m[c].qty?m[c].cost/m[c].qty:0;});
+    return m;
+  }
+  function calcCashflow(){
+    var r=anaRange(),bounds=allDateBounds(),from=r.from||bounds.from,to=r.to||bounds.to,days=daysBetween(from,to);
+    var byMonth={},purchase=0,purchaseQty=0,settlement=0,gross=0,fee=0,soldQty=0,cogs=0;
+    var cm=costMap();
+
+    function ensure(m){
+      if(!byMonth[m])byMonth[m]={month:m,purchase:0,settlement:0,net:0,recovery:0};
+      return byMonth[m];
+    }
+
+    (window.PDB||[]).forEach(function(p){
+      var dt=dateOnly(p.date);
+      if(inRange(dt,r.from,r.to)){
+        var amt=num(p.totalPrice),q=num(p.quantity)||qtyFromObj(p.sizes||{});
+        purchase+=amt;purchaseQty+=q;
+        ensure(monthKey(dt)).purchase+=amt;
+      }
+    });
+
+    (window.SDB||[]).forEach(function(s){
+      var dt=dateOnly(s.date||s.period);
+      if(inRange(dt,r.from,r.to)){
+        var st=settleAmt(s),gr=grossAmtLocal(s),fe=feeAmtLocal(s),q=qSales(s),c=cm[s.itemCode||""]||{};
+        settlement+=st;gross+=gr;fee+=fe;soldQty+=q;cogs+=(num(c.avg))*q;
+        ensure(monthKey(dt)).settlement+=st;
+      }
+    });
+
+    var months=Object.keys(byMonth).sort().map(function(k){
+      var x=byMonth[k];
+      x.net=x.settlement-x.purchase;
+      x.recovery=x.purchase>0?x.settlement/x.purchase*100:0;
+      return x;
+    });
+
+    var stockValue=0,stockQty=0,stockRows=[];
+    if(typeof calcStk==="function")stockRows=calcStk();
+    stockRows.forEach(function(x){stockValue+=num(x.remValue);stockQty+=num(x.remQty);});
+    var avgInv=(stockValue+purchase)/2;
+    var turnover=avgInv>0?cogs/avgInv:0;
+    var turnDays=turnover>0?days/turnover:0;
+    var recovery=purchase>0?settlement/purchase*100:0;
+
+    return {from:from,to:to,days:days,purchase:purchase,purchaseQty:purchaseQty,settlement:settlement,gross:gross,fee:fee,soldQty:soldQty,cogs:cogs,net:settlement-purchase,recovery:recovery,stockValue:stockValue,stockQty:stockQty,turnover:turnover,turnDays:turnDays,months:months};
+  }
+
+  function ensureCashflowSection(){
+    var pg=document.getElementById("pg-ana");
+    if(!pg || document.getElementById("cashflow-section"))return;
+    var div=document.createElement("div");
+    div.className="card";
+    div.id="cashflow-section";
+    div.innerHTML=
+      '<div class="slbl">💰 현금흐름 / 회전율 분석</div>'+
+      '<div class="mcs cash-kpi" id="cashmcs">'+
+        '<div class="mc"><div class="mcl">순현금흐름</div><div class="mcv" id="cash-net">₩0</div></div>'+
+        '<div class="mc"><div class="mcl">현금회수율</div><div class="mcv" id="cash-rate">0.0%</div></div>'+
+        '<div class="mc"><div class="mcl">재고회전율</div><div class="mcv" id="cash-turn">0.00회</div></div>'+
+        '<div class="mc"><div class="mcl">재고회전일수</div><div class="mcv" id="cash-days">-</div></div>'+
+        '<div class="mc"><div class="mcl">재고묶임금액</div><div class="mcv" id="cash-stock">₩0</div></div>'+
+      '</div>'+
+      '<div class="ana-grid">'+
+        '<div class="ana-card"><div class="ana-title"><span>월별 매입액 vs 실정산액</span><span class="cl-sl">현금 유출/유입</span></div><canvas id="cash-month-bars" class="ana-chart"></canvas></div>'+
+        '<div class="ana-card"><div class="ana-title"><span>월별 순현금흐름</span><span class="cl-sl">실정산액 - 매입액</span></div><canvas id="cash-net-bars" class="ana-chart"></canvas></div>'+
+      '</div>'+
+      '<div class="ana-grid">'+
+        '<div class="card"><div class="slbl">📅 월별 현금흐름 요약</div><div class="tw" id="cash-table"><div class="emp">현금흐름 데이터가 없습니다.</div></div></div>'+
+        '<div class="card"><div class="slbl">🔄 SKU별 판매율 / 회전 체크</div><div class="tw" id="turnover-table"><div class="emp">회전율 데이터가 없습니다.</div></div></div>'+
+      '</div>';
+    pg.appendChild(div);
+  }
+
+  function drawCashMonth(id,rows){
+    var cv=document.getElementById(id);if(!cv)return;
+    var ctx=cv.getContext("2d"),w=cv.clientWidth,h=cv.clientHeight;
+    cv.width=w*2;cv.height=h*2;ctx.scale(2,2);ctx.clearRect(0,0,w,h);ctx.fillStyle="#fff";ctx.fillRect(0,0,w,h);
+    if(!rows||!rows.length){ctx.fillStyle="#64748b";ctx.font="12px 'Malgun Gothic','맑은 고딕',Arial";ctx.fillText("데이터 없음",20,30);return;}
+    var max=1;rows.forEach(function(r){max=Math.max(max,r.purchase,r.settlement,Math.abs(r.net));});
+    var padL=58,padR=18,padT=26,padB=36,plotW=w-padL-padR,plotH=h-padT-padB,barW=Math.max(5,plotW/rows.length/3);
+    ctx.font="10px 'Malgun Gothic','맑은 고딕',Arial";ctx.textAlign="right";ctx.fillStyle="#475569";
+    for(var t=0;t<=4;t++){
+      var y=padT+plotH-(plotH*t/4);
+      ctx.strokeStyle="#e2e8f0";ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(w-padR,y);ctx.stroke();
+      ctx.fillText(Math.round(max/1000000*t/4),padL-7,y+3);
+    }
+    ctx.textAlign="center";
+    rows.forEach(function(r,i){
+      var cx=padL+plotW*(i+.5)/rows.length,base=padT+plotH;
+      var ph=plotH*(r.purchase/max),sh=plotH*(r.settlement/max);
+      ctx.fillStyle="#f59e0b";ctx.fillRect(cx-barW-1,base-ph,barW,ph);
+      ctx.fillStyle="#2563eb";ctx.fillRect(cx+1,base-sh,barW,sh);
+      ctx.fillStyle="#475569";ctx.fillText(r.month,cx,h-12);
+    });
+    ctx.textAlign="left";ctx.fillStyle="#f59e0b";ctx.fillRect(padL,8,9,9);ctx.fillStyle="#334155";ctx.fillText("매입액",padL+14,16);
+    ctx.fillStyle="#2563eb";ctx.fillRect(padL+70,8,9,9);ctx.fillStyle="#334155";ctx.fillText("실정산액",padL+84,16);
+  }
+
+  function drawCashNet(id,rows){
+    var cv=document.getElementById(id);if(!cv)return;
+    var ctx=cv.getContext("2d"),w=cv.clientWidth,h=cv.clientHeight;
+    cv.width=w*2;cv.height=h*2;ctx.scale(2,2);ctx.clearRect(0,0,w,h);ctx.fillStyle="#fff";ctx.fillRect(0,0,w,h);
+    if(!rows||!rows.length){ctx.fillStyle="#64748b";ctx.font="12px 'Malgun Gothic','맑은 고딕',Arial";ctx.fillText("데이터 없음",20,30);return;}
+    var max=1;rows.forEach(function(r){max=Math.max(max,Math.abs(r.net));});
+    var padL=58,padR=18,padT=24,padB=36,plotW=w-padL-padR,plotH=h-padT-padB,zero=padT+plotH/2,barW=Math.max(8,plotW/rows.length*.46);
+    ctx.strokeStyle="#94a3b8";ctx.beginPath();ctx.moveTo(padL,zero);ctx.lineTo(w-padR,zero);ctx.stroke();
+    ctx.textAlign="center";ctx.font="10px 'Malgun Gothic','맑은 고딕',Arial";
+    rows.forEach(function(r,i){
+      var cx=padL+plotW*(i+.5)/rows.length,hv=(plotH/2)*(Math.abs(r.net)/max);
+      ctx.fillStyle=r.net>=0?"#16a34a":"#dc2626";
+      if(r.net>=0)ctx.fillRect(cx-barW/2,zero-hv,barW,hv);else ctx.fillRect(cx-barW/2,zero,barW,hv);
+      ctx.fillStyle="#475569";ctx.fillText(r.month,cx,h-12);
+    });
+  }
+
+  function renderCashTables(d){
+    var h='<table class="mt"><thead><tr><th>월</th><th class="r">매입액</th><th class="r">실정산액</th><th class="r">순현금흐름</th><th class="r">회수율</th><th>상태</th></tr></thead><tbody>';
+    if(!d.months.length)h+='<tr><td colspan="6" class="cl-sl">데이터 없음</td></tr>';
+    d.months.forEach(function(r){
+      var cls=r.net>=0?"cl-gn":"cl-am",status=r.net>=0?'<span class="tag tg">유입+</span>':'<span class="tag tr_">유출</span>';
+      h+='<tr><td>'+r.month+'</td><td class="r cl-am">'+won(r.purchase)+'</td><td class="r cl-gn">'+won(r.settlement)+'</td><td class="r '+cls+' bld">'+won(r.net)+'</td><td class="r">'+pct(r.recovery)+'</td><td>'+status+'</td></tr>';
+    });
+    h+='</tbody></table>';
+    var ct=document.getElementById("cash-table");if(ct)ct.innerHTML=h;
+
+    var stock=typeof calcStk==="function"?calcStk():[];
+    stock=stock.filter(function(x){return num(x.boughtQty)>0;}).sort(function(a,b){
+      var ar=num(a.soldQty)/(num(a.boughtQty)||1),br=num(b.soldQty)/(num(b.boughtQty)||1);
+      return ar-br;
+    }).slice(0,10);
+    var th='<table class="mt"><thead><tr><th>품번</th><th>품명</th><th>브랜드</th><th class="r">매입</th><th class="r">판매</th><th class="r">판매율</th><th class="r">재고금액</th><th>상태</th></tr></thead><tbody>';
+    if(!stock.length)th+='<tr><td colspan="8" class="cl-sl">데이터 없음</td></tr>';
+    stock.forEach(function(x){
+      var rate=num(x.boughtQty)>0?num(x.soldQty)/num(x.boughtQty)*100:0;
+      var status=rate>=80?'<span class="tag tg">고회전</span>':(rate>=40?'<span class="tag ta">보통</span>':'<span class="tag tr_">저회전</span>');
+      th+='<tr><td class="cl-tl bld">'+(x.itemCode||'')+'</td><td title="'+escHtml(x.productName||'')+'">'+escHtml(x.productName||'')+'</td><td class="cl-sl">'+escHtml(x.brand||'')+'</td><td class="r">'+num(x.boughtQty).toLocaleString()+'</td><td class="r">'+num(x.soldQty).toLocaleString()+'</td><td class="r bld">'+pct(rate)+'</td><td class="r cl-am">'+won(x.remValue)+'</td><td>'+status+'</td></tr>';
+    });
+    th+='</tbody></table>';
+    var tt=document.getElementById("turnover-table");if(tt)tt.innerHTML=th;
+  }
+
+  window.renderCashflowAnalysis=function(){
+    ensureCashflowSection();
+    var d=calcCashflow();
+    var net=document.getElementById("cash-net"),rate=document.getElementById("cash-rate"),turn=document.getElementById("cash-turn"),days=document.getElementById("cash-days"),stock=document.getElementById("cash-stock");
+    if(net){net.textContent=won(d.net);net.className="mcv "+(d.net>=0?"cash-positive":"cash-negative");}
+    if(rate){rate.textContent=pct(d.recovery);rate.className="mcv "+(d.recovery>=100?"cash-positive":(d.recovery>=60?"cash-warn":"cash-negative"));}
+    if(turn)turn.textContent=d.turnover.toFixed(2)+"회";
+    if(days)days.textContent=d.turnDays>0?Math.round(d.turnDays).toLocaleString()+"일":"-";
+    if(stock)stock.textContent=won(d.stockValue);
+    drawCashMonth("cash-month-bars",d.months);
+    drawCashNet("cash-net-bars",d.months);
+    renderCashTables(d);
+  };
+
+  function wrapRAnaCash(){
+    if(typeof window.rAna==="function" && !window.rAna.__cashflowWrapped){
+      var old=window.rAna;
+      window.rAna=function(){
+        var ret=old.apply(this,arguments);
+        try{window.renderCashflowAnalysis();}catch(e){console.warn(e);}
+        return ret;
+      };
+      window.rAna.__cashflowWrapped=true;
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded",function(){
+    wrapRAnaCash();
+    setTimeout(window.renderCashflowAnalysis,200);
+    ["ana-this-month","ana-prev-month","ana-this-quarter","ana-this-half","ana-this-year","ana-all","btn-ana-apply"].forEach(function(id){
+      var el=document.getElementById(id);if(el)el.addEventListener("click",function(){setTimeout(window.renderCashflowAnalysis,120);});
+    });
+    ["ana-from","ana-to"].forEach(function(id){
+      var el=document.getElementById(id);if(el)el.addEventListener("change",function(){setTimeout(window.renderCashflowAnalysis,120);});
+    });
+  });
 })();
 </script>
 

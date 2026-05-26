@@ -885,6 +885,65 @@ table.mt{font-size:var(--ui-font-size)!important;background:#ffffff!important}ta
 }
 </style>
 
+
+<style>
+/* ===== LEESFACT FINAL CSS: Analysis TOP SKU full number visibility v20260526 ===== */
+#ana-top-sku table.mt,
+#margin-top-card table.mt{
+  table-layout:fixed!important;
+  width:100%!important;
+  max-width:100%!important;
+  font-size:10.5px!important;
+}
+#ana-top-sku table.mt th,
+#ana-top-sku table.mt td,
+#margin-top-card table.mt th,
+#margin-top-card table.mt td{
+  padding-left:4px!important;
+  padding-right:4px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+#ana-top-sku table.mt th:nth-child(1), #ana-top-sku table.mt td:nth-child(1),
+#margin-top-card table.mt th:nth-child(1), #margin-top-card table.mt td:nth-child(1){
+  width:30px!important;max-width:30px!important;
+}
+#ana-top-sku table.mt th:nth-child(2), #ana-top-sku table.mt td:nth-child(2),
+#margin-top-card table.mt th:nth-child(2), #margin-top-card table.mt td:nth-child(2){
+  width:82px!important;max-width:82px!important;
+}
+#ana-top-sku table.mt th:nth-child(3), #ana-top-sku table.mt td:nth-child(3),
+#margin-top-card table.mt th:nth-child(3), #margin-top-card table.mt td:nth-child(3){
+  width:auto!important;max-width:none!important;
+}
+#ana-top-sku table.mt th:nth-child(4), #ana-top-sku table.mt td:nth-child(4){
+  width:68px!important;max-width:68px!important;
+}
+#ana-top-sku table.mt th:nth-child(5), #ana-top-sku table.mt td:nth-child(5),
+#margin-top-card table.mt th:nth-child(4), #margin-top-card table.mt td:nth-child(4){
+  width:38px!important;max-width:38px!important;text-align:right!important;
+}
+#ana-top-sku table.mt th:nth-child(6), #ana-top-sku table.mt td:nth-child(6),
+#ana-top-sku table.mt th:nth-child(7), #ana-top-sku table.mt td:nth-child(7),
+#ana-top-sku table.mt th:nth-child(8), #ana-top-sku table.mt td:nth-child(8),
+#margin-top-card table.mt th:nth-child(5), #margin-top-card table.mt td:nth-child(5),
+#margin-top-card table.mt th:nth-child(6), #margin-top-card table.mt td:nth-child(6),
+#margin-top-card table.mt th:nth-child(7), #margin-top-card table.mt td:nth-child(7){
+  width:86px!important;max-width:86px!important;text-align:right!important;
+}
+#ana-top-sku table.mt th:nth-child(9), #ana-top-sku table.mt td:nth-child(9),
+#margin-top-card table.mt th:nth-child(8), #margin-top-card table.mt td:nth-child(8){
+  width:48px!important;max-width:48px!important;text-align:right!important;
+}
+#ana-top-sku .ana-note{
+  font-size:10px!important;
+  color:#64748b!important;
+  margin-top:5px!important;
+  line-height:1.4!important;
+}
+</style>
+
 </head><body>
 <div class="hdr"><div style="display:flex;align-items:center;gap:9px"><div class="led off" id="led"></div><div class="brandwrap"><span class="brandmark" title="LEES FACT"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#050b14"></rect><path d="M14 45 L24 17 M23 45 L31 21 M24 45 C33 36 39 34 49 32 M34 45 C42 38 47 37 53 37" fill="none" stroke="#f8fafc" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M11 50 H53" stroke="#0ea5e9" stroke-width="3" stroke-linecap="round" opacity="0.9"></path></svg></span><div class="logo">LEES<b>FACT</b> <span style="color:#475569;font-size:11px;font-weight:400">재고관리</span></div></div><span class="sbadge b-off" id="sbadge">연결 중...</span></div><div style="display:flex;align-items:center;gap:8px">
 <button class="bs" id="btn-undo" title="마지막 저장/수정/삭제 작업 실행취소" style="padding:5px 10px;font-size:10px">↩ 실행취소</button>
@@ -3230,6 +3289,204 @@ document.getElementById("p-dt").value=today();RSG();setAnaPeriod("this_month");L
   });
 
   setTimeout(function(){wrapRAnaPeriodTop();renderPeriodTopSku();},1200);
+})();
+</script>
+
+
+<script>
+/* ===== LEESFACT FINAL FIX: Analysis TOP SKU period filter hard override v20260526 ===== */
+(function(){
+  var LF_PERIOD_TOP_RENDERING=false;
+
+  function n(v){return Number(v)||0;}
+  function won(v){return "₩"+Math.round(Number(v)||0).toLocaleString();}
+  function pct(v){return (isFinite(v)?Number(v):0).toFixed(1)+"%";}
+  function esc(v){
+    if(typeof escHtml==="function")return escHtml(v);
+    return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+  function dval(id){var e=document.getElementById(id);return e?(e.value||""):"";}
+  function sumSizes(obj){var t=0;Object.keys(obj||{}).forEach(function(k){t+=n(obj[k]);});return t;}
+  function inRange(v,from,to){
+    var d=String(v||"").slice(0,10);
+    if(!from&&!to)return true;
+    if(!d)return false;
+    return (!from||d>=from)&&(!to||d<=to);
+  }
+  function saleQty(row){
+    if(window.LF_SALES_QTY)return LF_SALES_QTY(row);
+    return n(row.soldQty)||n(row.quantity)||sumSizes(row.sizes);
+  }
+  function fee(row){
+    if(window.LF_FEE)return LF_FEE(row);
+    if(typeof SF==="function")return SF(row);
+    return Math.abs(n(row.totalFee)||n(row.fee)||0);
+  }
+  function settle(row){
+    if(window.LF_NET)return LF_NET(row);
+    if(typeof SA==="function")return SA(row);
+    return n(row.settlementAmount)||n(row.totalSales)||0;
+  }
+  function gross(row){
+    if(window.LF_GROSS)return LF_GROSS(row);
+    if(typeof SG==="function")return SG(row);
+    return settle(row)+fee(row);
+  }
+  function costMap(){
+    var m={};
+    (window.PDB||[]).forEach(function(p){
+      var c=p.itemCode||"";
+      if(!c)return;
+      var q=n(p.quantity)||sumSizes(p.sizes);
+      var total=n(p.totalPrice)||((n(p.supplyPrice||p.unitPrice))*q);
+      if(!m[c])m[c]={qty:0,total:0,avg:0,name:p.productName||"",brand:p.brand||""};
+      m[c].qty+=q;
+      m[c].total+=total;
+      if(p.productName)m[c].name=p.productName;
+      if(p.brand)m[c].brand=p.brand;
+    });
+    Object.keys(m).forEach(function(c){m[c].avg=m[c].qty>0?m[c].total/m[c].qty:0;});
+    return m;
+  }
+  function periodRows(){
+    var from=dval("ana-from"), to=dval("ana-to"), cm=costMap(), map={};
+    (window.SDB||[]).forEach(function(s){
+      var dt=s.date||s.period;
+      if(!inRange(dt,from,to))return;
+
+      var c=s.itemCode||"?";
+      var q=saleQty(s);
+      var g=gross(s);
+      var net=settle(s);
+      var f=fee(s);
+      var cost=(cm[c]&&cm[c].avg?cm[c].avg:0)*q;
+
+      if(!map[c]){
+        map[c]={
+          code:c,
+          name:s.productName||(cm[c]?cm[c].name:""),
+          brand:s.brand||(cm[c]?cm[c].brand:""),
+          qty:0,gross:0,settle:0,fee:0,cogs:0,margin:0
+        };
+      }
+      map[c].qty+=q;
+      map[c].gross+=g;
+      map[c].settle+=net;
+      map[c].fee+=f;
+      map[c].cogs+=cost;
+      map[c].margin+=net-cost;
+      if(s.productName)map[c].name=s.productName;
+      if(s.brand)map[c].brand=s.brand;
+    });
+    return Object.keys(map).map(function(k){return map[k];});
+  }
+
+  function renderPeriodTopSkuFinal(){
+    if(LF_PERIOD_TOP_RENDERING)return;
+    LF_PERIOD_TOP_RENDERING=true;
+    try{
+      var rows=periodRows();
+
+      var top=rows.slice().sort(function(a,b){return b.gross-a.gross;}).slice(0,10);
+      var box=document.getElementById("ana-top-sku");
+      if(box){
+        if(!top.length){
+          box.innerHTML='<div class="emp">선택기간 내 매출 데이터가 없습니다.</div>';
+        }else{
+          var h='<table class="mt"><thead><tr>'+
+            '<th>순</th><th>품번</th><th>품명</th><th>브랜드</th><th class="r">수량</th><th class="r">매출액</th><th class="r">실정산액</th><th class="r">실마진</th><th class="r">율</th>'+
+            '</tr></thead><tbody>';
+          top.forEach(function(x,i){
+            var rate=x.settle>0?x.margin/x.settle*100:0;
+            h+='<tr>'+
+              '<td>'+(i+1)+'</td>'+
+              '<td class="cl-tl bld">'+esc(x.code)+'</td>'+
+              '<td title="'+esc(x.name||'')+'">'+esc(x.name||'')+'</td>'+
+              '<td class="cl-sl">'+esc(x.brand||'')+'</td>'+
+              '<td class="r">'+Math.round(x.qty).toLocaleString()+'</td>'+
+              '<td class="r cl-tl">'+won(x.gross)+'</td>'+
+              '<td class="r cl-gn">'+won(x.settle)+'</td>'+
+              '<td class="r cl-am bld">'+won(x.margin)+'</td>'+
+              '<td class="r">'+pct(rate)+'</td>'+
+              '</tr>';
+          });
+          h+='</tbody></table><div class="ana-note">※ 선택한 분석기간 내 매출액 기준 TOP SKU입니다.</div>';
+          box.innerHTML=h;
+        }
+      }
+
+      var margin=rows.slice().filter(function(x){return x.qty>0||x.settle>0;}).sort(function(a,b){return b.margin-a.margin;}).slice(0,10);
+      var tbody=document.getElementById("margin-top-body");
+      if(tbody){
+        if(!margin.length){
+          tbody.innerHTML='<tr><td colspan="8" class="emp">선택기간 내 매출 데이터가 없습니다.</td></tr>';
+        }else{
+          tbody.innerHTML=margin.map(function(x,i){
+            var rate=x.settle>0?x.margin/x.settle*100:0;
+            return '<tr>'+
+              '<td>'+(i+1)+'</td>'+
+              '<td class="cl-tl bld">'+esc(x.code)+'</td>'+
+              '<td title="'+esc(x.name||'')+'">'+esc(x.name||'')+'</td>'+
+              '<td class="r">'+Math.round(x.qty).toLocaleString()+'</td>'+
+              '<td class="r cl-gn">'+won(x.settle)+'</td>'+
+              '<td class="r">'+won(x.cogs)+'</td>'+
+              '<td class="r cl-am bld">'+won(x.margin)+'</td>'+
+              '<td class="r">'+pct(rate)+'</td>'+
+              '</tr>';
+          }).join('');
+        }
+      }
+    }catch(e){
+      console.warn("period top sku final render error",e);
+    }finally{
+      setTimeout(function(){LF_PERIOD_TOP_RENDERING=false;},20);
+    }
+  }
+
+  window.renderAnalysisPeriodTopSku = renderPeriodTopSkuFinal;
+  window.renderMarginTopSku = renderPeriodTopSkuFinal;
+
+  function scheduleFinal(){
+    setTimeout(renderPeriodTopSkuFinal,60);
+    setTimeout(renderPeriodTopSkuFinal,360);
+    setTimeout(renderPeriodTopSkuFinal,760);
+  }
+
+  function wrapRAnaFinal(){
+    if(typeof window.rAna==="function" && !window.rAna.__periodTopFinalWrapped){
+      var old=window.rAna;
+      window.rAna=function(){
+        var ret=old.apply(this,arguments);
+        scheduleFinal();
+        return ret;
+      };
+      window.rAna.__periodTopFinalWrapped=true;
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded",function(){
+    wrapRAnaFinal();
+    scheduleFinal();
+
+    ["ana-this-month","ana-prev-month","ana-this-quarter","ana-this-half","ana-this-year","ana-all","btn-ana-apply"].forEach(function(id){
+      var el=document.getElementById(id);
+      if(el)el.addEventListener("click",scheduleFinal);
+    });
+    ["ana-from","ana-to"].forEach(function(id){
+      var el=document.getElementById(id);
+      if(el)el.addEventListener("change",scheduleFinal);
+    });
+
+    var tbody=document.getElementById("margin-top-body");
+    if(tbody && window.MutationObserver){
+      var mo=new MutationObserver(function(){
+        if(!LF_PERIOD_TOP_RENDERING) setTimeout(renderPeriodTopSkuFinal,80);
+      });
+      mo.observe(tbody,{childList:true,subtree:true});
+    }
+  });
+
+  setTimeout(function(){wrapRAnaFinal();scheduleFinal();},1300);
 })();
 </script>
 

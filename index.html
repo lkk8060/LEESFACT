@@ -1016,13 +1016,41 @@ table.mt{font-size:var(--ui-font-size)!important;background:#ffffff!important}ta
 }
 </style>
 
+
+<style>
+/* ===== LEESFACT Margin Calculator Tab v20260616 ===== */
+#pg-calc .calc-kpi{
+  display:grid!important;
+  grid-template-columns:repeat(6,minmax(0,1fr))!important;
+  gap:10px!important;
+  margin-bottom:14px!important;
+}
+#pg-calc .calc-kpi .mc{min-width:0!important;}
+#pg-calc .calc-kpi .mcv{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}
+#pg-calc .calc-grid{grid-template-columns:1.15fr .85fr!important;}
+#pg-calc table.mt{table-layout:fixed!important;}
+#pg-calc table.mt th,#pg-calc table.mt td{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}
+#calc-info table.mt th:nth-child(1),#calc-info table.mt td:nth-child(1){width:92px!important;max-width:92px!important;}
+#calc-info table.mt th:nth-child(2),#calc-info table.mt td:nth-child(2){width:auto!important;max-width:none!important;}
+#calc-info table.mt th:nth-child(3),#calc-info table.mt td:nth-child(3){width:80px!important;max-width:80px!important;}
+#calc-info table.mt th:nth-child(4),#calc-info table.mt td:nth-child(4),
+#calc-info table.mt th:nth-child(5),#calc-info table.mt td:nth-child(5),
+#calc-info table.mt th:nth-child(6),#calc-info table.mt td:nth-child(6){width:86px!important;max-width:86px!important;text-align:right!important;}
+#calc-target table.mt th:nth-child(1),#calc-target table.mt td:nth-child(1){width:auto!important;max-width:none!important;}
+#calc-target table.mt th:nth-child(2),#calc-target table.mt td:nth-child(2){width:120px!important;max-width:120px!important;text-align:right!important;}
+#calc-target table.mt th:nth-child(3),#calc-target table.mt td:nth-child(3){width:90px!important;max-width:90px!important;text-align:right!important;}
+.calc-good{color:#16a34a!important}.calc-bad{color:#dc2626!important}.calc-warn{color:#d97706!important}
+@media(max-width:1300px){#pg-calc .calc-kpi{grid-template-columns:repeat(3,minmax(0,1fr))!important;}#pg-calc .calc-grid{grid-template-columns:1fr!important;}}
+@media(max-width:800px){#pg-calc .calc-kpi{grid-template-columns:repeat(2,minmax(0,1fr))!important;}}
+</style>
+
 </head><body>
 <div class="hdr"><div style="display:flex;align-items:center;gap:9px"><div class="led off" id="led"></div><div class="brandwrap"><span class="brandmark" title="LEES FACT"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#050b14"></rect><path d="M14 45 L24 17 M23 45 L31 21 M24 45 C33 36 39 34 49 32 M34 45 C42 38 47 37 53 37" fill="none" stroke="#f8fafc" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M11 50 H53" stroke="#0ea5e9" stroke-width="3" stroke-linecap="round" opacity="0.9"></path></svg></span><div class="logo">LEES<b>FACT</b> <span style="color:#475569;font-size:11px;font-weight:400">재고관리</span></div></div><span class="sbadge b-off" id="sbadge">연결 중...</span></div><div style="display:flex;align-items:center;gap:8px">
 <button class="bs" id="btn-undo" title="마지막 저장/수정/삭제 작업 실행취소" style="padding:5px 10px;font-size:10px">↩ 실행취소</button>
 <span id="undo-info" style="font-size:10px;color:#475569"></span>
 <span id="hcnt" style="font-size:10px;color:#475569">매입 0건 · 매출 0건</span>
 </div></div>
-<div class="tabs"><button class="tab on" id="tab-sku">🧾 SKU MASTER</button><button class="tab" id="tab-pi">📥 매입 입력</button><button class="tab" id="tab-pdb">📦 매입 DB</button><button class="tab" id="tab-si">💰 매출 입력</button><button class="tab" id="tab-sdb">📊 매출 DB</button><button class="tab" id="tab-stk">📋 현재고</button><button class="tab" id="tab-mar">📈 SKU별 실마진</button><button class="tab" id="tab-ana">📊 데이터 분석</button><button class="tab" id="tab-map">🔗 미매칭 SKU</button></div>
+<div class="tabs"><button class="tab on" id="tab-sku">🧾 SKU MASTER</button><button class="tab" id="tab-pi">📥 매입 입력</button><button class="tab" id="tab-pdb">📦 매입 DB</button><button class="tab" id="tab-si">💰 매출 입력</button><button class="tab" id="tab-sdb">📊 매출 DB</button><button class="tab" id="tab-stk">📋 현재고</button><button class="tab" id="tab-mar">📈 SKU별 실마진</button><button class="tab" id="tab-calc">🧮 마진 계산기</button><button class="tab" id="tab-ana">📊 데이터 분석</button><button class="tab" id="tab-map">🔗 미매칭 SKU</button></div>
 <div class="pc-ui-toolbar" id="pc-ui-toolbar">
   <div class="pc-ui-title">화면/표 설정</div>
   <label>글씨 <input type="range" id="ui-font" min="11" max="15" value="12"></label>
@@ -1187,6 +1215,49 @@ table.mt{font-size:var(--ui-font-size)!important;background:#ffffff!important}ta
 </div>
 </div>
     <div class="card"><div class="slbl">⚠️ 재고/마케팅 체크</div><div class="tw" id="ana-risk"><div class="emp">분석할 데이터가 없습니다.</div></div></div>
+  </div>
+</div>
+
+
+<div id="pg-calc" class="pg">
+  <div id="calc-msg" class="msg"></div>
+  <div class="card">
+    <div class="slbl">🧮 마진 계산기</div>
+    <p style="font-size:11px;color:#64748b;margin-bottom:12px;line-height:1.7">
+      품번 또는 품명으로 SKU MASTER/매입DB를 검색하면 평균매입가가 자동 계산됩니다. 판매액을 입력하면 보수적 수수료 <b>판매액 × 5.85% + 2,500원</b> 차감 후 순마진과 순마진율을 계산합니다.
+    </p>
+    <div class="g5" style="margin-bottom:10px">
+      <div class="fg"><label class="fl">품번/품명 검색</label><input id="calc-query" list="calc-options" placeholder="예: JP7147 또는 상품명"><datalist id="calc-options"></datalist></div>
+      <div class="fg"><label class="fl">SKU 선택</label><select id="calc-select"><option value="">검색 후 선택</option></select></div>
+      <div class="fg"><label class="fl">판매수량</label><input type="number" id="calc-qty" min="1" value="1"></div>
+      <div class="fg"><label class="fl">판매액/매출액 총액 *</label><input type="number" id="calc-sale" min="0" placeholder="예: 180000"></div>
+      <div class="fg"><label class="fl">수수료 기준</label><input id="calc-fee-rule" value="5.85% + 2,500원" readonly></div>
+    </div>
+    <div class="tool-row" style="margin-bottom:0">
+      <button class="bp" id="btn-calc-run">계산</button>
+      <button class="bs" id="btn-calc-clear">초기화</button>
+      <span id="calc-hint" style="font-size:10px;color:#64748b">판매액은 고객 결제 기준 총액으로 입력하세요.</span>
+    </div>
+  </div>
+
+  <div class="mcs calc-kpi" id="calc-kpi">
+    <div class="mc"><div class="mcl">평균매입가</div><div class="mcv" id="calc-kpi-unit" style="color:var(--tl)">₩0</div></div>
+    <div class="mc"><div class="mcl">총매입액</div><div class="mcv" id="calc-kpi-cost" style="color:var(--am)">₩0</div></div>
+    <div class="mc"><div class="mcl">예상 수수료</div><div class="mcv" id="calc-kpi-fee" style="color:var(--am)">₩0</div></div>
+    <div class="mc"><div class="mcl">예상 정산액</div><div class="mcv" id="calc-kpi-net" style="color:var(--gn)">₩0</div></div>
+    <div class="mc"><div class="mcl">순마진</div><div class="mcv" id="calc-kpi-margin" style="color:var(--gn)">₩0</div></div>
+    <div class="mc"><div class="mcl">순마진율</div><div class="mcv" id="calc-kpi-rate" style="color:var(--tl)">0.0%</div></div>
+  </div>
+
+  <div class="ana-grid calc-grid">
+    <div class="card">
+      <div class="slbl">📌 선택 SKU 정보</div>
+      <div class="tw" id="calc-info"><div class="emp">품번 또는 품명을 검색해주세요.</div></div>
+    </div>
+    <div class="card">
+      <div class="slbl">🎯 필요 판매가 참고</div>
+      <div class="tw" id="calc-target"><div class="emp">SKU와 판매수량을 선택하면 손익분기 판매가가 표시됩니다.</div></div>
+    </div>
   </div>
 </div>
 
@@ -3759,6 +3830,222 @@ document.getElementById("p-dt").value=today();RSG();setAnaPeriod("this_month");L
     });
   });
   setTimeout(function(){wrapDefense();renderDefenseAnalysis();},1800);
+})();
+</script>
+
+<script>
+/* ===== LEESFACT Margin Calculator JS v20260616 ===== */
+(function(){
+  var FEE_RATE = 0.0585;
+  var FIXED_FEE = 2500;
+
+  function won(v){return "₩"+Math.round(Number(v)||0).toLocaleString();}
+  function pct(v){return (isFinite(v)?Number(v):0).toFixed(1)+"%";}
+  function safeEsc(v){return (typeof escHtml==="function")?escHtml(v):String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;");}
+  function sumSizeObj(s){var t=0;Object.keys(s||{}).forEach(function(k){t+=Number(s[k])||0;});return t;}
+  function normQ(v){return String(v||"").toLowerCase().replace(/[^0-9a-z가-힣]+/gi," ").replace(/\s+/g," ").trim();}
+
+  function productRows(){
+    var map={};
+    (SKUDB||[]).forEach(function(s){
+      var code=String(s.itemCode||"").trim();
+      if(!code)return;
+      map[code]={itemCode:code,productName:s.productName||"",brand:s.brand||"",category:s.category||"",sizeType:s.sizeType||"",color:s.color||"",aliases:s.aliases||[],purchaseQty:0,purchaseTotal:0,avgCost:0,remQty:null,remValue:null,latestDate:""};
+    });
+    (PDB||[]).forEach(function(p){
+      var code=String(p.itemCode||"").trim();
+      if(!code)return;
+      if(!map[code])map[code]={itemCode:code,productName:p.productName||"",brand:p.brand||"",category:p.category||"",sizeType:p.sizeType||"",color:p.color||"",aliases:[],purchaseQty:0,purchaseTotal:0,avgCost:0,remQty:null,remValue:null,latestDate:""};
+      var qty=Number(p.quantity)||sumSizeObj(p.sizes);
+      var unit=Number(p.supplyPrice!=null?p.supplyPrice:p.unitPrice)||0;
+      var total=Number(p.totalPrice)||qty*unit;
+      map[code].purchaseQty+=qty;
+      map[code].purchaseTotal+=total;
+      if(p.productName)map[code].productName=p.productName;
+      if(p.brand)map[code].brand=p.brand;
+      if(p.category)map[code].category=p.category;
+      if(p.sizeType)map[code].sizeType=p.sizeType;
+      if(p.color)map[code].color=p.color;
+      if((p.date||"")>map[code].latestDate)map[code].latestDate=p.date||"";
+    });
+    Object.keys(map).forEach(function(code){
+      var x=map[code];
+      x.avgCost=x.purchaseQty>0?Math.round(x.purchaseTotal/x.purchaseQty):0;
+    });
+    try{
+      if(typeof calcStk==="function"){
+        calcStk().forEach(function(st){
+          var code=String(st.itemCode||"").trim();
+          if(!code)return;
+          if(!map[code])map[code]={itemCode:code,productName:st.productName||"",brand:st.brand||"",category:"",sizeType:st.sizeType||"",color:"",aliases:[],purchaseQty:st.boughtQty||0,purchaseTotal:0,avgCost:st.avgPrice||0,remQty:st.remQty,remValue:st.remValue,latestDate:st.latestDate||""};
+          map[code].remQty=Number(st.remQty)||0;
+          map[code].remValue=Number(st.remValue)||0;
+          if(st.avgPrice)map[code].avgCost=Math.round(Number(st.avgPrice)||0);
+          if(st.productName)map[code].productName=st.productName;
+          if(st.brand)map[code].brand=st.brand;
+        });
+      }
+    }catch(e){}
+    return Object.keys(map).map(function(k){return map[k];}).sort(function(a,b){return String(a.itemCode).localeCompare(String(b.itemCode));});
+  }
+
+  function filterRows(q){
+    var nq=normQ(q), rows=productRows();
+    if(!nq)return rows.slice(0,80);
+    return rows.map(function(x){
+      var hay=[x.itemCode,x.productName,x.brand,x.category,x.color].concat(x.aliases||[]).join(" ");
+      var nh=normQ(hay);
+      var score=0;
+      if(normQ(x.itemCode)===nq)score=100;
+      else if(normQ(x.itemCode).indexOf(nq)>=0)score=95;
+      else if(nh.indexOf(nq)>=0)score=85;
+      else{
+        var toks=nq.split(" ").filter(Boolean), hit=0;
+        toks.forEach(function(t){if(nh.indexOf(t)>=0)hit++;});
+        score=toks.length?Math.round(hit/toks.length*70):0;
+      }
+      x._score=score;
+      return x;
+    }).filter(function(x){return x._score>0;}).sort(function(a,b){return b._score-a._score || String(a.itemCode).localeCompare(String(b.itemCode));}).slice(0,80);
+  }
+
+  function selectedRow(){
+    var sel=document.getElementById("calc-select"), q=document.getElementById("calc-query");
+    var code=sel&&sel.value?sel.value:"";
+    var rows=productRows();
+    if(code){for(var i=0;i<rows.length;i++)if(rows[i].itemCode===code)return rows[i];}
+    var val=q?(q.value||"").trim():"";
+    if(val){for(var j=0;j<rows.length;j++)if(String(rows[j].itemCode).toLowerCase()===val.toLowerCase())return rows[j];}
+    return null;
+  }
+
+  function refreshList(keepExact){
+    var q=document.getElementById("calc-query"), sel=document.getElementById("calc-select"), dl=document.getElementById("calc-options");
+    if(!q||!sel)return;
+    var rows=filterRows(q.value), old=sel.value;
+    var h='<option value="">SKU 선택</option>';
+    var dh="";
+    rows.forEach(function(x){
+      var label=[x.itemCode,x.productName,x.brand].filter(Boolean).join(" / ");
+      h+='<option value="'+safeEsc(x.itemCode)+'">'+safeEsc(label)+' · 평균매입가 '+won(x.avgCost)+'</option>';
+      dh+='<option value="'+safeEsc(x.itemCode)+'" label="'+safeEsc([x.productName,x.brand,"평균매입가 "+won(x.avgCost)].filter(Boolean).join(" / "))+'"></option>';
+    });
+    sel.innerHTML=h;
+    var exact="";
+    if(keepExact){
+      var val=String(q.value||"").trim().toLowerCase();
+      rows.forEach(function(x){if(String(x.itemCode||"").toLowerCase()===val)exact=x.itemCode;});
+    }
+    if(exact)sel.value=exact;
+    else if(old && rows.some(function(x){return x.itemCode===old;}))sel.value=old;
+    else if(rows.length===1)sel.value=rows[0].itemCode;
+    if(dl)dl.innerHTML=dh;
+  }
+
+  function renderCalc(){
+    refreshList(true);
+    var row=selectedRow();
+    var qty=Math.max(1,Number(document.getElementById("calc-qty")&&document.getElementById("calc-qty").value)||1);
+    var sale=Number(document.getElementById("calc-sale")&&document.getElementById("calc-sale").value)||0;
+    var unit=row?Number(row.avgCost)||0:0;
+    var cost=unit*qty;
+    var fee=sale>0?(sale*FEE_RATE+FIXED_FEE):0;
+    var net=sale-fee;
+    var margin=net-cost;
+    var rate=sale>0?margin/sale*100:0;
+
+    var set=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
+    set("calc-kpi-unit",won(unit));
+    set("calc-kpi-cost",won(cost));
+    set("calc-kpi-fee",won(fee));
+    set("calc-kpi-net",won(net));
+    set("calc-kpi-margin",won(margin));
+    set("calc-kpi-rate",pct(rate));
+    var me=document.getElementById("calc-kpi-margin"), re=document.getElementById("calc-kpi-rate");
+    if(me)me.style.color=margin>=0?"var(--gn)":"var(--rd)";
+    if(re)re.style.color=rate>=10?"var(--gn)":(rate>0?"var(--am)":"var(--rd)");
+
+    var info=document.getElementById("calc-info");
+    if(info){
+      if(!row){info.innerHTML='<div class="emp">품번 또는 품명을 검색하고 SKU를 선택해주세요.</div>';}
+      else{
+        info.innerHTML='<table class="mt"><thead><tr><th>품번</th><th>품명</th><th>브랜드</th><th>누적매입</th><th>현재고</th><th>평균매입가</th></tr></thead><tbody><tr><td class="cl-tl bld">'+safeEsc(row.itemCode)+'</td><td title="'+safeEsc(row.productName||'')+'">'+safeEsc(row.productName||'')+'</td><td class="cl-sl">'+safeEsc(row.brand||'')+'</td><td class="r">'+Math.round(row.purchaseQty||0).toLocaleString()+'개</td><td class="r '+((row.remQty||0)>0?'cl-gn':'cl-sl')+'">'+(row.remQty==null?'—':Math.round(row.remQty).toLocaleString()+'개')+'</td><td class="r cl-am bld">'+won(row.avgCost)+'</td></tr></tbody></table>';
+      }
+    }
+
+    var target=document.getElementById("calc-target");
+    if(target){
+      if(!row || !cost){
+        target.innerHTML='<div class="emp">매입 평균가가 확인되는 SKU를 선택하면 필요 판매가가 표시됩니다.</div>';
+      }else{
+        var breakeven=(cost+FIXED_FEE)/(1-FEE_RATE);
+        var target5=(cost+FIXED_FEE)/(1-FEE_RATE-0.05);
+        var target10=(cost+FIXED_FEE)/(1-FEE_RATE-0.10);
+        var target15=(cost+FIXED_FEE)/(1-FEE_RATE-0.15);
+        target.innerHTML='<table class="mt"><thead><tr><th>목표</th><th>필요 판매액</th><th>예상마진율</th></tr></thead><tbody>'+ 
+          '<tr><td>손익분기, 순마진 0원</td><td class="r cl-sl">'+won(breakeven)+'</td><td class="r">0.0%</td></tr>'+ 
+          '<tr><td>순마진율 5%</td><td class="r cl-am bld">'+won(target5)+'</td><td class="r">5.0%</td></tr>'+ 
+          '<tr><td>순마진율 10%</td><td class="r cl-gn bld">'+won(target10)+'</td><td class="r">10.0%</td></tr>'+ 
+          '<tr><td>순마진율 15%</td><td class="r cl-tl bld">'+won(target15)+'</td><td class="r">15.0%</td></tr>'+ 
+          '</tbody></table>';
+      }
+    }
+
+    var msg=document.getElementById("calc-msg");
+    if(msg){
+      if(row && !unit){msg.className="msg on mw";msg.textContent="선택 SKU의 매입가를 찾지 못했습니다. 매입DB에 해당 품번의 매입 데이터가 있어야 자동 계산됩니다.";}
+      else if(sale>0){msg.className="msg on "+(margin>=0?"ms":"md");msg.textContent="계산 완료: 수수료 "+won(fee)+" 차감 후 순마진 "+won(margin)+" / 순마진율 "+pct(rate);}
+      else{msg.className="msg";msg.textContent="";}
+    }
+  }
+
+  function clearCalc(){
+    ["calc-query","calc-sale"].forEach(function(id){var e=document.getElementById(id);if(e)e.value="";});
+    var q=document.getElementById("calc-qty");if(q)q.value=1;
+    refreshList(false);
+    renderCalc();
+  }
+
+  function openCalcTab(){
+    try{window.curTab="calc";}catch(e){}
+    document.querySelectorAll(".tab").forEach(function(t){t.classList.remove("on");});
+    document.querySelectorAll(".pg").forEach(function(p){p.classList.remove("on");});
+    var t=document.getElementById("tab-calc"), p=document.getElementById("pg-calc");
+    if(t)t.classList.add("on");
+    if(p)p.classList.add("on");
+    refreshList(false);
+    renderCalc();
+  }
+
+  function bindCalc(){
+    var e;
+    e=document.getElementById("tab-calc");if(e)e.onclick=openCalcTab;
+    e=document.getElementById("calc-query");if(e){e.oninput=function(){refreshList(true);renderCalc();};e.onchange=function(){refreshList(true);renderCalc();};}
+    e=document.getElementById("calc-select");if(e)e.onchange=renderCalc;
+    e=document.getElementById("calc-qty");if(e)e.oninput=renderCalc;
+    e=document.getElementById("calc-sale");if(e)e.oninput=renderCalc;
+    e=document.getElementById("btn-calc-run");if(e)e.onclick=renderCalc;
+    e=document.getElementById("btn-calc-clear");if(e)e.onclick=clearCalc;
+  }
+
+  function wrapGT(){
+    if(window.GT && !window.GT.__calcWrapped){
+      var old=window.GT;
+      window.GT=function(id){
+        if(id==="calc")return openCalcTab();
+        var ret=old.apply(this,arguments);
+        var p=document.getElementById("pg-calc"), t=document.getElementById("tab-calc");
+        if(p)p.classList.remove("on");
+        if(t)t.classList.remove("on");
+        return ret;
+      };
+      window.GT.__calcWrapped=true;
+    }
+  }
+
+  function init(){bindCalc();wrapGT();refreshList(false);renderCalc();}
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
+  window.addEventListener("load",function(){setTimeout(init,300);setTimeout(init,1500);});
 })();
 </script>
 

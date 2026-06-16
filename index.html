@@ -1018,10 +1018,10 @@ table.mt{font-size:var(--ui-font-size)!important;background:#ffffff!important}ta
 
 
 <style>
-/* ===== LEESFACT Margin Calculator Tab v20260616 ===== */
+/* ===== LEESFACT Margin Calculator Tab v20260616 VAT PATCH ===== */
 #pg-calc .calc-kpi{
   display:grid!important;
-  grid-template-columns:repeat(6,minmax(0,1fr))!important;
+  grid-template-columns:repeat(7,minmax(0,1fr))!important;
   gap:10px!important;
   margin-bottom:14px!important;
 }
@@ -1042,6 +1042,24 @@ table.mt{font-size:var(--ui-font-size)!important;background:#ffffff!important}ta
 .calc-good{color:#16a34a!important}.calc-bad{color:#dc2626!important}.calc-warn{color:#d97706!important}
 @media(max-width:1300px){#pg-calc .calc-kpi{grid-template-columns:repeat(3,minmax(0,1fr))!important;}#pg-calc .calc-grid{grid-template-columns:1fr!important;}}
 @media(max-width:800px){#pg-calc .calc-kpi{grid-template-columns:repeat(2,minmax(0,1fr))!important;}}
+
+#pg-calc .direct-kpi{
+  display:grid!important;
+  grid-template-columns:repeat(7,minmax(0,1fr))!important;
+  gap:10px!important;
+  margin-bottom:14px!important;
+}
+#pg-calc .direct-kpi .mc{min-width:0!important;}
+#pg-calc .direct-kpi .mcv{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;}
+#pg-calc .direct-grid{grid-template-columns:1fr 1fr!important;}
+#direct-result table.mt th:nth-child(1),#direct-result table.mt td:nth-child(1){width:42%!important;max-width:42%!important;}
+#direct-result table.mt th:nth-child(2),#direct-result table.mt td:nth-child(2){width:58%!important;max-width:58%!important;text-align:right!important;}
+#direct-target table.mt th:nth-child(1),#direct-target table.mt td:nth-child(1){width:auto!important;max-width:none!important;}
+#direct-target table.mt th:nth-child(2),#direct-target table.mt td:nth-child(2){width:120px!important;max-width:120px!important;text-align:right!important;}
+#direct-target table.mt th:nth-child(3),#direct-target table.mt td:nth-child(3){width:100px!important;max-width:100px!important;text-align:right!important;}
+@media(max-width:1300px){#pg-calc .direct-kpi{grid-template-columns:repeat(3,minmax(0,1fr))!important;}#pg-calc .direct-grid{grid-template-columns:1fr!important;}}
+@media(max-width:800px){#pg-calc .direct-kpi{grid-template-columns:repeat(2,minmax(0,1fr))!important;}}
+
 </style>
 
 </head><body>
@@ -1224,19 +1242,19 @@ table.mt{font-size:var(--ui-font-size)!important;background:#ffffff!important}ta
   <div class="card">
     <div class="slbl">🧮 마진 계산기</div>
     <p style="font-size:11px;color:#64748b;margin-bottom:12px;line-height:1.7">
-      품번 또는 품명으로 SKU MASTER/매입DB를 검색하면 평균매입가가 자동 계산됩니다. 판매액을 입력하면 보수적 수수료 <b>판매액 × 5.85% + 2,500원</b> 차감 후 순마진과 순마진율을 계산합니다.
+      품번 또는 품명으로 SKU MASTER/매입DB를 검색하면 평균매입가가 자동 계산됩니다. 판매액을 입력하면 보수적 수수료 <b>판매액 × 5.85% + 2,500원</b>과 예상 부가세까지 차감한 최종 순마진과 순마진율을 계산합니다.
     </p>
     <div class="g5" style="margin-bottom:10px">
       <div class="fg"><label class="fl">품번/품명 검색</label><input id="calc-query" list="calc-options" placeholder="예: JP7147 또는 상품명"><datalist id="calc-options"></datalist></div>
       <div class="fg"><label class="fl">SKU 선택</label><select id="calc-select"><option value="">검색 후 선택</option></select></div>
       <div class="fg"><label class="fl">판매수량</label><input type="number" id="calc-qty" min="1" value="1"></div>
       <div class="fg"><label class="fl">판매액/매출액 총액 *</label><input type="number" id="calc-sale" min="0" placeholder="예: 180000"></div>
-      <div class="fg"><label class="fl">수수료 기준</label><input id="calc-fee-rule" value="5.85% + 2,500원" readonly></div>
+      <div class="fg"><label class="fl">수수료/부가세 기준</label><input id="calc-fee-rule" value="5.85% + 2,500원 / VAT 10%" readonly></div>
     </div>
     <div class="tool-row" style="margin-bottom:0">
       <button class="bp" id="btn-calc-run">계산</button>
       <button class="bs" id="btn-calc-clear">초기화</button>
-      <span id="calc-hint" style="font-size:10px;color:#64748b">판매액은 고객 결제 기준 총액으로 입력하세요.</span>
+      <span id="calc-hint" style="font-size:10px;color:#64748b">판매액·매입액은 모두 부가세 포함 기준입니다. VAT는 보수적으로 판매 부가세 - 매입 부가세만 반영합니다.</span>
     </div>
   </div>
 
@@ -1244,9 +1262,10 @@ table.mt{font-size:var(--ui-font-size)!important;background:#ffffff!important}ta
     <div class="mc"><div class="mcl">평균매입가</div><div class="mcv" id="calc-kpi-unit" style="color:var(--tl)">₩0</div></div>
     <div class="mc"><div class="mcl">총매입액</div><div class="mcv" id="calc-kpi-cost" style="color:var(--am)">₩0</div></div>
     <div class="mc"><div class="mcl">예상 수수료</div><div class="mcv" id="calc-kpi-fee" style="color:var(--am)">₩0</div></div>
+    <div class="mc"><div class="mcl">예상 부가세</div><div class="mcv" id="calc-kpi-vat" style="color:var(--rd)">₩0</div></div>
     <div class="mc"><div class="mcl">예상 정산액</div><div class="mcv" id="calc-kpi-net" style="color:var(--gn)">₩0</div></div>
-    <div class="mc"><div class="mcl">순마진</div><div class="mcv" id="calc-kpi-margin" style="color:var(--gn)">₩0</div></div>
-    <div class="mc"><div class="mcl">순마진율</div><div class="mcv" id="calc-kpi-rate" style="color:var(--tl)">0.0%</div></div>
+    <div class="mc"><div class="mcl">최종 순마진</div><div class="mcv" id="calc-kpi-margin" style="color:var(--gn)">₩0</div></div>
+    <div class="mc"><div class="mcl">최종마진율</div><div class="mcv" id="calc-kpi-rate" style="color:var(--tl)">0.0%</div></div>
   </div>
 
   <div class="ana-grid calc-grid">
@@ -1259,6 +1278,52 @@ table.mt{font-size:var(--ui-font-size)!important;background:#ffffff!important}ta
       <div class="tw" id="calc-target"><div class="emp">SKU와 판매수량을 선택하면 손익분기 판매가가 표시됩니다.</div></div>
     </div>
   </div>
+
+  <div class="card" id="calc-direct-card">
+    <div class="slbl">🧾 직접 입력 역산 계산기</div>
+    <p style="font-size:11px;color:#64748b;margin-bottom:12px;line-height:1.7">
+      SKU를 불러오지 않고 직접 입력하는 계산기입니다. 매입 총액과 예상 매출액을 넣으면 수수료, 예상 부가세, 최종 순마진을 계산합니다. 목표 순마진율 또는 목표 순마진액을 넣으면 필요한 판매액도 역산합니다.
+    </p>
+    <div class="g5" style="margin-bottom:10px">
+      <div class="fg"><label class="fl">매입 총액, VAT 포함 *</label><input type="number" id="direct-cost" min="0" placeholder="예: 1000000"></div>
+      <div class="fg"><label class="fl">예상 매출액, VAT 포함</label><input type="number" id="direct-sale" min="0" placeholder="예: 1200000"></div>
+      <div class="fg"><label class="fl">판매수량</label><input type="number" id="direct-qty" min="1" value="1"></div>
+      <div class="fg"><label class="fl">고정수수료 적용 건수</label><input type="number" id="direct-fee-count" min="1" value="1"></div>
+      <div class="fg"><label class="fl">수수료/부가세 기준</label><input value="5.85% + 2,500원×건수 / VAT 10%" readonly></div>
+    </div>
+    <div class="g5" style="margin-bottom:10px">
+      <div class="fg"><label class="fl">목표 순마진율 (%)</label><input type="number" id="direct-target-rate" min="0" step="0.1" placeholder="예: 10"></div>
+      <div class="fg"><label class="fl">목표 순마진액 (원)</label><input type="number" id="direct-target-profit" min="0" placeholder="예: 500000"></div>
+      <div class="fg"><label class="fl">메모</label><input id="direct-memo" placeholder="예: 신규 사입 후보"></div>
+    </div>
+    <div class="tool-row" style="margin-bottom:0">
+      <button class="bp" id="btn-direct-calc-run">직접 계산</button>
+      <button class="bs" id="btn-direct-calc-clear">초기화</button>
+      <span style="font-size:10px;color:#64748b">판매액·매입액은 모두 부가세 포함 기준입니다. 플랫폼 수수료 매입세액 공제는 보수적으로 제외했습니다.</span>
+    </div>
+  </div>
+
+  <div class="mcs direct-kpi" id="direct-kpi">
+    <div class="mc"><div class="mcl">매입 총액</div><div class="mcv" id="direct-kpi-cost" style="color:var(--am)">₩0</div></div>
+    <div class="mc"><div class="mcl">예상 매출액</div><div class="mcv" id="direct-kpi-sale" style="color:var(--tl)">₩0</div></div>
+    <div class="mc"><div class="mcl">예상 수수료</div><div class="mcv" id="direct-kpi-fee" style="color:var(--am)">₩0</div></div>
+    <div class="mc"><div class="mcl">예상 부가세</div><div class="mcv" id="direct-kpi-vat" style="color:var(--rd)">₩0</div></div>
+    <div class="mc"><div class="mcl">최종 순마진</div><div class="mcv" id="direct-kpi-margin" style="color:var(--gn)">₩0</div></div>
+    <div class="mc"><div class="mcl">최종마진율</div><div class="mcv" id="direct-kpi-rate" style="color:var(--tl)">0.0%</div></div>
+    <div class="mc"><div class="mcl">개당 순마진</div><div class="mcv" id="direct-kpi-unit-margin" style="color:var(--gn)">₩0</div></div>
+  </div>
+
+  <div class="ana-grid direct-grid">
+    <div class="card">
+      <div class="slbl">📊 직접 입력 계산 결과</div>
+      <div class="tw" id="direct-result"><div class="emp">매입 총액과 예상 매출액을 입력해주세요.</div></div>
+    </div>
+    <div class="card">
+      <div class="slbl">🎯 목표 기준 필요 판매액</div>
+      <div class="tw" id="direct-target"><div class="emp">매입 총액을 입력하면 손익분기/목표마진 필요 판매액이 표시됩니다.</div></div>
+    </div>
+  </div>
+
 </div>
 
 <div id="pg-map" class="pg">
@@ -3834,10 +3899,11 @@ document.getElementById("p-dt").value=today();RSG();setAnaPeriod("this_month");L
 </script>
 
 <script>
-/* ===== LEESFACT Margin Calculator JS v20260616 ===== */
+/* ===== LEESFACT Margin Calculator JS v20260616 VAT PATCH ===== */
 (function(){
   var FEE_RATE = 0.0585;
   var FIXED_FEE = 2500;
+  var VAT_DIVISOR = 11;
 
   function won(v){return "₩"+Math.round(Number(v)||0).toLocaleString();}
   function pct(v){return (isFinite(v)?Number(v):0).toFixed(1)+"%";}
@@ -3950,14 +4016,16 @@ document.getElementById("p-dt").value=today();RSG();setAnaPeriod("this_month");L
     var unit=row?Number(row.avgCost)||0:0;
     var cost=unit*qty;
     var fee=sale>0?(sale*FEE_RATE+FIXED_FEE):0;
+    var vat=sale>0?Math.max(0,(sale-cost)/VAT_DIVISOR):0;
     var net=sale-fee;
-    var margin=net-cost;
+    var margin=net-cost-vat;
     var rate=sale>0?margin/sale*100:0;
 
     var set=function(id,v){var e=document.getElementById(id);if(e)e.textContent=v;};
     set("calc-kpi-unit",won(unit));
     set("calc-kpi-cost",won(cost));
     set("calc-kpi-fee",won(fee));
+    set("calc-kpi-vat",won(vat));
     set("calc-kpi-net",won(net));
     set("calc-kpi-margin",won(margin));
     set("calc-kpi-rate",pct(rate));
@@ -3978,12 +4046,17 @@ document.getElementById("p-dt").value=today();RSG();setAnaPeriod("this_month");L
       if(!row || !cost){
         target.innerHTML='<div class="emp">매입 평균가가 확인되는 SKU를 선택하면 필요 판매가가 표시됩니다.</div>';
       }else{
-        var breakeven=(cost+FIXED_FEE)/(1-FEE_RATE);
-        var target5=(cost+FIXED_FEE)/(1-FEE_RATE-0.05);
-        var target10=(cost+FIXED_FEE)/(1-FEE_RATE-0.10);
-        var target15=(cost+FIXED_FEE)/(1-FEE_RATE-0.15);
+        var netCostAfterVatCredit=cost*(VAT_DIVISOR-1)/VAT_DIVISOR;
+        var targetPrice=function(targetRate){
+          var denom=1-FEE_RATE-(1/VAT_DIVISOR)-targetRate;
+          return denom>0?(FIXED_FEE+netCostAfterVatCredit)/denom:0;
+        };
+        var breakeven=targetPrice(0);
+        var target5=targetPrice(0.05);
+        var target10=targetPrice(0.10);
+        var target15=targetPrice(0.15);
         target.innerHTML='<table class="mt"><thead><tr><th>목표</th><th>필요 판매액</th><th>예상마진율</th></tr></thead><tbody>'+ 
-          '<tr><td>손익분기, 순마진 0원</td><td class="r cl-sl">'+won(breakeven)+'</td><td class="r">0.0%</td></tr>'+ 
+          '<tr><td>손익분기, VAT 차감 후 0원</td><td class="r cl-sl">'+won(breakeven)+'</td><td class="r">0.0%</td></tr>'+ 
           '<tr><td>순마진율 5%</td><td class="r cl-am bld">'+won(target5)+'</td><td class="r">5.0%</td></tr>'+ 
           '<tr><td>순마진율 10%</td><td class="r cl-gn bld">'+won(target10)+'</td><td class="r">10.0%</td></tr>'+ 
           '<tr><td>순마진율 15%</td><td class="r cl-tl bld">'+won(target15)+'</td><td class="r">15.0%</td></tr>'+ 
@@ -3994,7 +4067,7 @@ document.getElementById("p-dt").value=today();RSG();setAnaPeriod("this_month");L
     var msg=document.getElementById("calc-msg");
     if(msg){
       if(row && !unit){msg.className="msg on mw";msg.textContent="선택 SKU의 매입가를 찾지 못했습니다. 매입DB에 해당 품번의 매입 데이터가 있어야 자동 계산됩니다.";}
-      else if(sale>0){msg.className="msg on "+(margin>=0?"ms":"md");msg.textContent="계산 완료: 수수료 "+won(fee)+" 차감 후 순마진 "+won(margin)+" / 순마진율 "+pct(rate);}
+      else if(sale>0){msg.className="msg on "+(margin>=0?"ms":"md");msg.textContent="계산 완료: 수수료 "+won(fee)+" + 예상 부가세 "+won(vat)+" 차감 후 최종 순마진 "+won(margin)+" / 최종마진율 "+pct(rate);}
       else{msg.className="msg";msg.textContent="";}
     }
   }
@@ -4015,6 +4088,99 @@ document.getElementById("p-dt").value=today();RSG();setAnaPeriod("this_month");L
     if(p)p.classList.add("on");
     refreshList(false);
     renderCalc();
+  }
+
+
+  function directVal(id){var e=document.getElementById(id);return e?Number(e.value)||0:0;}
+  function directSet(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
+  function directTargetPrice(cost,feeCount,targetRate,targetProfit){
+    var fixed=FIXED_FEE*Math.max(1,Number(feeCount)||1);
+    var denom=1-FEE_RATE-(1/VAT_DIVISOR)-(Number(targetRate)||0);
+    var base=cost*(VAT_DIVISOR-1)/VAT_DIVISOR;
+    var profit=Number(targetProfit)||0;
+    return denom>0?(base+fixed+profit)/denom:0;
+  }
+  function renderDirectCalc(){
+    var cost=directVal("direct-cost");
+    var sale=directVal("direct-sale");
+    var qty=Math.max(1,directVal("direct-qty")||1);
+    var feeCount=Math.max(1,directVal("direct-fee-count")||1);
+    var targetRate=(directVal("direct-target-rate")||0)/100;
+    var targetProfit=directVal("direct-target-profit");
+
+    var fee=sale>0?(sale*FEE_RATE+FIXED_FEE*feeCount):0;
+    var vat=sale>0?Math.max(0,(sale-cost)/VAT_DIVISOR):0;
+    var margin=sale-fee-cost-vat;
+    var rate=sale>0?margin/sale*100:0;
+    var unitMargin=qty>0?margin/qty:0;
+
+    directSet("direct-kpi-cost",won(cost));
+    directSet("direct-kpi-sale",won(sale));
+    directSet("direct-kpi-fee",won(fee));
+    directSet("direct-kpi-vat",won(vat));
+    directSet("direct-kpi-margin",won(margin));
+    directSet("direct-kpi-rate",pct(rate));
+    directSet("direct-kpi-unit-margin",won(unitMargin));
+    var me=document.getElementById("direct-kpi-margin"), re=document.getElementById("direct-kpi-rate"), ue=document.getElementById("direct-kpi-unit-margin");
+    if(me)me.style.color=margin>=0?"var(--gn)":"var(--rd)";
+    if(ue)ue.style.color=unitMargin>=0?"var(--gn)":"var(--rd)";
+    if(re)re.style.color=rate>=10?"var(--gn)":(rate>0?"var(--am)":"var(--rd)");
+
+    var result=document.getElementById("direct-result");
+    if(result){
+      if(!cost && !sale){
+        result.innerHTML='<div class="emp">매입 총액과 예상 매출액을 입력해주세요.</div>';
+      }else{
+        var costUnit=qty>0?cost/qty:0;
+        var saleUnit=qty>0?sale/qty:0;
+        result.innerHTML='<table class="mt"><thead><tr><th>항목</th><th>금액</th></tr></thead><tbody>'+ 
+          '<tr><td>매입 총액, VAT 포함</td><td class="r cl-am bld">'+won(cost)+'</td></tr>'+ 
+          '<tr><td>예상 매출액, VAT 포함</td><td class="r cl-tl bld">'+won(sale)+'</td></tr>'+ 
+          '<tr><td>개당 매입가</td><td class="r">'+won(costUnit)+'</td></tr>'+ 
+          '<tr><td>개당 판매가</td><td class="r">'+won(saleUnit)+'</td></tr>'+ 
+          '<tr><td>수수료, 5.85% + 2,500원×'+feeCount+'건</td><td class="r cl-am">'+won(fee)+'</td></tr>'+ 
+          '<tr><td>예상 부가세, 보수적</td><td class="r cl-am">'+won(vat)+'</td></tr>'+ 
+          '<tr><td>최종 순마진</td><td class="r bld '+(margin>=0?'cl-gn':'cl-am')+'">'+won(margin)+'</td></tr>'+ 
+          '<tr><td>최종마진율</td><td class="r bld '+(rate>=0?'cl-tl':'cl-am')+'">'+pct(rate)+'</td></tr>'+ 
+          '</tbody></table>';
+      }
+    }
+
+    var target=document.getElementById("direct-target");
+    if(target){
+      if(!cost){
+        target.innerHTML='<div class="emp">매입 총액을 입력하면 손익분기/목표마진 필요 판매액이 표시됩니다.</div>';
+      }else{
+        var breakeven=directTargetPrice(cost,feeCount,0,0);
+        var need5=directTargetPrice(cost,feeCount,0.05,0);
+        var need10=directTargetPrice(cost,feeCount,0.10,0);
+        var need15=directTargetPrice(cost,feeCount,0.15,0);
+        var customRate=targetRate>0?directTargetPrice(cost,feeCount,targetRate,0):0;
+        var customProfit=targetProfit>0?directTargetPrice(cost,feeCount,0,targetProfit):0;
+        var rows='';
+        rows+='<tr><td>손익분기, 순마진 0원</td><td class="r cl-sl">'+won(breakeven)+'</td><td class="r">0.0%</td></tr>';
+        rows+='<tr><td>순마진율 5%</td><td class="r cl-am bld">'+won(need5)+'</td><td class="r">5.0%</td></tr>';
+        rows+='<tr><td>순마진율 10%</td><td class="r cl-gn bld">'+won(need10)+'</td><td class="r">10.0%</td></tr>';
+        rows+='<tr><td>순마진율 15%</td><td class="r cl-tl bld">'+won(need15)+'</td><td class="r">15.0%</td></tr>';
+        if(customRate>0)rows+='<tr><td>입력 목표마진율 '+pct(targetRate*100)+'</td><td class="r cl-tl bld">'+won(customRate)+'</td><td class="r">'+pct(targetRate*100)+'</td></tr>';
+        if(customProfit>0)rows+='<tr><td>입력 목표마진액 '+won(targetProfit)+'</td><td class="r cl-gn bld">'+won(customProfit)+'</td><td class="r">금액목표</td></tr>';
+        target.innerHTML='<table class="mt"><thead><tr><th>목표</th><th>필요 매출액</th><th>기준</th></tr></thead><tbody>'+rows+'</tbody></table>';
+      }
+    }
+  }
+
+  function clearDirectCalc(){
+    ["direct-cost","direct-sale","direct-target-rate","direct-target-profit","direct-memo"].forEach(function(id){var e=document.getElementById(id);if(e)e.value="";});
+    var q=document.getElementById("direct-qty");if(q)q.value=1;
+    var f=document.getElementById("direct-fee-count");if(f)f.value=1;
+    renderDirectCalc();
+  }
+
+  function bindDirectCalc(){
+    ["direct-cost","direct-sale","direct-qty","direct-fee-count","direct-target-rate","direct-target-profit"].forEach(function(id){var e=document.getElementById(id);if(e)e.oninput=renderDirectCalc;});
+    var b=document.getElementById("btn-direct-calc-run");if(b)b.onclick=renderDirectCalc;
+    b=document.getElementById("btn-direct-calc-clear");if(b)b.onclick=clearDirectCalc;
+    renderDirectCalc();
   }
 
   function bindCalc(){
@@ -4043,7 +4209,7 @@ document.getElementById("p-dt").value=today();RSG();setAnaPeriod("this_month");L
     }
   }
 
-  function init(){bindCalc();wrapGT();refreshList(false);renderCalc();}
+  function init(){bindCalc();bindDirectCalc();wrapGT();refreshList(false);renderCalc();renderDirectCalc();}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
   window.addEventListener("load",function(){setTimeout(init,300);setTimeout(init,1500);});
 })();

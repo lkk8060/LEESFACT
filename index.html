@@ -1062,13 +1062,67 @@ table.mt{font-size:var(--ui-font-size)!important;background:#ffffff!important}ta
 
 </style>
 
+
+
+<style>
+/* ===== LEESFACT Platform Search Tab v20260616 ===== */
+#pg-price .price-search-grid{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  gap:14px!important;
+  margin-bottom:14px!important;
+}
+#pg-price .price-site-card{
+  background:#fff!important;
+  border:1px solid #dbe3ef!important;
+  border-radius:10px!important;
+  padding:15px!important;
+  box-shadow:0 1px 4px rgba(15,23,42,.05)!important;
+  min-width:0!important;
+}
+#pg-price .price-site-head{
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+  margin-bottom:12px!important;
+}
+#pg-price .price-site-icon{
+  width:34px!important;
+  height:34px!important;
+  border-radius:10px!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  font-weight:900!important;
+  color:#fff!important;
+  background:#0f172a!important;
+  flex-shrink:0!important;
+}
+#pg-price .poizon-icon{background:#111827!important;}
+#pg-price .kream-icon{background:#000000!important;}
+#pg-price .musinsa-icon{background:#2563eb!important;}
+#pg-price .price-site-name{font-size:14px!important;font-weight:900!important;color:#111827!important;line-height:1.2!important;}
+#pg-price .price-site-url{font-size:10px!important;color:#64748b!important;margin-top:2px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important;}
+#pg-price .price-actions{display:flex!important;gap:7px!important;flex-wrap:wrap!important;margin-top:10px!important;}
+#pg-price .price-actions button{padding:6px 10px!important;font-size:11px!important;}
+#pg-price .price-tip{font-size:10px!important;color:#64748b!important;line-height:1.6!important;margin-top:9px!important;}
+#pg-price .price-kpi{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important;margin-bottom:14px!important;}
+#pg-price .price-mini-table table.mt{table-layout:fixed!important;}
+#pg-price .price-mini-table th:nth-child(1), #pg-price .price-mini-table td:nth-child(1){width:110px!important;max-width:110px!important;}
+#pg-price .price-mini-table th:nth-child(2), #pg-price .price-mini-table td:nth-child(2){width:auto!important;max-width:none!important;}
+#pg-price .price-mini-table th:nth-child(3), #pg-price .price-mini-table td:nth-child(3){width:170px!important;max-width:170px!important;}
+#pg-price .price-mini-table th:nth-child(4), #pg-price .price-mini-table td:nth-child(4){width:120px!important;max-width:120px!important;}
+@media(max-width:1100px){#pg-price .price-search-grid{grid-template-columns:1fr!important;}#pg-price .price-kpi{grid-template-columns:repeat(2,minmax(0,1fr))!important;}}
+@media(max-width:700px){#pg-price .price-kpi{grid-template-columns:1fr!important;}}
+</style>
+
 </head><body>
 <div class="hdr"><div style="display:flex;align-items:center;gap:9px"><div class="led off" id="led"></div><div class="brandwrap"><span class="brandmark" title="LEES FACT"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#050b14"></rect><path d="M14 45 L24 17 M23 45 L31 21 M24 45 C33 36 39 34 49 32 M34 45 C42 38 47 37 53 37" fill="none" stroke="#f8fafc" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M11 50 H53" stroke="#0ea5e9" stroke-width="3" stroke-linecap="round" opacity="0.9"></path></svg></span><div class="logo">LEES<b>FACT</b> <span style="color:#475569;font-size:11px;font-weight:400">재고관리</span></div></div><span class="sbadge b-off" id="sbadge">연결 중...</span></div><div style="display:flex;align-items:center;gap:8px">
 <button class="bs" id="btn-undo" title="마지막 저장/수정/삭제 작업 실행취소" style="padding:5px 10px;font-size:10px">↩ 실행취소</button>
 <span id="undo-info" style="font-size:10px;color:#475569"></span>
 <span id="hcnt" style="font-size:10px;color:#475569">매입 0건 · 매출 0건</span>
 </div></div>
-<div class="tabs"><button class="tab on" id="tab-sku">🧾 SKU MASTER</button><button class="tab" id="tab-pi">📥 매입 입력</button><button class="tab" id="tab-pdb">📦 매입 DB</button><button class="tab" id="tab-si">💰 매출 입력</button><button class="tab" id="tab-sdb">📊 매출 DB</button><button class="tab" id="tab-stk">📋 현재고</button><button class="tab" id="tab-mar">📈 SKU별 실마진</button><button class="tab" id="tab-calc">🧮 마진 계산기</button><button class="tab" id="tab-ana">📊 데이터 분석</button><button class="tab" id="tab-map">🔗 미매칭 SKU</button></div>
+<div class="tabs"><button class="tab on" id="tab-sku">🧾 SKU MASTER</button><button class="tab" id="tab-pi">📥 매입 입력</button><button class="tab" id="tab-pdb">📦 매입 DB</button><button class="tab" id="tab-si">💰 매출 입력</button><button class="tab" id="tab-sdb">📊 매출 DB</button><button class="tab" id="tab-stk">📋 현재고</button><button class="tab" id="tab-mar">📈 SKU별 실마진</button><button class="tab" id="tab-calc">🧮 마진 계산기</button><button class="tab" id="tab-price">🔎 플랫폼 검색</button><button class="tab" id="tab-ana">📊 데이터 분석</button><button class="tab" id="tab-map">🔗 미매칭 SKU</button></div>
 <div class="pc-ui-toolbar" id="pc-ui-toolbar">
   <div class="pc-ui-title">화면/표 설정</div>
   <label>글씨 <input type="range" id="ui-font" min="11" max="15" value="12"></label>
@@ -1324,6 +1378,61 @@ table.mt{font-size:var(--ui-font-size)!important;background:#ffffff!important}ta
     </div>
   </div>
 
+</div>
+
+
+<div id="pg-price" class="pg">
+  <div id="price-msg" class="msg"></div>
+  <div class="card">
+    <div class="slbl">🔎 플랫폼별 품번 검색</div>
+    <p style="font-size:11px;color:#64748b;margin-bottom:12px;line-height:1.7">
+      품번 또는 품명을 입력한 뒤 각 플랫폼 검색 버튼을 누르면 새 창에서 검색 결과가 열립니다. 외부 사이트의 검색주소는 개편될 수 있으므로, 홈 열기와 검색어 복사 버튼도 함께 제공합니다.
+    </p>
+    <div class="g5" style="margin-bottom:10px">
+      <div class="fg" style="grid-column:span 2"><label class="fl">공통 검색어</label><input id="price-common-query" list="price-sku-options" placeholder="예: 10276BLK, JP7147, 상품명"><datalist id="price-sku-options"></datalist></div>
+      <div class="fg"><label class="fl">빠른 실행</label><button class="bp" id="btn-price-fill" style="width:100%;height:31px">사이트별 입력창에 적용</button></div>
+      <div class="fg"><label class="fl">전체 검색</label><button class="bs" id="btn-price-open-all" style="width:100%;height:31px">3개 사이트 검색</button></div>
+      <div class="fg"><label class="fl">초기화</label><button class="bs" id="btn-price-clear" style="width:100%;height:31px">검색어 초기화</button></div>
+    </div>
+  </div>
+
+  <div class="price-kpi">
+    <div class="mc"><div class="mcl">등록 사이트</div><div class="mcv" id="price-kpi-sites" style="color:var(--tl)">3개</div></div>
+    <div class="mc"><div class="mcl">검색 방식</div><div class="mcv" style="color:var(--gn)">새창 검색</div></div>
+    <div class="mc"><div class="mcl">검색어 입력</div><div class="mcv" id="price-kpi-query" style="color:var(--am)">대기</div></div>
+    <div class="mc"><div class="mcl">확장성</div><div class="mcv" style="color:var(--pu)">사이트 추가 가능</div></div>
+  </div>
+
+  <div class="price-search-grid" id="price-site-grid">
+    <div class="price-site-card" data-site="poizon">
+      <div class="price-site-head"><div class="price-site-icon poizon-icon">P</div><div style="min-width:0"><div class="price-site-name">POIZON</div><div class="price-site-url">kr.poizon.com</div></div></div>
+      <div class="fg"><label class="fl">POIZON 검색어</label><input id="price-q-poizon" class="price-site-input" data-site="poizon" placeholder="품번 또는 상품명"></div>
+      <div class="price-actions"><button class="bp" data-price-search="poizon">검색</button><button class="bs" data-price-home="poizon">홈 열기</button><button class="bs" data-price-copy="poizon">검색어 복사</button></div>
+      <div class="price-tip">직접 검색 URL이 막히면 홈 열기 후 복사된 검색어를 붙여넣으세요.</div>
+    </div>
+    <div class="price-site-card" data-site="kream">
+      <div class="price-site-head"><div class="price-site-icon kream-icon">K</div><div style="min-width:0"><div class="price-site-name">KREAM</div><div class="price-site-url">kream.co.kr</div></div></div>
+      <div class="fg"><label class="fl">KREAM 검색어</label><input id="price-q-kream" class="price-site-input" data-site="kream" placeholder="품번 또는 상품명"></div>
+      <div class="price-actions"><button class="bp" data-price-search="kream">검색</button><button class="bs" data-price-home="kream">홈 열기</button><button class="bs" data-price-copy="kream">검색어 복사</button></div>
+      <div class="price-tip">새 창에서 검색 결과를 열고, 사이트 검색창 포커스는 플랫폼 정책에 따라 다를 수 있습니다.</div>
+    </div>
+    <div class="price-site-card" data-site="musinsa">
+      <div class="price-site-head"><div class="price-site-icon musinsa-icon">M</div><div style="min-width:0"><div class="price-site-name">무신사</div><div class="price-site-url">musinsa.com</div></div></div>
+      <div class="fg"><label class="fl">무신사 검색어</label><input id="price-q-musinsa" class="price-site-input" data-site="musinsa" placeholder="품번 또는 상품명"></div>
+      <div class="price-actions"><button class="bp" data-price-search="musinsa">검색</button><button class="bs" data-price-home="musinsa">홈 열기</button><button class="bs" data-price-copy="musinsa">검색어 복사</button></div>
+      <div class="price-tip">무신사 검색 URL은 개편 가능성이 있어 홈 열기 버튼을 함께 둡니다.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="slbl">🧩 사이트 추가 관리용 메모</div>
+    <div class="tw price-mini-table">
+      <table class="mt">
+        <thead><tr><th>사이트</th><th>홈 URL</th><th>검색 URL 패턴</th><th>상태</th></tr></thead>
+        <tbody id="price-site-table"><tr><td colspan="4" class="emp">사이트 목록 로딩중...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <div id="pg-map" class="pg">
@@ -4212,6 +4321,66 @@ document.getElementById("p-dt").value=today();RSG();setAnaPeriod("this_month");L
   function init(){bindCalc();bindDirectCalc();wrapGT();refreshList(false);renderCalc();renderDirectCalc();}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
   window.addEventListener("load",function(){setTimeout(init,300);setTimeout(init,1500);});
+})();
+</script>
+
+
+
+<script>
+/* ===== LEESFACT Platform Search Tab Patch v20260616 ===== */
+(function(){
+  var PRICE_SITES=[
+    {id:"poizon",name:"POIZON",home:"https://kr.poizon.com/",search:"https://kr.poizon.com/search?keyword={q}"},
+    {id:"kream",name:"KREAM",home:"https://kream.co.kr/",search:"https://kream.co.kr/search?keyword={q}"},
+    {id:"musinsa",name:"무신사",home:"https://www.musinsa.com/main/musinsa/recommend?skip_bf=Y&gf=A",search:"https://www.musinsa.com/search/goods?keyword={q}"}
+  ];
+  function byId(id){return document.getElementById(id);}
+  function esc(v){return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+  function enc(v){return encodeURIComponent(String(v||"").trim());}
+  function msg(c,t){var e=byId("price-msg");if(!e)return;e.className="msg on "+c;e.textContent=t;clearTimeout(e.__tm);if(c==="ms"||c==="mi")e.__tm=setTimeout(function(){e.className="msg";},4000);}
+  function site(id){for(var i=0;i<PRICE_SITES.length;i++)if(PRICE_SITES[i].id===id)return PRICE_SITES[i];return null;}
+  function getCommon(){var e=byId("price-common-query");return e?String(e.value||"").trim():"";}
+  function getQuery(id){var e=byId("price-q-"+id);var v=e?String(e.value||"").trim():"";return v||getCommon();}
+  function setQueryText(){var e=byId("price-kpi-query"),q=getCommon();if(e)e.textContent=q?"입력됨":"대기";}
+  function fillFromCommon(){var q=getCommon();if(!q){msg("mw","공통 검색어를 먼저 입력해주세요.");var c=byId("price-common-query");if(c)c.focus();return;}PRICE_SITES.forEach(function(s){var e=byId("price-q-"+s.id);if(e)e.value=q;});setQueryText();msg("ms","사이트별 검색어 입력창에 적용했습니다.");}
+  function openUrl(url){window.open(url,"_blank","noopener,noreferrer");}
+  function searchSite(id){var s=site(id),q=getQuery(id);if(!s)return;if(!q){msg("mw",s.name+" 검색어를 입력해주세요.");var e=byId("price-q-"+id)||byId("price-common-query");if(e)e.focus();return;}var url=(s.search||s.home).replace("{q}",enc(q));try{navigator.clipboard&&navigator.clipboard.writeText(q).catch(function(){});}catch(e){}openUrl(url);msg("mi",s.name+" 검색을 열었습니다. 검색어: "+q);}
+  function homeSite(id){var s=site(id),q=getQuery(id);if(!s)return;try{if(q&&navigator.clipboard)navigator.clipboard.writeText(q).catch(function(){});}catch(e){}openUrl(s.home);msg("mi",s.name+" 홈을 열었습니다"+(q?". 검색어도 복사했습니다: "+q:"."));}
+  function copySite(id){var q=getQuery(id);if(!q){msg("mw","복사할 검색어를 입력해주세요.");return;}if(navigator.clipboard){navigator.clipboard.writeText(q).then(function(){msg("ms","검색어를 복사했습니다: "+q);}).catch(function(){fallbackCopy(q);});}else fallbackCopy(q);}
+  function fallbackCopy(q){var ta=document.createElement("textarea");ta.value=q;document.body.appendChild(ta);ta.select();try{document.execCommand("copy");msg("ms","검색어를 복사했습니다: "+q);}catch(e){msg("mw","복사에 실패했습니다. 직접 드래그해서 복사해주세요: "+q);}document.body.removeChild(ta);}
+  function openAll(){var q=getCommon();if(!q){msg("mw","공통 검색어를 먼저 입력해주세요.");var c=byId("price-common-query");if(c)c.focus();return;}fillFromCommon();PRICE_SITES.forEach(function(s,idx){setTimeout(function(){searchSite(s.id);},idx*120);});}
+  function clearAll(){var c=byId("price-common-query");if(c)c.value="";PRICE_SITES.forEach(function(s){var e=byId("price-q-"+s.id);if(e)e.value="";});setQueryText();var e=byId("price-common-query");if(e)e.focus();}
+  function fillSkuOptions(){var dl=byId("price-sku-options");if(!dl)return;var db=window.SKUDB||[];var h="";for(var i=0;i<db.length;i++){var x=db[i]||{},code=String(x.itemCode||"").trim();if(!code)continue;var label=[x.productName,x.brand,x.category].filter(Boolean).join(" / ");h+='<option value="'+esc(code)+'" label="'+esc(label)+'"></option>';if(x.productName)h+='<option value="'+esc(x.productName)+'" label="'+esc(code+' / '+(x.brand||''))+'"></option>';}
+dl.innerHTML=h;}
+  function renderTable(){var tb=byId("price-site-table");if(!tb)return;var h="";PRICE_SITES.forEach(function(s){h+="<tr><td class='cl-tl bld'>"+esc(s.name)+"</td><td title='"+esc(s.home)+"'>"+esc(s.home)+"</td><td title='"+esc(s.search||"")+"'>"+esc(s.search||"홈 직접검색")+"</td><td><span class='tag tg'>활성</span></td></tr>";});tb.innerHTML=h;var k=byId("price-kpi-sites");if(k)k.textContent=PRICE_SITES.length+"개";}
+  function openPriceTab(){try{window.curTab="price";}catch(e){}document.querySelectorAll(".tab").forEach(function(t){t.classList.remove("on");});document.querySelectorAll(".pg").forEach(function(p){p.classList.remove("on");});var t=byId("tab-price"),p=byId("pg-price");if(t)t.classList.add("on");if(p)p.classList.add("on");fillSkuOptions();renderTable();setQueryText();setTimeout(function(){var q=byId("price-common-query");if(q)q.focus();},80);}
+  function bind(){
+    var e=byId("tab-price");if(e)e.onclick=openPriceTab;
+    e=byId("price-common-query");if(e){e.oninput=setQueryText;e.onkeydown=function(ev){if(ev.key==="Enter"){ev.preventDefault();fillFromCommon();}};}
+    e=byId("btn-price-fill");if(e)e.onclick=fillFromCommon;
+    e=byId("btn-price-open-all");if(e)e.onclick=openAll;
+    e=byId("btn-price-clear");if(e)e.onclick=clearAll;
+    document.querySelectorAll("[data-price-search]").forEach(function(b){b.onclick=function(){searchSite(this.getAttribute("data-price-search"));};});
+    document.querySelectorAll("[data-price-home]").forEach(function(b){b.onclick=function(){homeSite(this.getAttribute("data-price-home"));};});
+    document.querySelectorAll("[data-price-copy]").forEach(function(b){b.onclick=function(){copySite(this.getAttribute("data-price-copy"));};});
+    document.querySelectorAll(".price-site-input").forEach(function(inp){inp.onkeydown=function(ev){if(ev.key==="Enter"){ev.preventDefault();searchSite(this.getAttribute("data-site"));}};});
+    renderTable();fillSkuOptions();setQueryText();
+  }
+  function wrapGT(){
+    if(window.GT && !window.GT.__priceWrapped){
+      var old=window.GT;
+      window.GT=function(id){
+        if(id==="price")return openPriceTab();
+        var ret=old.apply(this,arguments);
+        var p=byId("pg-price"),t=byId("tab-price");if(p)p.classList.remove("on");if(t)t.classList.remove("on");
+        return ret;
+      };
+      window.GT.__priceWrapped=true;
+    }
+  }
+  function init(){bind();wrapGT();}
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
+  window.addEventListener("load",function(){setTimeout(init,300);setTimeout(function(){fillSkuOptions();},1600);});
 })();
 </script>
 

@@ -944,6 +944,78 @@ table.mt{font-size:var(--ui-font-size)!important;background:#ffffff!important}ta
 }
 </style>
 
+
+<style>
+/* ===== LEESFACT Inventory Margin Defense Analysis v202606 ===== */
+#defense-section{margin-top:14px!important;}
+#defense-section .defense-tools{
+  display:flex!important;
+  align-items:center!important;
+  gap:8px!important;
+  flex-wrap:wrap!important;
+  margin:10px 0 12px!important;
+}
+#defense-section .defense-tools input,
+#defense-section .defense-tools select{
+  height:30px!important;
+  border:1px solid #cbd5e1!important;
+  border-radius:7px!important;
+  padding:0 10px!important;
+  font-size:11px!important;
+  background:#fff!important;
+}
+#defense-section .defense-kpi{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:10px!important;
+  margin-bottom:12px!important;
+}
+#defense-section .defense-kpi .mc{
+  min-width:0!important;
+  padding:12px 14px!important;
+}
+#defense-table table.mt{
+  width:100%!important;
+  table-layout:fixed!important;
+  font-size:10.5px!important;
+}
+#defense-table table.mt th,
+#defense-table table.mt td{
+  padding-left:5px!important;
+  padding-right:5px!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+}
+#defense-table table.mt th:nth-child(1), #defense-table table.mt td:nth-child(1){width:68px!important;max-width:68px!important;text-align:center!important;}
+#defense-table table.mt th:nth-child(2), #defense-table table.mt td:nth-child(2){width:88px!important;max-width:88px!important;}
+#defense-table table.mt th:nth-child(3), #defense-table table.mt td:nth-child(3){width:auto!important;max-width:none!important;}
+#defense-table table.mt th:nth-child(4), #defense-table table.mt td:nth-child(4){width:70px!important;max-width:70px!important;}
+#defense-table table.mt th:nth-child(5), #defense-table table.mt td:nth-child(5){width:52px!important;max-width:52px!important;text-align:right!important;}
+#defense-table table.mt th:nth-child(6), #defense-table table.mt td:nth-child(6),
+#defense-table table.mt th:nth-child(7), #defense-table table.mt td:nth-child(7),
+#defense-table table.mt th:nth-child(8), #defense-table table.mt td:nth-child(8){width:95px!important;max-width:95px!important;text-align:right!important;}
+#defense-table table.mt th:nth-child(9), #defense-table table.mt td:nth-child(9){width:58px!important;max-width:58px!important;text-align:right!important;}
+.def-tag{
+  display:inline-block!important;
+  padding:2px 6px!important;
+  border-radius:999px!important;
+  font-size:10px!important;
+  font-weight:800!important;
+  line-height:1.25!important;
+}
+.def-risk{background:#fee2e2!important;color:#b91c1c!important;border:1px solid #fecaca!important;}
+.def-ok{background:#dcfce7!important;color:#15803d!important;border:1px solid #bbf7d0!important;}
+.def-watch{background:#fff7ed!important;color:#c2410c!important;border:1px solid #fed7aa!important;}
+.def-unknown{background:#f1f5f9!important;color:#475569!important;border:1px solid #cbd5e1!important;}
+@media(max-width:1300px){
+  #defense-section .defense-kpi{grid-template-columns:repeat(2,minmax(0,1fr))!important;}
+}
+@media(max-width:800px){
+  #defense-section .defense-kpi{grid-template-columns:1fr!important;}
+}
+</style>
+
 </head><body>
 <div class="hdr"><div style="display:flex;align-items:center;gap:9px"><div class="led off" id="led"></div><div class="brandwrap"><span class="brandmark" title="LEES FACT"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#050b14"></rect><path d="M14 45 L24 17 M23 45 L31 21 M24 45 C33 36 39 34 49 32 M34 45 C42 38 47 37 53 37" fill="none" stroke="#f8fafc" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M11 50 H53" stroke="#0ea5e9" stroke-width="3" stroke-linecap="round" opacity="0.9"></path></svg></span><div class="logo">LEES<b>FACT</b> <span style="color:#475569;font-size:11px;font-weight:400">재고관리</span></div></div><span class="sbadge b-off" id="sbadge">연결 중...</span></div><div style="display:flex;align-items:center;gap:8px">
 <button class="bs" id="btn-undo" title="마지막 저장/수정/삭제 작업 실행취소" style="padding:5px 10px;font-size:10px">↩ 실행취소</button>
@@ -1047,13 +1119,13 @@ table.mt{font-size:var(--ui-font-size)!important;background:#ffffff!important}ta
   </div>
 </div>
 <div class="fr"><input id="ps" placeholder="품번·품명·브랜드·메모 검색..." style="flex:1;max-width:300px"><input type="date" id="p-from" title="매입 시작일"><span style="font-size:10px;color:#64748b">~</span><input type="date" id="p-to" title="매입 종료일"><button class="bs" id="btn-p-date-clear" style="padding:6px 10px;font-size:10px">기간초기화</button><select id="pcf" style="width:130px"><option value="">전체 카테고리</option></select><select id="ptf" style="width:115px"><option value="">사이즈 전체</option><option value="shoe">신발</option><option value="cloth">의류</option><option value="pants">하의</option><option value="free">FREE</option></select></div><div class="tw" id="ptw"><div class="emp">탭 클릭 후 표시</div></div></div>
-<div id="pg-si" class="pg"><div id="si-msg" class="msg"></div><div class="card"><div style="display:flex;gap:8px;margin-bottom:14px;align-items:center"><span style="font-size:10px;color:#64748b;text-transform:uppercase">집계 단위:</span><button class="bp" id="uw" style="font-size:11px;padding:5px 14px">주 단위</button><button class="bs" id="um" style="font-size:11px;padding:5px 14px">월 단위</button></div><div class="g5" style="margin-bottom:10px"><div class="fg"><label class="fl">기준 날짜 *</label><input type="date" id="si-pd"><div id="pl" style="font-size:10px;color:var(--tl);margin-top:3px"></div></div><div class="fg"><label class="fl">품번 *</label><select id="si-cd"><option value="">선택</option></select></div><div class="fg"><label class="fl">판매채널</label><select id="si-ch"><option value="">선택</option><option>크림사업자</option><option>크림개인</option><option>POIZON</option><option>스마트스토어</option><option>당근마켓</option><option>번개장터</option></select></div><div class="fg"><label class="fl">실정산단가 (원)</label><input type="number" id="si-pr" min="0" placeholder="0"></div><div class="fg"><label class="fl">수수료 총액 (원)</label><input type="number" id="si-fee" min="0" placeholder="0"></div><div class="fg"><label class="fl">메모</label><input id="si-mm"></div></div><div id="si-sgw"></div><div class="gtbar" style="margin-top:4px"><div class="gi"><div class="gl">판매수량</div><div class="gv" id="si-qd">0</div></div><div class="gi"><div class="gl">실정산단가</div><div class="gv" id="si-pu">₩0</div></div><div class="gi"><div class="gl">실정산액</div><div class="gv g" id="si-td">₩0</div></div><button class="bp" id="btn-sales" style="margin-left:auto">☁ 저장</button></div></div>
-<div class="card"><div class="slbl">📋 Claude AI → 매출 JSON 붙여넣기</div><p style="font-size:11px;color:#64748b;margin-bottom:10px;line-height:1.7">Claude에게 "매출 JSON으로 변환해줘" → 붙여넣고 저장<br><span style="color:#475569">예: "JP7147 230 5개 235 3개, 단가 180000, 2026-04-30, 주단위, 당근마켓"</span></p><div class="fg"><label class="fl">JSON 데이터</label><textarea id="sj-paste" rows="3" placeholder='[{"date":"2026-04-30","itemCode":"JP7147","unit":"week","sizes":{"230":5,"235":3},"salePrice":180000,"totalFee":12000,"channel":"크림사업자"}]'></textarea></div><button class="bp" id="btn-sj">☁ 매출 JSON 저장</button></div></div>
+<div id="pg-si" class="pg"><div id="si-msg" class="msg"></div><div class="card"><div style="display:flex;gap:8px;margin-bottom:14px;align-items:center"><span style="font-size:10px;color:#64748b;text-transform:uppercase">집계 단위:</span><button class="bp" id="uw" style="font-size:11px;padding:5px 14px">주 단위</button><button class="bs" id="um" style="font-size:11px;padding:5px 14px">월 단위</button></div><div class="g5" style="margin-bottom:10px"><div class="fg"><label class="fl">기준 날짜 *</label><input type="date" id="si-pd"><div id="pl" style="font-size:10px;color:var(--tl);margin-top:3px"></div></div><div class="fg"><label class="fl">품번 *</label><select id="si-cd"><option value="">선택</option></select></div><div class="fg"><label class="fl">판매채널</label><select id="si-ch"><option value="">선택</option><option>크림사업자</option><option>크림개인</option><option>POIZON</option><option>스마트스토어</option></select></div><div class="fg"><label class="fl">실정산단가 (원)</label><input type="number" id="si-pr" min="0" placeholder="0"></div><div class="fg"><label class="fl">수수료 총액 (원)</label><input type="number" id="si-fee" min="0" placeholder="0"></div><div class="fg"><label class="fl">메모</label><input id="si-mm"></div></div><div id="si-sgw"></div><div class="gtbar" style="margin-top:4px"><div class="gi"><div class="gl">판매수량</div><div class="gv" id="si-qd">0</div></div><div class="gi"><div class="gl">실정산단가</div><div class="gv" id="si-pu">₩0</div></div><div class="gi"><div class="gl">실정산액</div><div class="gv g" id="si-td">₩0</div></div><button class="bp" id="btn-sales" style="margin-left:auto">☁ 저장</button></div></div>
+<div class="card"><div class="slbl">📋 Claude AI → 매출 JSON 붙여넣기</div><p style="font-size:11px;color:#64748b;margin-bottom:10px;line-height:1.7">Claude에게 "매출 JSON으로 변환해줘" → 붙여넣고 저장<br><span style="color:#475569">예: "JP7147 230 5개 235 3개, 단가 180000, 2026-04-30, 주단위, 오프라인"</span></p><div class="fg"><label class="fl">JSON 데이터</label><textarea id="sj-paste" rows="3" placeholder='[{"date":"2026-04-30","itemCode":"JP7147","unit":"week","sizes":{"230":5,"235":3},"salePrice":180000,"totalFee":12000,"channel":"크림사업자"}]'></textarea></div><button class="bp" id="btn-sj">☁ 매출 JSON 저장</button></div></div>
 <div id="pg-sdb" class="pg">
 <div class="msg on mi" style="display:block;margin-bottom:10px">
 매출 기준: <b>매출액</b> = 고객 결제금액, <b>수수료</b> = 플랫폼/채널 차감액, <b>실정산액</b> = 실제 입금/정산액입니다. 마진 계산은 실정산액 - 매입원가 기준입니다.
 </div>
-<div class="tool-row"><button class="bg_" id="btn-exp-s">⬇ Excel</button><button class="bs" id="btn-ref-s">↻ 새로고침</button><button class="bd_" id="btn-del-sel-s">선택삭제</button><button class="bd_" id="btn-del-all-s">전체삭제</button><span id="s-sel-info" style="font-size:10px;color:#64748b">선택 0건</span></div><div class="mcs" id="smcs"></div><div id="s-edit-card" class="card" style="display:none"><div class="slbl">✏️ 매출 수정</div><div class="g5" style="margin-bottom:10px"><div class="fg"><label class="fl">날짜 *</label><input type="date" id="se-date"></div><div class="fg"><label class="fl">집계 단위</label><select id="se-unit"><option value="week">주</option><option value="month">월</option></select></div><div class="fg"><label class="fl">품번 *</label><input id="se-code"></div><div class="fg"><label class="fl">품명</label><input id="se-name"></div><div class="fg"><label class="fl">판매채널</label><select id="se-channel"><option value="">선택</option><option>크림사업자</option><option>크림개인</option><option>POIZON</option><option>스마트스토어</option><option>당근마켓</option><option>번개장터</option></select></div></div><div class="g5" style="margin-bottom:10px"><div class="fg"><label class="fl">사이즈/수량 JSON</label><textarea id="se-sizes" rows="2" placeholder='{"250":1,"255":2}'></textarea></div><div class="fg"><label class="fl">실정산단가</label><input type="number" id="se-price" min="0"></div><div class="fg"><label class="fl">실정산액</label><input type="number" id="se-settle" min="0"></div><div class="fg"><label class="fl">수수료 총액</label><input type="number" id="se-fee" min="0"></div><div class="fg"><label class="fl">메모</label><input id="se-memo"></div></div><div class="tool-row" style="margin-bottom:0"><button class="bp" id="btn-save-sale-edit">수정 저장</button><button class="bs" id="btn-cancel-sale-edit">취소</button><span id="se-help" style="font-size:10px;color:#64748b">실정산액이 비어 있으면 실정산단가 × 수량으로 자동 계산됩니다.</span></div></div><div class="fr"><input id="ss" placeholder="품번·품명·채널·메모 검색..." style="flex:1;max-width:300px"><input type="date" id="s-from" title="매출 시작일"><span style="font-size:10px;color:#64748b">~</span><input type="date" id="s-to" title="매출 종료일"><button class="bs" id="btn-s-date-clear" style="padding:6px 10px;font-size:10px">기간초기화</button><select id="suf" style="width:115px"><option value="">전체 단위</option><option value="week">주</option><option value="month">월</option></select></div><div class="tw" id="stw"><div class="emp">탭 클릭 후 표시</div></div></div>
+<div class="tool-row"><button class="bg_" id="btn-exp-s">⬇ Excel</button><button class="bs" id="btn-ref-s">↻ 새로고침</button><button class="bd_" id="btn-del-sel-s">선택삭제</button><button class="bd_" id="btn-del-all-s">전체삭제</button><span id="s-sel-info" style="font-size:10px;color:#64748b">선택 0건</span></div><div class="mcs" id="smcs"></div><div id="s-edit-card" class="card" style="display:none"><div class="slbl">✏️ 매출 수정</div><div class="g5" style="margin-bottom:10px"><div class="fg"><label class="fl">날짜 *</label><input type="date" id="se-date"></div><div class="fg"><label class="fl">집계 단위</label><select id="se-unit"><option value="week">주</option><option value="month">월</option></select></div><div class="fg"><label class="fl">품번 *</label><input id="se-code"></div><div class="fg"><label class="fl">품명</label><input id="se-name"></div><div class="fg"><label class="fl">판매채널</label><select id="se-channel"><option value="">선택</option><option>크림사업자</option><option>크림개인</option><option>POIZON</option><option>스마트스토어</option></select></div></div><div class="g5" style="margin-bottom:10px"><div class="fg"><label class="fl">사이즈/수량 JSON</label><textarea id="se-sizes" rows="2" placeholder='{"250":1,"255":2}'></textarea></div><div class="fg"><label class="fl">실정산단가</label><input type="number" id="se-price" min="0"></div><div class="fg"><label class="fl">실정산액</label><input type="number" id="se-settle" min="0"></div><div class="fg"><label class="fl">수수료 총액</label><input type="number" id="se-fee" min="0"></div><div class="fg"><label class="fl">메모</label><input id="se-memo"></div></div><div class="tool-row" style="margin-bottom:0"><button class="bp" id="btn-save-sale-edit">수정 저장</button><button class="bs" id="btn-cancel-sale-edit">취소</button><span id="se-help" style="font-size:10px;color:#64748b">실정산액이 비어 있으면 실정산단가 × 수량으로 자동 계산됩니다.</span></div></div><div class="fr"><input id="ss" placeholder="품번·품명·채널·메모 검색..." style="flex:1;max-width:300px"><input type="date" id="s-from" title="매출 시작일"><span style="font-size:10px;color:#64748b">~</span><input type="date" id="s-to" title="매출 종료일"><button class="bs" id="btn-s-date-clear" style="padding:6px 10px;font-size:10px">기간초기화</button><select id="suf" style="width:115px"><option value="">전체 단위</option><option value="week">주</option><option value="month">월</option></select></div><div class="tw" id="stw"><div class="emp">탭 클릭 후 표시</div></div></div>
 <div id="pg-stk" class="pg"><div class="tool-row"><button class="bg_" id="btn-exp-stk">⬇ Excel</button><button class="bs" id="btn-ref-stk">↻ 새로고침</button></div><div class="mcs" id="stkmcs"></div><div class="fr"><input id="stks" placeholder="품번·품명·브랜드 검색..." style="flex:1;max-width:300px"><select id="stkf" style="width:130px"><option value="">전체 상태</option><option value="ok">재고있음</option><option value="zero">소진</option></select></div><div class="tw" id="stkw"><div class="emp">탭 클릭 후 표시</div></div></div>
 <div id="pg-mar" class="pg"><div class="tool-row"><button class="bg_" id="btn-exp-mar">⬇ Excel</button><button class="bs" id="btn-ref-mar">↻ 새로고침</button></div><div class="mcs" id="marmcs"></div><div class="fr"><input id="mars" placeholder="품번·품명·브랜드 검색..." style="flex:1;max-width:300px"><select id="marf" style="width:140px"><option value="">전체</option><option value="sold">판매있음</option><option value="profit">이익</option><option value="loss">손실</option><option value="unknown">원가미확인</option></select></div><div class="tw" id="marw"><div class="emp">탭 클릭 후 표시</div></div></div>
 <div id="pg-ana" class="pg">
@@ -3487,6 +3559,206 @@ document.getElementById("p-dt").value=today();RSG();setAnaPeriod("this_month");L
   });
 
   setTimeout(function(){wrapRAnaFinal();scheduleFinal();},1300);
+})();
+</script>
+
+
+<script>
+/* ===== LEESFACT Inventory Margin Defense Analysis v202606 ===== */
+(function(){
+  var DEF_FILTER="risk";
+  function n(v){return Number(v)||0;}
+  function won(v){return "₩"+Math.round(Number(v)||0).toLocaleString();}
+  function pct(v){return (isFinite(v)?Number(v):0).toFixed(1)+"%";}
+  function esc(v){
+    if(typeof escHtml==="function")return escHtml(v);
+    return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  function ensureDefenseSection(){
+    var pg=document.getElementById("pg-ana");
+    if(!pg || document.getElementById("defense-section"))return;
+
+    var div=document.createElement("div");
+    div.className="card";
+    div.id="defense-section";
+    div.innerHTML=
+      '<div class="slbl">🛡️ 재고 손익 방어 분석</div>'+
+      '<div style="font-size:11px;color:#64748b;line-height:1.6;margin:4px 0 8px;">'+
+        '기준: <b>누적 실마진 - 잔여매입가</b>. 차액이 음수이면 아직 남은 재고 매입가를 마진으로 방어하지 못한 SKU입니다.'+
+      '</div>'+
+      '<div class="defense-tools">'+
+        '<select id="defense-filter">'+
+          '<option value="risk">손실위험만</option>'+
+          '<option value="all">전체 재고 SKU</option>'+
+          '<option value="ok">방어완료</option>'+
+          '<option value="watch">마진있지만 부족</option>'+
+          '<option value="loss">적자+재고</option>'+
+          '<option value="unknown">원가미확인</option>'+
+        '</select>'+
+        '<input id="defense-search" placeholder="품번/품명/브랜드 검색" style="min-width:220px;">'+
+        '<button class="bs" id="defense-refresh" style="height:30px;padding:0 10px;font-size:11px;">새로고침</button>'+
+      '</div>'+
+      '<div class="mcs defense-kpi" id="defense-kpi"></div>'+
+      '<div class="tw" id="defense-table"><div class="emp">분석할 재고 데이터가 없습니다.</div></div>';
+    pg.appendChild(div);
+
+    var f=document.getElementById("defense-filter");
+    var s=document.getElementById("defense-search");
+    var b=document.getElementById("defense-refresh");
+    if(f)f.addEventListener("change",function(){DEF_FILTER=this.value;renderDefenseAnalysis();});
+    if(s)s.addEventListener("input",function(){renderDefenseAnalysis();});
+    if(b)b.addEventListener("click",function(){renderDefenseAnalysis();});
+  }
+
+  function defenseRows(){
+    var rows=[];
+    if(typeof calcMargin!=="function")return rows;
+    var arr=calcMargin();
+    for(var i=0;i<arr.length;i++){
+      var x=arr[i]||{};
+      if(n(x.remQty)<=0)continue;
+
+      var rem=n(x.remValue);
+      var margin=n(x.realMargin);
+      var gap=margin-rem;
+      var cover=rem>0?(margin/rem*100):0;
+      var status="ok", label="방어완료", cls="def-ok";
+
+      if(!x.costKnown){
+        status="unknown";label="원가미확인";cls="def-unknown";
+      }else if(margin<0){
+        status="loss";label="적자+재고";cls="def-risk";
+      }else if(gap<0){
+        status="watch";label="마진부족";cls="def-watch";
+      }
+
+      var risk = (status==="loss" || status==="watch" || status==="unknown");
+      rows.push({
+        itemCode:x.itemCode||"",
+        productName:x.productName||"",
+        brand:x.brand||"",
+        remQty:n(x.remQty),
+        remValue:rem,
+        realMargin:margin,
+        gap:gap,
+        coverage:cover,
+        status:status,
+        label:label,
+        cls:cls,
+        risk:risk,
+        boughtQty:n(x.boughtQty),
+        soldQty:n(x.soldQty),
+        costKnown:!!x.costKnown
+      });
+    }
+    rows.sort(function(a,b){
+      if(a.status==="unknown" && b.status!=="unknown")return 1;
+      if(a.status!=="unknown" && b.status==="unknown")return -1;
+      return a.gap-b.gap;
+    });
+    return rows;
+  }
+
+  function passDefenseFilter(x,filter,q){
+    var text=(x.itemCode+" "+x.productName+" "+x.brand).toLowerCase();
+    if(q && text.indexOf(q)<0)return false;
+    if(filter==="all")return true;
+    if(filter==="risk")return x.risk;
+    if(filter==="ok")return x.status==="ok";
+    if(filter==="watch")return x.status==="watch";
+    if(filter==="loss")return x.status==="loss";
+    if(filter==="unknown")return x.status==="unknown";
+    return true;
+  }
+
+  function renderDefenseAnalysis(){
+    ensureDefenseSection();
+    var rows=defenseRows();
+    var filter=(document.getElementById("defense-filter")||{}).value || DEF_FILTER || "risk";
+    var q=((document.getElementById("defense-search")||{}).value||"").toLowerCase();
+
+    var view=rows.filter(function(x){return passDefenseFilter(x,filter,q);});
+    var riskRows=rows.filter(function(x){return x.risk;});
+    var okRows=rows.filter(function(x){return x.status==="ok";});
+
+    var riskGap=riskRows.reduce(function(a,x){return a + (x.gap<0?Math.abs(x.gap):0);},0);
+    var riskStock=riskRows.reduce(function(a,x){return a + x.remValue;},0);
+    var okMargin=okRows.reduce(function(a,x){return a + x.gap;},0);
+
+    var kpi=document.getElementById("defense-kpi");
+    if(kpi){
+      kpi.innerHTML=
+        (typeof MC==="function"?MC("손실위험 SKU",riskRows.length+"종","var(--rd)"):'')+
+        (typeof MC==="function"?MC("부족액 합계",won(riskGap),"var(--rd)"):'')+
+        (typeof MC==="function"?MC("위험 재고금액",won(riskStock),"var(--am)"):'')+
+        (typeof MC==="function"?MC("방어완료 SKU",okRows.length+"종","var(--gn)"):'');
+    }
+
+    var box=document.getElementById("defense-table");
+    if(!box)return;
+    if(!view.length){
+      box.innerHTML='<div class="emp">조건에 맞는 SKU가 없습니다.</div>';
+      return;
+    }
+
+    var h='<table class="mt"><thead><tr>'+
+      '<th>분류</th><th>품번</th><th>품명</th><th>브랜드</th><th class="r">현재고</th>'+
+      '<th class="r">잔여매입가</th><th class="r">누적실마진</th><th class="r">차액</th><th class="r">방어율</th>'+
+      '</tr></thead><tbody>';
+
+    for(var i=0;i<view.length;i++){
+      var x=view[i];
+      var gapCls=x.gap>=0?'cl-gn':'cl-am';
+      h+='<tr>'+
+        '<td><span class="def-tag '+x.cls+'">'+x.label+'</span></td>'+
+        '<td class="cl-tl bld">'+esc(x.itemCode)+'</td>'+
+        '<td title="'+esc(x.productName)+'">'+esc(x.productName)+'</td>'+
+        '<td class="cl-sl">'+esc(x.brand)+'</td>'+
+        '<td class="r">'+Math.round(x.remQty).toLocaleString()+'</td>'+
+        '<td class="r cl-am">'+won(x.remValue)+'</td>'+
+        '<td class="r cl-gn">'+won(x.realMargin)+'</td>'+
+        '<td class="r '+gapCls+' bld">'+won(x.gap)+'</td>'+
+        '<td class="r">'+(x.status==="unknown"?"-":pct(x.coverage))+'</td>'+
+        '</tr>';
+    }
+    h+='</tbody></table>';
+    box.innerHTML=h;
+  }
+
+  window.renderDefenseAnalysis=renderDefenseAnalysis;
+
+  function wrapDefense(){
+    if(typeof window.rAna==="function" && !window.rAna.__defenseWrapped){
+      var old=window.rAna;
+      window.rAna=function(){
+        var ret=old.apply(this,arguments);
+        try{setTimeout(renderDefenseAnalysis,150);}catch(e){}
+        return ret;
+      };
+      window.rAna.__defenseWrapped=true;
+    }
+    if(typeof window.rMar==="function" && !window.rMar.__defenseWrapped){
+      var oldm=window.rMar;
+      window.rMar=function(){
+        var ret=oldm.apply(this,arguments);
+        try{setTimeout(renderDefenseAnalysis,150);}catch(e){}
+        return ret;
+      };
+      window.rMar.__defenseWrapped=true;
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded",function(){
+    wrapDefense();
+    setTimeout(renderDefenseAnalysis,500);
+    setTimeout(renderDefenseAnalysis,1500);
+    ["ana-this-month","ana-prev-month","ana-this-quarter","ana-this-half","ana-this-year","ana-all","btn-ana-apply"].forEach(function(id){
+      var el=document.getElementById(id);
+      if(el)el.addEventListener("click",function(){setTimeout(renderDefenseAnalysis,250);});
+    });
+  });
+  setTimeout(function(){wrapDefense();renderDefenseAnalysis();},1800);
 })();
 </script>
 

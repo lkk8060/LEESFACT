@@ -1303,7 +1303,7 @@ table.mt{font-size:var(--ui-font-size)!important;background:#ffffff!important}ta
       <div class="fg"><label class="fl">SKU 선택</label><select id="calc-select"><option value="">검색 후 선택</option></select></div>
       <div class="fg"><label class="fl">판매수량</label><input type="number" id="calc-qty" min="1" value="1"></div>
       <div class="fg"><label class="fl">판매액/매출액 총액 *</label><input type="number" id="calc-sale" min="0" placeholder="예: 180000"></div>
-      <div class="fg"><label class="fl">판매 플랫폼/수수료 기준</label><select id="calc-platform"><option value="kream" selected>크림, 5.85% + 2,500원</option><option value="poizon">POIZON, 15만원 이하 15,000원 / 초과 10%</option><option value="smartstore">스마트스토어, 6.63%</option></select></div>
+      <div class="fg"><label class="fl">판매 플랫폼/수수료 기준</label><select id="calc-platform"><option value="kream" selected>크림, 5.85% + 2,500원</option><option value="poizon">POIZON, 15만원 이하 15,000원 / 초과 10%</option><option value="smartstore">스마트스토어, 5%</option></select></div>
     </div>
     <div class="tool-row" style="margin-bottom:0">
       <button class="bp" id="btn-calc-run">계산</button>
@@ -1343,7 +1343,7 @@ table.mt{font-size:var(--ui-font-size)!important;background:#ffffff!important}ta
       <div class="fg"><label class="fl">예상 매출액, VAT 포함</label><input type="number" id="direct-sale" min="0" placeholder="예: 1200000"></div>
       <div class="fg"><label class="fl">판매수량</label><input type="number" id="direct-qty" min="1" value="1"></div>
       <div class="fg"><label class="fl">고정수수료 적용 건수</label><input type="number" id="direct-fee-count" min="1" value="1"></div>
-      <div class="fg"><label class="fl">판매 플랫폼/수수료 기준</label><select id="direct-platform"><option value="kream" selected>크림, 5.85% + 2,500원×건수</option><option value="poizon">POIZON, 건당 15만원 이하 15,000원 / 초과 10%</option><option value="smartstore">스마트스토어, 6.63%</option></select></div>
+      <div class="fg"><label class="fl">판매 플랫폼/수수료 기준</label><select id="direct-platform"><option value="kream" selected>크림, 5.85% + 2,500원×건수</option><option value="poizon">POIZON, 건당 15만원 이하 15,000원 / 초과 10%</option><option value="smartstore">스마트스토어, 5%</option></select></div>
     </div>
     <div class="g5" style="margin-bottom:10px">
       <div class="fg"><label class="fl">목표 순마진율 (%)</label><input type="number" id="direct-target-rate" min="0" step="0.1" placeholder="예: 10"></div>
@@ -4016,7 +4016,7 @@ document.getElementById("p-dt").value=today();RSG();setAnaPeriod("this_month");L
   var FEE_RULES = {
     kream:{id:"kream",name:"크림",rate:0.0585,fixed:2500,type:"domestic",desc:"크림 5.85% + 2,500원"},
     poizon:{id:"poizon",name:"POIZON",rate:0.10,minFee:15000,threshold:150000,type:"export",desc:"POIZON 15만원 이하 15,000원 / 초과 10%"},
-    smartstore:{id:"smartstore",name:"스마트스토어",rate:0.0663,fixed:0,type:"domestic",desc:"스마트스토어 6.63%"}
+    smartstore:{id:"smartstore",name:"스마트스토어",rate:0.05,fixed:0,type:"domestic",desc:"스마트스토어 5%"}
   };
 
   function won(v){return "₩"+Math.round(Number(v)||0).toLocaleString();}

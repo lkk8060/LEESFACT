@@ -1563,12 +1563,101 @@ function serverBackup(){
 }
 function fetchWithTimeout(url,opts,ms){ms=ms||8000;if(window.AbortController){var c=new AbortController(),t=setTimeout(function(){try{c.abort();}catch(e){}},ms);opts=opts||{};opts.signal=c.signal;return fetch(url,opts).finally(function(){clearTimeout(t);});}return Promise.race([fetch(url,opts||{}),new Promise(function(_,rej){setTimeout(function(){rej(new Error("TIMEOUT"));},ms);})]);}
 function sbGet(k){return fetchWithTimeout(SB+"/rest/v1/kv_store?key=eq."+encodeURIComponent(k)+"&select=value",{headers:{apikey:KEY,Authorization:"Bearer "+KEY}},8000).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(function(d){return(d&&d.length>0&&d[0].value)?d[0].value:null;});}
-function sbSet(k,v){return fetchWithTimeout(SB+"/rest/v1/kv_store",{method:"POST",headers:{apikey:KEY,Authorization:"Bearer "+KEY,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates"},body:JSON.stringify({key:k,value:v,updated_at:new Date().toISOString()})},8000).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);});}
+function sbSet(k,v,ts){return fetchWithTimeout(SB+"/rest/v1/kv_store",{method:"POST",headers:{apikey:KEY,Authorization:"Bearer "+KEY,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates"},body:JSON.stringify({key:k,value:v,updated_at:ts||new Date().toISOString()})},15000).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);});}
 function SS(s){var l=document.getElementById("led"),b=document.getElementById("sbadge");if(!l||!b)return;var m={ok:["ok","b-ok","☁ 동기화됨"],ing:["ing","b-ing","↑ 저장 중..."],load:["ing","b-ing","↓ 로딩 중..."],err:["err","b-err","✗ 연결 오류"]};var x=m[s]||m.err;l.className="led "+x[0];b.className="sbadge "+x[1];b.textContent=x[2];}
-function SC(){clearTimeout(saveTimer);saveTimer=setTimeout(function(){SS("ing");Promise.all([sbSet("purchase_db",PDB),sbSet("sales_db",SDB),sbSet("sku_master",SKUDB)]).then(function(){SS("ok");}).catch(function(e){console.error("SAVE ERROR",e);SS("err");});},800);}
+/* ===== 저장 (v2: 서버 최신본과 합쳐서 저장) =====
+   - 저장 직전에 서버 데이터를 다시 읽고, 마지막으로 불러온 시점(BASE) 이후 이 탭에서 바뀐 줄만 반영
+   - 다른 PC/자동연동이 추가한 줄은 유지, 이 탭에서 지운 줄만 삭제
+   - 업로드 성공 후에만 BASE 갱신 (실패 시 다음 저장에서 다시 합침) */
+var SB_KEYS=["purchase_db","sales_db","sku_master"],BASE={},SAVE_BUSY=false,SAVE_AGAIN=false,LAST_SEEN={};
+function getArr(k){return k==="purchase_db"?PDB:k==="sales_db"?SDB:SKUDB;}
+function setArr(k,v){if(k==="purchase_db")PDB=v;else if(k==="sales_db")SDB=v;else SKUDB=v;}
+function setBase(k,json){BASE[k]=json!=null?json:JSON.stringify(getArr(k)||[]);}
+function rowKey(r){if(!r||typeof r!=="object")return"j:"+JSON.stringify(r);if(r.id!=null&&r.id!=="")return"i:"+r.id;if(r.itemCode)return"c:"+r.itemCode;return"j:"+JSON.stringify(r);}
+function keyedMap(arr){var m={},order=[],cnt={};(arr||[]).forEach(function(r){var k=rowKey(r);cnt[k]=(cnt[k]||0)+1;k=k+"#"+cnt[k];m[k]=r;order.push(k);});return{m:m,order:order};}
+function mergeKey(k,server){
+  var base=keyedMap(BASE[k]?JSON.parse(BASE[k]):[]),loc=keyedMap(getArr(k)),srv=keyedMap(server||[]),out=[],used={};
+  loc.order.forEach(function(key){
+    var l=loc.m[key],b=base.m[key],sv=srv.m[key];used[key]=1;
+    var changed=(b===undefined)||JSON.stringify(l)!==JSON.stringify(b);
+    if(changed){out.push(l);return;}
+    if(sv===undefined)return;            /* 다른 곳에서 삭제됨 */
+    out.push(sv);                        /* 다른 곳의 수정 반영 */
+  });
+  srv.order.forEach(function(key){
+    if(used[key])return;
+    if(base.m[key]!==undefined)return;   /* 이 탭에서 삭제함 */
+    out.push(srv.m[key]);                /* 다른 곳에서 추가됨 */
+  });
+  return out;
+}
+function SC(){clearTimeout(saveTimer);saveTimer=setTimeout(doSave,800);}
+function sbGetMeta(k){return fetchWithTimeout(SB+"/rest/v1/kv_store?key=eq."+encodeURIComponent(k)+"&select=value,updated_at",{headers:{apikey:KEY,Authorization:"Bearer "+KEY}},15000).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(function(d){var x=d&&d[0];return{exists:!!x,value:x&&Array.isArray(x.value)?x.value:[],ts:x?x.updated_at:null};});}
+/* 서버 값이 내가 읽은 그대로일 때만 저장 (다른 PC가 그 사이 저장했으면 false → 다시 합침) */
+function sbCas(k,v,meta,ts,force){
+  if(!meta.exists||force)return sbSet(k,v,ts).then(function(){return true;});
+  var f=meta.ts==null?"updated_at=is.null":"updated_at=eq."+encodeURIComponent(meta.ts);
+  return fetchWithTimeout(SB+"/rest/v1/kv_store?key=eq."+encodeURIComponent(k)+"&"+f,{method:"PATCH",headers:{apikey:KEY,Authorization:"Bearer "+KEY,"Content-Type":"application/json",Prefer:"return=representation"},body:JSON.stringify({value:v,updated_at:ts})},15000).then(function(r){
+    if(!r.ok){console.warn("CAS 미지원/오류 → 일반 저장",r.status);return sbSet(k,v,ts).then(function(){return true;});}
+    return r.json().then(function(d){return Array.isArray(d)&&d.length>0;});
+  });
+}
+var SAVE_TRY=0;
+function doSave(){
+  if(SAVE_BUSY){SAVE_AGAIN=true;return;}
+  SAVE_BUSY=true;SS("ing");
+  var conflict=false;
+  Promise.all(SB_KEYS.map(sbGetMeta)).then(function(metas){
+    var view=false,jobs=[];
+    SB_KEYS.forEach(function(k,i){
+      var meta=metas[i],server=meta.value,before=JSON.stringify(getArr(k)||[]);
+      var merged=mergeKey(k,server),mj=JSON.stringify(merged);
+      if(mj!==before)view=true;
+      setArr(k,merged);
+      if(mj===JSON.stringify(server)){setBase(k,mj);if(meta.ts)LAST_SEEN[k]=Date.parse(meta.ts)||0;return;}
+      var ts=new Date().toISOString();
+      jobs.push(sbCas(k,merged,meta,ts,SAVE_TRY>=3).then(function(ok){
+        if(ok){setBase(k,mj);LAST_SEEN[k]=Date.parse(ts);}else conflict=true;
+      }));
+    });
+    if(view)REPAINT();
+    return Promise.all(jobs);
+  }).then(function(){
+    if(conflict){
+      SAVE_TRY++;
+      if(SAVE_TRY<=4){SAVE_AGAIN=true;return;}
+      throw new Error("다른 곳에서 계속 저장 중이라 합치지 못했습니다");
+    }
+    SAVE_TRY=0;SS("ok");
+  }).catch(function(e){
+    SAVE_TRY=0;console.error("SAVE ERROR",e);SS("err");
+    SM("sku-msg","md","저장 실패: "+(e&&e.message||"서버 연결 오류")+". 10초 후 다시 저장을 시도합니다.");
+    setTimeout(SC,10000);
+  }).then(function(){SAVE_BUSY=false;if(SAVE_AGAIN){SAVE_AGAIN=false;setTimeout(doSave,conflict?150+Math.random()*400:0);}});
+}
+/* 다른 PC/자동연동에서 저장된 내용 자동 반영 (탭으로 돌아올 때 + 60초마다) */
+function fetchSeen(){return fetchWithTimeout(SB+"/rest/v1/kv_store?key=in.("+SB_KEYS.join(",")+")&select=key,updated_at",{headers:{apikey:KEY,Authorization:"Bearer "+KEY}},8000).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(function(d){var m={};(d||[]).forEach(function(x){m[x.key]=Date.parse(x.updated_at)||0;});return m;});}
+function refreshSeen(){return fetchSeen().then(function(m){LAST_SEEN=m;}).catch(function(){});}
+function hasLocalChanges(){for(var i=0;i<SB_KEYS.length;i++){var k=SB_KEYS[i];if(BASE[k]!=null&&JSON.stringify(getArr(k)||[])!==BASE[k])return true;}return false;}
+function pullRemote(){
+  if(SAVE_BUSY||document.hidden)return;
+  fetchSeen().then(function(m){
+    var changed=SB_KEYS.filter(function(k){return m[k]&&LAST_SEEN[k]&&m[k]!==LAST_SEEN[k];});
+    if(!changed.length){if(!Object.keys(LAST_SEEN).length)LAST_SEEN=m;return;}
+    if(hasLocalChanges()){SC();return;}  /* 저장 대기 중이면 저장(합치기)으로 처리 */
+    return Promise.all(changed.map(function(k){return sbGet(k);})).then(function(vals){
+      if(SAVE_BUSY||hasLocalChanges())return;
+      changed.forEach(function(k,i){var v=Array.isArray(vals[i])?vals[i]:[];setArr(k,v);setBase(k);});
+      LAST_SEEN=m;clearUndoStacks();REPAINT();
+      SM("sku-msg","mi","다른 곳에서 저장된 변경사항을 불러왔습니다.");
+    });
+  }).catch(function(){});
+}
+setInterval(pullRemote,60000);
+document.addEventListener("visibilitychange",function(){if(!document.hidden)pullRemote();});
 function safeGet(k){return sbGet(k).then(function(v){return{ok:true,key:k,value:v};}).catch(function(e){console.warn("LOAD FAIL",k,e);return{ok:false,key:k,value:null,error:e};});}
 function repaintAfterLoad(){UH();fillPurchaseSkuOptions();if(curTab==="sku")rSku();if(curTab==="pdb")rP();if(curTab==="sdb")rS();if(curTab==="si")FSC();if(curTab==="stk")rStk();if(curTab==="mar")rMar();}
-function LA(){SS("load");Promise.all([safeGet("purchase_db"),safeGet("sales_db"),safeGet("sku_master")]).then(function(res){var failed=[];for(var i=0;i<res.length;i++){var x=res[i];if(x.key==="purchase_db"&&x.ok)PDB=Array.isArray(x.value)?x.value:[];if(x.key==="sales_db"&&x.ok)SDB=Array.isArray(x.value)?x.value:[];if(x.key==="sku_master"&&x.ok)SKUDB=Array.isArray(x.value)?x.value:[];if(!x.ok)failed.push(x.key);}if(failed.length<res.length)clearUndoStacks();if(!failed.length)serverBackup();repaintAfterLoad();if(failed.length){SS("err");SM("sku-msg","mw","일부 데이터 로딩 실패/지연: "+failed.join(", ")+". 새로고침을 다시 눌러주세요.");}else SS("ok");}).catch(function(e){console.error("LOAD ERROR",e);SS("err");repaintAfterLoad();SM("sku-msg","md","Supabase 연결 실패: "+(e&&e.message?e.message:e));});}
+function LA(){SS("load");Promise.all([safeGet("purchase_db"),safeGet("sales_db"),safeGet("sku_master")]).then(function(res){var failed=[];for(var i=0;i<res.length;i++){var x=res[i];if(x.key==="purchase_db"&&x.ok)PDB=Array.isArray(x.value)?x.value:[];if(x.key==="sales_db"&&x.ok)SDB=Array.isArray(x.value)?x.value:[];if(x.key==="sku_master"&&x.ok)SKUDB=Array.isArray(x.value)?x.value:[];if(!x.ok)failed.push(x.key);}if(failed.length<res.length)clearUndoStacks();res.forEach(function(x){if(x.ok)setBase(x.key);});refreshSeen();if(!failed.length)serverBackup();repaintAfterLoad();if(failed.length){SS("err");SM("sku-msg","mw","일부 데이터 로딩 실패/지연: "+failed.join(", ")+". 새로고침을 다시 눌러주세요.");}else SS("ok");}).catch(function(e){console.error("LOAD ERROR",e);SS("err");repaintAfterLoad();SM("sku-msg","md","Supabase 연결 실패: "+(e&&e.message?e.message:e));});}
 function today(){return new Date().toISOString().slice(0,10);}
 function UH(){document.getElementById("hcnt").textContent="매입 "+PDB.length+"건 · 매출 "+SDB.length+"건";UUI();}
 function SM(id,c,t){var e=document.getElementById(id);if(!e)return;e.className="msg on "+c;e.textContent=t;clearTimeout(MT[id]);if(c==="ms"||c==="mi")MT[id]=setTimeout(function(){e.classList.remove("on");},5000);}
@@ -4534,6 +4623,243 @@ dl.innerHTML=h;}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",function(){setTimeout(repaint,600);});
   else setTimeout(repaint,600);
   window.addEventListener("load",function(){setTimeout(repaint,1800);});
+})();
+</script>
+
+<script>
+/* ===== LEESFACT 구매내역 관리 탭 v1 (2026-11-23) =====
+   - 크롬 확장 "LEESFACT 구매내역 연동"을 통해 소싱처 주문내역을 불러와 선택한 줄만 매입 DB에 추가
+   - 자동 추가된 줄: id="ms_<주문옵션번호>", src="musinsa" → 다시 불러와도 중복 없음
+   - 이미 등록된 줄은 상태(구입중→배송완료 등)만 갱신, 사용자가 고친 다른 값은 건드리지 않음 */
+(function(){
+  var SITES=[{id:"musinsa",name:"무신사",ch:"무신사",on:true},{id:"29cm",name:"29CM",ch:"29CM",on:false},{id:"tune",name:"TUNE",ch:"TUNE",on:false}];
+  var ST={site:"musinsa",rows:{},loading:false,ext:null,sel:{}};
+  var LSK="lf_ord_cfg_v1";
+  function cfg(){try{return JSON.parse(localStorage.getItem(LSK)||"{}")||{};}catch(e){return{};}}
+  function saveCfg(c){try{localStorage.setItem(LSK,JSON.stringify(c));}catch(e){}}
+  function $(id){return document.getElementById(id);}
+  function esc(v){return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+  function won(n){return(Number(n)||0).toLocaleString();}
+  function ymd(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+  function daysAgo(n){var d=new Date();d.setDate(d.getDate()-n);return ymd(d);}
+  function msg(c,t){if(typeof SM==="function")SM("ord-msg",c,t);}
+
+  /* ---- 확장프로그램 통신 ---- */
+  var REQ={},RID=0;
+  window.addEventListener("message",function(ev){
+    if(ev.source!==window||!ev.data)return;
+    var m=ev.data;
+    if(m.__lf==="hello"){ST.ext=m.version;paintExt();return;}
+    if(m.__lf!=="res")return;
+    var r=REQ[m.id];if(!r)return;delete REQ[m.id];clearTimeout(r.t);
+    if(m.ok)r.ok(m.data);else{var e=new Error(m.error||"확장 오류");e.code=m.code;r.no(e);}
+  });
+  function ext(type,payload,ms){
+    return new Promise(function(ok,no){
+      var id=++RID;
+      REQ[id]={ok:ok,no:no,t:setTimeout(function(){delete REQ[id];var e=new Error("확장프로그램 응답 없음");e.code="NOEXT";no(e);},ms||8000)};
+      window.postMessage({__lf:"req",id:id,type:type,payload:payload||{}},window.location.origin);
+    });
+  }
+  function detectExt(){
+    var v=document.documentElement.getAttribute("data-lf-ext");
+    if(v){ST.ext=v;paintExt();return;}
+    ext("ping",{},1500).then(function(d){ST.ext=d&&d.version||"?";paintExt();},function(){ST.ext=null;paintExt();});
+  }
+  function paintExt(){
+    var e=$("ord-ext");if(!e)return;
+    e.innerHTML=ST.ext?"<span style=\"color:#16a34a\">● 확장프로그램 연결됨 v"+esc(ST.ext)+"</span>"
+      :"<span style=\"color:#dc2626\">● 확장프로그램 미설치</span> <span style=\"color:#64748b\">— 크롬 <b>chrome://extensions</b> → 개발자 모드 → <b>압축해제된 확장 프로그램 로드</b>로 <b>LEESFACT 구매내역 연동</b> 폴더를 불러오세요.</span>";
+  }
+
+  /* ---- 매입 DB 매칭 ---- */
+  function findPdb(r){
+    for(var i=0;i<PDB.length;i++){var p=PDB[i];if(p&&(p.id===r.key||(p.orderOptionNo&&String(p.orderOptionNo)===String(r.orderOptionNo))))return{row:p,auto:true};}
+    var sz=typeof NSZ==="function"?NSZ(r.size):r.size,code=String(r.styleNo||"").trim().toUpperCase();
+    for(var j=0;j<PDB.length;j++){var q=PDB[j];if(!q||String(q.setNo||"")!==r.orderNo)continue;
+      if(!code||String(q.itemCode||"").trim().toUpperCase()===code){var s=q.sizes||{};if(!Object.keys(s).length||s[sz]!=null||s[r.size]!=null)return{row:q,auto:false};}}
+    return null;
+  }
+  function isClaim(r){return r.claimState>0;}
+  function statusOf(r){if(isClaim(r))return r.stateText||"취소/반품";if(r.orderState<40)return"구입중";if(r.orderState===40)return"배송완료";return"구매확정";}
+  function costOf(r){var c=cfg();return(Number(r.paid)||0)+(c.noPoint?0:(Number(r.point)||0));}
+  function catOf(r){var c=r.cat1||"";if(c==="바지")return"하의";return c||"기타";}
+  function sizeTypeOf(r){if(r.cat1==="신발")return"shoe";if(r.size==="FREE")return"free";if(r.cat1==="바지")return"pants";return"cloth";}
+  function cleanName(r){var n=String(r.goodsName||""),c=String(r.styleNo||"");if(c){var i=n.lastIndexOf(c);if(i>0&&i+c.length>=n.length-1)n=n.slice(0,i).replace(/[\s\/_\-(]+$/,"");}return n.trim();}
+  function itemCodeOf(r){
+    var c=String(r.styleNo||"").trim();
+    if(c){if(typeof skuFind==="function"){var s=skuFind(c)||skuFind(c.toUpperCase());if(s)return s.itemCode;}return c;}
+    if(typeof autoResolveItemCode==="function"){var m=autoResolveItemCode({productName:cleanName(r),brand:r.brand});if(m.code)return m.code;}
+    return"";
+  }
+  function toPdb(r,site){
+    var qty=Number(r.quantity)||1,tot=costOf(r),unit=Math.round(tot/qty),sz=typeof NSZ==="function"?NSZ(r.size):r.size,o={};o[sz]=qty;
+    var st=statusOf(r);
+    return{id:r.key,date:r.date,purchaseDate:r.date,itemCode:itemCodeOf(r),productName:cleanName(r),brand:r.brand||"",setNo:r.orderNo,
+      category:catOf(r),sizeType:sizeTypeOf(r),sizes:o,color:r.color||"",retailPrice:Number(r.normalPrice)||0,unitPrice:unit,supplyPrice:unit,
+      quantity:qty,totalPrice:tot,channel:site.ch,seller:"",status:st,memo:st==="구입중"?"구입중":"",
+      src:site.id,orderNo:r.orderNo,orderOptionNo:r.orderOptionNo,paidAmount:Number(r.paid)||0,pointUsed:Number(r.point)||0,syncedAt:new Date().toISOString()};
+  }
+  function regState(r){
+    var f=findPdb(r);if(!f)return{t:"new",label:"미등록"};
+    if(f.auto&&f.row.status!==statusOf(r))return{t:"chg",label:"상태변경",row:f.row};
+    return{t:"reg",label:f.auto?"등록됨":"등록됨(수동)",row:f.row};
+  }
+
+  /* ---- 화면 ---- */
+  function curRows(){
+    var all=ST.rows[ST.site]||[],c=cfg(),q=(($("ord-q")||{}).value||"").toLowerCase(),f=(($("ord-f")||{}).value||"");
+    return all.filter(function(r){
+      if(!c.showClaim&&isClaim(r))return false;
+      if(q&&[r.brand,r.goodsName,r.styleNo,r.orderNo,r.option].join(" ").toLowerCase().indexOf(q)<0)return false;
+      if(f){var g=regState(r).t;if(f==="new"&&g!=="new")return false;if(f==="reg"&&g==="new")return false;if(f==="chg"&&g!=="chg")return false;}
+      return true;
+    });
+  }
+  function render(){
+    var w=$("ord-tw");if(!w)return;
+    var site=SITES.filter(function(s){return s.id===ST.site;})[0];
+    document.querySelectorAll("#pg-ord .ord-site").forEach(function(b){b.className="bs ord-site"+(b.getAttribute("data-s")===ST.site?" ord-on":"");});
+    var meta=ST.rows[ST.site+"_at"];
+    $("ord-info").textContent=meta?("마지막 조회: "+new Date(meta).toLocaleString("ko-KR")+" · "+(ST.rows[ST.site]||[]).length+"건"):"";
+    if(!site.on){w.innerHTML="<div class=\"emp\">"+site.name+" 연동은 준비 중입니다.</div>";updSel();return;}
+    var rows=curRows();
+    if(!rows.length){w.innerHTML="<div class=\"emp\">"+(meta?"조건에 맞는 주문이 없습니다.":"기간을 고르고 <b>새로고침</b>을 눌러 구매내역을 불러오세요.")+"</div>";updSel();return;}
+    var h="<table class=\"mt\"><thead><tr><th style=\"text-align:center\"><input type=\"checkbox\" id=\"ord-all\"></th><th>등록</th><th>사진</th><th>주문일시</th><th>주문번호</th><th>상태</th><th>브랜드</th><th>상품명</th><th>품번</th><th>옵션</th><th>사이즈</th><th class=\"r\">수량</th><th class=\"r\">결제금액</th><th class=\"r\">적립금</th><th class=\"r\">매입가</th><th class=\"r\">개당</th></tr></thead><tbody>";
+    rows.forEach(function(r){
+      var g=regState(r),tot=costOf(r),q=Number(r.quantity)||1,claim=isClaim(r);
+      var col=g.t==="new"?"#2563eb":g.t==="chg"?"#d97706":"#16a34a";
+      var dis=g.t==="reg"?" disabled":"";
+      h+="<tr style=\""+(claim?"opacity:.5":"")+"\"><td style=\"text-align:center\"><input type=\"checkbox\" class=\"ord-chk\" data-k=\""+esc(r.key)+"\""+(ST.sel[r.key]&&!dis?" checked":"")+dis+"></td>"
+        +"<td style=\"color:"+col+";font-weight:600;white-space:nowrap\">"+g.label+(g.t==="chg"?"<div style=\"font-size:10px;color:#64748b\">"+esc(g.row.status||"-")+" → "+esc(statusOf(r))+"</div>":"")+"</td>"
+        +"<td>"+(r.image?"<a href=\""+esc(r.url)+"\" target=\"_blank\" rel=\"noopener\"><img src=\""+esc(r.image)+"\" style=\"width:38px;height:38px;object-fit:cover;border-radius:4px\" loading=\"lazy\"></a>":"")+"</td>"
+        +"<td class=\"cl-sl\" style=\"white-space:nowrap\">"+esc(r.orderDatetime)+"</td>"
+        +"<td style=\"font-size:10px\">"+esc(r.orderNo)+"</td>"
+        +"<td style=\"white-space:nowrap\">"+esc(r.stateText)+"</td>"
+        +"<td>"+esc(r.brand)+"</td>"
+        +"<td title=\""+esc(r.goodsName)+"\" style=\"max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap\">"+esc(cleanName(r))+"</td>"
+        +"<td class=\"cl-tl bld\">"+esc(r.styleNo||"—")+"</td>"
+        +"<td class=\"cl-sl\" style=\"font-size:10px\">"+esc(r.option)+"</td>"
+        +"<td class=\"bld\">"+esc(r.size)+"</td>"
+        +"<td class=\"r\">"+q+"</td>"
+        +"<td class=\"r\">₩"+won(r.paid)+"</td>"
+        +"<td class=\"r cl-sl\">"+(r.point?"₩"+won(r.point):"")+"</td>"
+        +"<td class=\"r cl-gn bld\">₩"+won(tot)+"</td>"
+        +"<td class=\"r cl-am\">₩"+won(Math.round(tot/q))+"</td></tr>";
+    });
+    h+="</tbody></table>";
+    w.innerHTML=h;
+    document.querySelectorAll("#ord-tw .ord-chk").forEach(function(c){c.onchange=function(){ST.sel[this.getAttribute("data-k")]=this.checked;updSel();};});
+    var all=$("ord-all");if(all)all.onchange=function(){document.querySelectorAll("#ord-tw .ord-chk:not([disabled])").forEach(function(c){c.checked=all.checked;ST.sel[c.getAttribute("data-k")]=all.checked;});updSel();};
+    updSel();
+  }
+  function selected(){var all=ST.rows[ST.site]||[];return all.filter(function(r){return ST.sel[r.key]&&regState(r).t!=="reg";});}
+  function updSel(){
+    var s=selected(),n=s.filter(function(r){return regState(r).t==="new";}).length,c=s.length-n;
+    var b=$("ord-save");if(b){b.disabled=!s.length;b.textContent=s.length?("✓ 선택 "+s.length+"건 매입 DB 반영"+(c?" (추가 "+n+" · 상태갱신 "+c+")":"")):"선택 항목 매입 DB 반영";}
+  }
+
+  /* ---- 동작 ---- */
+  function load(){
+    var site=SITES.filter(function(s){return s.id===ST.site;})[0];
+    if(!site.on){msg("mw",site.name+" 연동은 준비 중입니다.");return;}
+    if(ST.loading)return;
+    var from=$("ord-from").value,to=$("ord-to").value;
+    if(!from||!to||from>to){msg("md","조회 기간을 확인해주세요.");return;}
+    ST.loading=true;var btn=$("ord-load");btn.disabled=true;btn.textContent="불러오는 중...";
+    msg("mi",site.name+" 구매내역을 불러오는 중입니다... (보통 5~20초)");
+    ext("orders",{site:site.id,from:from,to:to},120000).then(function(d){
+      var rows=(d&&d.rows)||[];
+      rows.sort(function(a,b){return String(b.orderDatetime).localeCompare(String(a.orderDatetime));});
+      ST.rows[ST.site]=rows;ST.rows[ST.site+"_at"]=d&&d.at||new Date().toISOString();
+      try{localStorage.setItem("lf_ord_cache_"+ST.site,JSON.stringify({at:ST.rows[ST.site+"_at"],from:from,to:to,rows:rows}));}catch(e){}
+      var nNew=rows.filter(function(r){return regState(r).t==="new"&&!isClaim(r);}).length,nChg=rows.filter(function(r){return regState(r).t==="chg";}).length;
+      msg("ms","✓ "+rows.length+"건 불러옴 · 미등록 "+nNew+"건"+(nChg?" · 상태변경 "+nChg+"건":""));
+      render();
+    },function(e){
+      if(e.code==="NOEXT"){ST.ext=null;paintExt();msg("md","확장프로그램이 응답하지 않습니다. 설치 여부를 확인하고 페이지를 새로고침해주세요.");}
+      else if(e.code==="LOGIN")msg("md",e.message);
+      else msg("md","불러오기 실패: "+e.message);
+    }).then(function(){ST.loading=false;btn.disabled=false;btn.textContent="↻ 새로고침";});
+  }
+  function saveSel(){
+    var site=SITES.filter(function(s){return s.id===ST.site;})[0],s=selected();
+    if(!s.length)return;
+    var add=[],upd=[];
+    s.forEach(function(r){var g=regState(r);if(g.t==="new")add.push(r);else if(g.t==="chg")upd.push({r:r,row:g.row});});
+    var amt=add.reduce(function(t,r){return t+costOf(r);},0);
+    if(!confirm("매입 DB에 반영할까요?\n\n· 새로 추가: "+add.length+"건 (매입가 합계 ₩"+won(amt)+")\n· 상태 갱신: "+upd.length+"건\n\n추가되는 줄의 메모/상태: 배송 전이면 '구입중'"))return;
+    BAK(site.name+" 구매내역 반영 "+s.length+"건");
+    var rowsNew=add.map(function(r){return toPdb(r,site);});
+    upd.forEach(function(u){var st=statusOf(u.r);if(u.row.memo==="구입중"&&st!=="구입중")u.row.memo="";else if(!u.row.memo&&st==="구입중")u.row.memo="구입중";u.row.status=st;u.row.syncedAt=new Date().toISOString();});
+    PDB=rowsNew.concat(PDB);
+    ST.sel={};
+    if(typeof UH==="function")UH();
+    SC();
+    if(typeof fillPurchaseSkuOptions==="function")fillPurchaseSkuOptions();
+    var miss=rowsNew.filter(function(x){return !x.itemCode;}).length;
+    msg("ms","✓ 추가 "+rowsNew.length+"건 · 상태갱신 "+upd.length+"건 반영 완료"+(miss?" (품번 없는 "+miss+"건은 미매칭 SKU 탭에서 연결하세요)":""));
+    render();
+  }
+
+  /* ---- 탭/페이지 생성 ---- */
+  function build(){
+    if($("pg-ord"))return;
+    var tabs=document.querySelector(".tabs");if(!tabs)return;
+    var tb=document.createElement("button");tb.className="tab";tb.id="tab-ord";tb.textContent="🛒 구매내역 관리";
+    var pdbTab=$("tab-pdb");if(pdbTab&&pdbTab.nextSibling)tabs.insertBefore(tb,pdbTab.nextSibling);else tabs.appendChild(tb);
+    var pg=document.createElement("div");pg.id="pg-ord";pg.className="pg";
+    var c=cfg();
+    pg.innerHTML=
+      "<style>#pg-ord .ord-on{background:#2563eb!important;color:#fff!important;border-color:#2563eb!important}#pg-ord .ord-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}#pg-ord .ord-bar input[type=date],#pg-ord .ord-bar input[type=text],#pg-ord .ord-bar select{padding:5px 8px;font-size:12px}#pg-ord label.ck{font-size:11px;color:#475569;display:flex;gap:4px;align-items:center}#ord-tw{overflow:auto;max-height:68vh}</style>"
+      +"<div id=\"ord-msg\" class=\"msg\"></div>"
+      +"<div class=\"card\"><div class=\"slbl\">🛒 구매내역 관리 <span id=\"ord-ext\" style=\"font-size:11px;font-weight:400;margin-left:8px\"></span></div>"
+      +"<p style=\"font-size:11px;color:#94a3b8;line-height:1.7;margin-bottom:10px\">이 PC 크롬에 로그인된 소싱처 계정의 주문내역을 불러옵니다. 체크한 줄만 매입 DB에 추가되고, 이미 추가된 주문은 상태(구입중 → 배송완료 등)만 갱신됩니다. 다른 매입처 데이터는 건드리지 않습니다.</p>"
+      +"<div class=\"ord-bar\">"+SITES.map(function(s){return"<button class=\"bs ord-site\" data-s=\""+s.id+"\">"+s.name+(s.on?"":" (준비중)")+"</button>";}).join("")+"</div>"
+      +"<div class=\"ord-bar\"><button class=\"bs ord-pr\" data-d=\"7\">7일</button><button class=\"bs ord-pr\" data-d=\"30\">30일</button><button class=\"bs ord-pr\" data-d=\"90\">90일</button><button class=\"bs ord-pr\" data-d=\"365\">1년</button>"
+      +"<input type=\"date\" id=\"ord-from\"> ~ <input type=\"date\" id=\"ord-to\"> <button class=\"bp\" id=\"ord-load\">↻ 새로고침</button> <span id=\"ord-info\" style=\"font-size:11px;color:#64748b\"></span></div>"
+      +"<div class=\"ord-bar\"><input type=\"text\" id=\"ord-q\" placeholder=\"브랜드·상품명·품번·주문번호 검색\" style=\"min-width:240px\">"
+      +"<select id=\"ord-f\"><option value=\"\">전체</option><option value=\"new\">미등록만</option><option value=\"chg\">상태변경만</option><option value=\"reg\">등록됨만</option></select>"
+      +"<label class=\"ck\"><input type=\"checkbox\" id=\"ord-claim\""+(c.showClaim?" checked":"")+">취소/반품 표시</label>"
+      +"<label class=\"ck\"><input type=\"checkbox\" id=\"ord-pt\""+(c.noPoint?"":" checked")+">매입가에 적립금 사용액 포함</label>"
+      +"<span style=\"flex:1\"></span><button class=\"bp\" id=\"ord-save\" disabled>선택 항목 매입 DB 반영</button></div>"
+      +"<div id=\"ord-tw\"></div></div>";
+    var ref=$("pg-map")||document.querySelector(".pg:last-of-type");
+    ref.parentNode.insertBefore(pg,ref.nextSibling);
+
+    $("ord-from").value=c.from&&c.keepDates?c.from:daysAgo(30);$("ord-to").value=ymd(new Date());
+    document.querySelectorAll("#pg-ord .ord-site").forEach(function(b){b.onclick=function(){ST.site=b.getAttribute("data-s");ST.sel={};render();};});
+    document.querySelectorAll("#pg-ord .ord-pr").forEach(function(b){b.onclick=function(){$("ord-from").value=daysAgo(Number(b.getAttribute("data-d")));$("ord-to").value=ymd(new Date());load();};});
+    $("ord-load").onclick=load;
+    $("ord-q").oninput=render;$("ord-f").onchange=render;
+    $("ord-claim").onchange=function(){var x=cfg();x.showClaim=this.checked;saveCfg(x);render();};
+    $("ord-pt").onchange=function(){var x=cfg();x.noPoint=!this.checked;saveCfg(x);render();};
+    $("ord-save").onclick=saveSel;
+    tb.onclick=function(){GT("ord");};
+
+    SITES.forEach(function(s){try{var d=JSON.parse(localStorage.getItem("lf_ord_cache_"+s.id)||"null");if(d&&d.rows){ST.rows[s.id]=d.rows;ST.rows[s.id+"_at"]=d.at;}}catch(e){}});
+    paintExt();detectExt();
+  }
+  function show(){
+    document.querySelectorAll(".tabs .tab").forEach(function(t){t.classList.remove("on");});
+    document.querySelectorAll(".pg").forEach(function(p){p.classList.remove("on");});
+    $("tab-ord").classList.add("on");$("pg-ord").classList.add("on");
+    try{curTab="ord";}catch(e){}
+    render();
+  }
+  function hide(){var t=$("tab-ord"),p=$("pg-ord");if(t)t.classList.remove("on");if(p)p.classList.remove("on");}
+  function wrap(){
+    if(!window.GT||window.__lfOrdWrapped)return;
+    window.__lfOrdWrapped=true;
+    var old=window.GT;
+    window.GT=function(id){if(id==="ord")return show();hide();return old.apply(this,arguments);};
+    /* 다른 패치가 GT 바깥에서 탭을 바꾸는 경우 대비 */
+    document.addEventListener("click",function(ev){var t=ev.target&&ev.target.closest&&ev.target.closest(".tabs .tab");if(t&&t.id!=="tab-ord")hide();},true);
+  }
+  function init(){build();wrap();}
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
+  window.addEventListener("load",function(){setTimeout(init,500);setTimeout(init,2000);});
+  window.LF_ORD={state:ST,toPdb:toPdb,regState:regState,render:render};
 })();
 </script>
 

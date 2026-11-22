@@ -1118,7 +1118,8 @@ table.mt{font-size:var(--ui-font-size)!important;background:#ffffff!important}ta
 
 </head><body>
 <div class="hdr"><div style="display:flex;align-items:center;gap:9px"><div class="led off" id="led"></div><div class="brandwrap"><span class="brandmark" title="LEES FACT"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#050b14"></rect><path d="M14 45 L24 17 M23 45 L31 21 M24 45 C33 36 39 34 49 32 M34 45 C42 38 47 37 53 37" fill="none" stroke="#f8fafc" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path><path d="M11 50 H53" stroke="#0ea5e9" stroke-width="3" stroke-linecap="round" opacity="0.9"></path></svg></span><div class="logo">LEES<b>FACT</b> <span style="color:#475569;font-size:11px;font-weight:400">재고관리</span></div></div><span class="sbadge b-off" id="sbadge">연결 중...</span></div><div style="display:flex;align-items:center;gap:8px">
-<button class="bs" id="btn-undo" title="마지막 저장/수정/삭제 작업 실행취소" style="padding:5px 10px;font-size:10px">↩ 실행취소</button>
+<button class="bs" id="btn-undo" title="실행취소" style="padding:5px 10px;font-size:10px">↩ 실행취소</button>
+<button class="bs" id="btn-redo" title="다시실행" style="padding:5px 10px;font-size:10px">↪ 다시실행</button>
 <span id="undo-info" style="font-size:10px;color:#475569"></span>
 <span id="hcnt" style="font-size:10px;color:#475569">매입 0건 · 매출 0건</span>
 </div></div>
@@ -1473,42 +1474,92 @@ var pSk="date",pSd="desc",sSk="date",sSd="desc",stkSk="itemCode",stkSd="asc",mar
 var expanded={}, editingSaleId=null, editingPurchaseId=null, UNDO_KEY="LEESFACT_UNDO_STACK_V1", UNDO_MAX=20;
 
 function cloneDB(x){return JSON.parse(JSON.stringify(x||[]));}
-function readUndo(){try{return JSON.parse(localStorage.getItem(UNDO_KEY)||"[]")||[];}catch(e){return[];}}
-function writeUndo(h){try{localStorage.setItem(UNDO_KEY,JSON.stringify((h||[]).slice(0,UNDO_MAX)));}catch(e){}UUI();}
+/* ===== 실행취소 / 다시실행 (v2) =====
+   - 스냅샷은 이 탭의 메모리에만 보관 (localStorage 용량 초과로 백업이 조용히 멈추던 문제 해결)
+   - 서버에서 데이터를 다시 불러오면 스택 초기화 (다른 기기 작업을 옛 스냅샷으로 덮어쓰던 문제 해결)
+   - 실행취소 직전 상태를 REDO 스택에 보관 → 다시실행 가능
+   - 복원 전 건수 변화 표시, 데이터가 크게 줄면 2차 확인
+   - 예전 localStorage 스택(LEESFACT_UNDO_STACK_V1)은 복구용으로 건드리지 않고 남겨둠 */
+var UNDO_STACK=[],REDO_STACK=[];
+function snapState(label){return{at:new Date().toISOString(),label:label||"최근 작업",purchase:cloneDB(PDB),sales:cloneDB(SDB),sku:cloneDB(SKUDB)};}
+function readUndo(){return UNDO_STACK;}
+function writeUndo(h){UNDO_STACK=(h||[]).slice(0,UNDO_MAX);UUI();}
+function clearUndoStacks(){UNDO_STACK=[];REDO_STACK=[];UUI();}
 function BAK(label){
   try{
-    var h=readUndo();
-    h.unshift({at:new Date().toISOString(),label:label||"작업 전",purchase:cloneDB(PDB),sales:cloneDB(SDB),sku:cloneDB(SKUDB)});
-    writeUndo(h);
-  }catch(e){}
+    UNDO_STACK.unshift(snapState(label));
+    if(UNDO_STACK.length>UNDO_MAX)UNDO_STACK.length=UNDO_MAX;
+    REDO_STACK=[];
+  }catch(e){
+    console.error("UNDO BACKUP FAIL",e);
+    alert("실행취소용 백업에 실패했습니다. 이번 작업은 실행취소할 수 없습니다.");
+  }
+  UUI();
 }
 function UUI(){
-  var h=readUndo(),b=document.getElementById("btn-undo"),i=document.getElementById("undo-info");
-  if(b)b.disabled=!h.length;
-  if(i)i.textContent=h.length?("되돌릴 작업: "+(h[0].label||"최근 작업")):"";
+  var b=document.getElementById("btn-undo"),r=document.getElementById("btn-redo"),i=document.getElementById("undo-info");
+  if(b){b.disabled=!UNDO_STACK.length;b.title=UNDO_STACK.length?("실행취소: "+UNDO_STACK[0].label):"실행취소할 작업 없음";}
+  if(r){r.disabled=!REDO_STACK.length;r.title=REDO_STACK.length?("다시실행: "+REDO_STACK[0].label):"다시실행할 작업 없음";}
+  if(i)i.textContent=UNDO_STACK.length?("되돌릴 작업: "+UNDO_STACK[0].label+" ("+UNDO_STACK.length+")"):"";
 }
 function REPAINT(){
   UH();
+  if(typeof fillPurchaseSkuOptions==="function")fillPurchaseSkuOptions();
   if(curTab==="sku")rSku();
   if(curTab==="pdb")rP();
   if(curTab==="sdb")rS();
   if(curTab==="si"){FSC();RSG2();}
   if(curTab==="stk")rStk();
   if(curTab==="mar")rMar();
+  if(curTab==="map"&&typeof rMap==="function")rMap();
 }
-function UNDO(){
-  var h=readUndo();
-  if(!h.length){alert("실행취소할 작업이 없습니다.");return;}
-  var last=h.shift();
-  if(!confirm("마지막 작업을 실행취소할까요?\n\n대상: "+(last.label||"최근 작업")))return;
-  PDB=Array.isArray(last.purchase)?last.purchase:[];
-  SDB=Array.isArray(last.sales)?last.sales:[];
-  SKUDB=Array.isArray(last.sku)?last.sku:SKUDB;
-  writeUndo(h);
-  hideSaleEdit&&hideSaleEdit();hidePurchaseEdit&&hidePurchaseEdit();
+var UNDO_PARTS=[["sku","SKU MASTER"],["purchase","매입"],["sales","매출"]];
+function undoDiff(cur,target){
+  var lines=[],danger=[];
+  for(var i=0;i<UNDO_PARTS.length;i++){
+    var k=UNDO_PARTS[i][0],nm=UNDO_PARTS[i][1],a=(cur[k]||[]).length,b=(target[k]||[]).length;
+    if(a!==b)lines.push("· "+nm+": "+a+"건 → "+b+"건");
+    else if(JSON.stringify(cur[k])!==JSON.stringify(target[k]))lines.push("· "+nm+": "+a+"건 (내용 변경)");
+    if(a>0&&(b===0||(a-b>=10&&b<a*0.5)))danger.push(nm+" "+a+"→"+b+"건");
+  }
+  return{text:lines.length?lines.join("\n"):"· 변경되는 데이터 없음",danger:danger};
+}
+function applySnap(snap){
+  PDB=Array.isArray(snap.purchase)?snap.purchase:PDB;
+  SDB=Array.isArray(snap.sales)?snap.sales:SDB;
+  SKUDB=Array.isArray(snap.sku)?snap.sku:SKUDB;
+  try{hideSaleEdit();}catch(e){}
+  try{hidePurchaseEdit();}catch(e){}
   REPAINT();
   SC();
-  alert("실행취소 완료: "+(last.label||"최근 작업"));
+}
+function stepHistory(fromStack,toStack,verb){
+  if(!fromStack.length){alert(verb+"할 작업이 없습니다.");return false;}
+  var target=fromStack[0],cur=snapState(target.label),d=undoDiff(cur,target);
+  if(!confirm(verb+"할까요?\n\n대상: "+target.label+"\n\n"+d.text))return false;
+  if(d.danger.length&&!confirm("⚠ 데이터가 크게 줄어듭니다.\n\n"+d.danger.join("\n")+"\n\n서버에도 그대로 저장됩니다. 정말 진행할까요?"))return false;
+  fromStack.shift();
+  toStack.unshift(cur);
+  if(toStack.length>UNDO_MAX)toStack.length=UNDO_MAX;
+  applySnap(target);
+  UUI();
+  return true;
+}
+function UNDO(){if(stepHistory(UNDO_STACK,REDO_STACK,"실행취소"))SM("sku-msg","ms","✓ 실행취소 완료");}
+function REDO(){if(stepHistory(REDO_STACK,UNDO_STACK,"다시실행"))SM("sku-msg","ms","✓ 다시실행 완료");}
+/* 서버 안전망: 로딩 성공 시 하루 1회 <키>_backup 에 사본 저장. 건수가 절반 이하로 급감했으면 기존 백업 유지 */
+function serverBackup(){
+  var d=new Date().toISOString().slice(0,10);
+  [["purchase_db",PDB],["sales_db",SDB],["sku_master",SKUDB]].forEach(function(p){
+    var k=p[0]+"_backup",v=p[1];
+    if(!Array.isArray(v)||!v.length)return;
+    sbGet(k).then(function(old){
+      if(old&&old.date===d)return;
+      var oc=old&&Array.isArray(old.data)?old.data.length:0;
+      if(oc&&v.length<oc*0.5){console.warn("BACKUP KEEP (급감 감지)",k,oc,"→",v.length);return;}
+      return sbSet(k,{date:d,at:new Date().toISOString(),count:v.length,data:cloneDB(v)});
+    }).catch(function(e){console.warn("BACKUP SKIP",k,e);});
+  });
 }
 function fetchWithTimeout(url,opts,ms){ms=ms||8000;if(window.AbortController){var c=new AbortController(),t=setTimeout(function(){try{c.abort();}catch(e){}},ms);opts=opts||{};opts.signal=c.signal;return fetch(url,opts).finally(function(){clearTimeout(t);});}return Promise.race([fetch(url,opts||{}),new Promise(function(_,rej){setTimeout(function(){rej(new Error("TIMEOUT"));},ms);})]);}
 function sbGet(k){return fetchWithTimeout(SB+"/rest/v1/kv_store?key=eq."+encodeURIComponent(k)+"&select=value",{headers:{apikey:KEY,Authorization:"Bearer "+KEY}},8000).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(function(d){return(d&&d.length>0&&d[0].value)?d[0].value:null;});}
@@ -1517,7 +1568,7 @@ function SS(s){var l=document.getElementById("led"),b=document.getElementById("s
 function SC(){clearTimeout(saveTimer);saveTimer=setTimeout(function(){SS("ing");Promise.all([sbSet("purchase_db",PDB),sbSet("sales_db",SDB),sbSet("sku_master",SKUDB)]).then(function(){SS("ok");}).catch(function(e){console.error("SAVE ERROR",e);SS("err");});},800);}
 function safeGet(k){return sbGet(k).then(function(v){return{ok:true,key:k,value:v};}).catch(function(e){console.warn("LOAD FAIL",k,e);return{ok:false,key:k,value:null,error:e};});}
 function repaintAfterLoad(){UH();fillPurchaseSkuOptions();if(curTab==="sku")rSku();if(curTab==="pdb")rP();if(curTab==="sdb")rS();if(curTab==="si")FSC();if(curTab==="stk")rStk();if(curTab==="mar")rMar();}
-function LA(){SS("load");Promise.all([safeGet("purchase_db"),safeGet("sales_db"),safeGet("sku_master")]).then(function(res){var failed=[];for(var i=0;i<res.length;i++){var x=res[i];if(x.key==="purchase_db"&&x.ok)PDB=Array.isArray(x.value)?x.value:[];if(x.key==="sales_db"&&x.ok)SDB=Array.isArray(x.value)?x.value:[];if(x.key==="sku_master"&&x.ok)SKUDB=Array.isArray(x.value)?x.value:[];if(!x.ok)failed.push(x.key);}repaintAfterLoad();if(failed.length){SS("err");SM("sku-msg","mw","일부 데이터 로딩 실패/지연: "+failed.join(", ")+". 새로고침을 다시 눌러주세요.");}else SS("ok");}).catch(function(e){console.error("LOAD ERROR",e);SS("err");repaintAfterLoad();SM("sku-msg","md","Supabase 연결 실패: "+(e&&e.message?e.message:e));});}
+function LA(){SS("load");Promise.all([safeGet("purchase_db"),safeGet("sales_db"),safeGet("sku_master")]).then(function(res){var failed=[];for(var i=0;i<res.length;i++){var x=res[i];if(x.key==="purchase_db"&&x.ok)PDB=Array.isArray(x.value)?x.value:[];if(x.key==="sales_db"&&x.ok)SDB=Array.isArray(x.value)?x.value:[];if(x.key==="sku_master"&&x.ok)SKUDB=Array.isArray(x.value)?x.value:[];if(!x.ok)failed.push(x.key);}if(failed.length<res.length)clearUndoStacks();if(!failed.length)serverBackup();repaintAfterLoad();if(failed.length){SS("err");SM("sku-msg","mw","일부 데이터 로딩 실패/지연: "+failed.join(", ")+". 새로고침을 다시 눌러주세요.");}else SS("ok");}).catch(function(e){console.error("LOAD ERROR",e);SS("err");repaintAfterLoad();SM("sku-msg","md","Supabase 연결 실패: "+(e&&e.message?e.message:e));});}
 function today(){return new Date().toISOString().slice(0,10);}
 function UH(){document.getElementById("hcnt").textContent="매입 "+PDB.length+"건 · 매출 "+SDB.length+"건";UUI();}
 function SM(id,c,t){var e=document.getElementById(id);if(!e)return;e.className="msg on "+c;e.textContent=t;clearTimeout(MT[id]);if(c==="ms"||c==="mi")MT[id]=setTimeout(function(){e.classList.remove("on");},5000);}
@@ -2622,7 +2673,7 @@ function exportUnmapped(){
 function EXA(){if(!window.XLSX){alert("잠시 후 다시 시도해주세요.");return;}var d=anaData(),wb=XLSX.utils.book_new();var summary=[{"분석기간":d.range,"판매건수":d.rows.length,"판매수량":d.tot.qty,"실정산액":Math.round(d.tot.sales),"수수료":Math.round(d.tot.fee),"추정원가":Math.round(d.tot.cogs),"실마진":Math.round(d.tot.profit),"실마진율":d.tot.sales>0?(d.tot.profit/d.tot.sales*100).toFixed(1)+"%":""}];XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(summary),"분석요약");XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(Object.keys(d.byCh).map(function(k){return{"채널":k,"실정산액":Math.round(d.byCh[k])};})),"채널별");XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(d.bySku),"SKU별");XLSX.writeFile(wb,"LEESFACT_데이터분석_"+today()+".xlsx");}
 
 function EX(type){if(!window.XLSX){alert("쟠시 후 다시 시도해주세요.");return;}var wb=XLSX.utils.book_new(),ws,name;if(type==="sku"){var rows0=[];for(var si=0;si<SKUDB.length;si++){var x=SKUDB[si];rows0.push({"품번":x.itemCode,"품명":x.productName,"브랜드":x.brand,"카테고리":x.category,"사이즈타입":x.sizeType,"컬러":x.color,"소비자가":x.retailPrice,"메모":x.memo});}ws=XLSX.utils.json_to_sheet(rows0);name="SKU_MASTER";}else if(type==="purchase"){var rows=[],grp=groupByCode(PDB);for(var gi=0;gi<grp.order.length;gi++){var g=grp.map[grp.order[gi]],sz="",ks=Object.keys(g.sizes);for(var k=0;k<ks.length;k++)if(Number(g.sizes[ks[k]])>0)sz+=(sz?", ":"")+ks[k]+":"+g.sizes[ks[k]];rows.push({"품번":g.itemCode,"품명":g.productName,"브랜드":g.brand,"최근입고일":g.latestDate,"입고횟수":g.records.length,"사이즈별합산":sz,"총수량":g.quantity,"매입역액":g.totalPrice,"매입평균가(개당)":g.avgPrice});}ws=XLSX.utils.json_to_sheet(rows);name="매입DB";}else if(type==="sales"){var rows2=[];for(var j=0;j<SDB.length;j++){var it2=SDB[j],s2=it2.sizes||{},ks2=Object.keys(s2),sz2="";for(var k2=0;k2<ks2.length;k2++)if(Number(s2[ks2[k2]])>0)sz2+=(sz2?", ":"")+ks2[k2]+":"+s2[ks2[k2]];rows2.push({"날짜":it2.date||it2.period,"기간":it2.periodLabel,"단위":it2.unit==="week"?"주":"월","품번":it2.itemCode,"품명":it2.productName,"사이즈별판매":sz2,"판매수량":it2.soldQty,"실정산단가":it2.salePrice,"매출액단가":((Number(it2.soldQty)||0)>0?Math.round(SA(it2)/(Number(it2.soldQty)||0)):0),"실정산액":SA(it2),"수수료":SF(it2),"매출액":SG(it2),"채널":it2.channel,"메모":it2.memo});}ws=XLSX.utils.json_to_sheet(rows2);name="매출DB";}else if(type==="stock"){var stock=calcStk(),rows3=[];for(var si=0;si<stock.length;si++){var st=stock[si],sz3="",ks3=Object.keys(st.remSizes);for(var k3=0;k3<ks3.length;k3++)if(Number(st.remSizes[ks3[k3]])!==0)sz3+=(sz3?", ":"")+ks3[k3]+":"+st.remSizes[ks3[k3]];rows3.push({"품번":st.itemCode,"품명":st.productName,"브랜드":st.brand,"최근입고일":st.latestDate,"매입수량":st.boughtQty,"판매수량":st.soldQty,"현재고":st.remQty,"사이즈별현재고":sz3,"평균매입가":st.avgPrice,"현재고매입금액":st.remValue,"상태":st.remQty<0?"재고부족":(st.remQty===0?"소진":"재고있음")});}ws=XLSX.utils.json_to_sheet(rows3);name="현재고";}else{var mr=calcMargin(),rows4=[];for(var mi=0;mi<mr.length;mi++){var m=mr[mi];rows4.push({"품번":m.itemCode,"품명":m.productName,"브랜드":m.brand,"매입수량":m.boughtQty,"판매수량":m.soldQty,"현재고":m.remQty,"평균원가":m.avgPrice,"잔여매입가":m.remValue,"실정산액":m.totalSales,"수수료":m.totalFee||0,"매출액":m.grossSales||m.totalSales,"추정원가":m.costKnown?m.cogs:"원가미확인","마진액":m.realMargin,"실마진율":m.totalSales>0?m.marginRate.toFixed(1)+"%":"","상태":!m.costKnown&&m.soldQty>0?"원가미확인":(m.remQty<0?"재고부족":"정상")});}ws=XLSX.utils.json_to_sheet(rows4);name="SKU별판매마진";}XLSX.utils.book_append_sheet(wb,ws,name);XLSX.writeFile(wb,"LEESFACT_"+name+"_"+today()+".xlsx");}
-document.getElementById("btn-undo").onclick=UNDO;UUI();
+document.getElementById("btn-undo").onclick=UNDO;document.getElementById("btn-redo").onclick=REDO;UUI();
 document.getElementById("tab-ana").onclick=function(){GT("ana");};document.getElementById("tab-pi").onclick=function(){GT("pi");};document.getElementById("tab-pdb").onclick=function(){GT("pdb");};document.getElementById("tab-si").onclick=function(){GT("si");};document.getElementById("tab-sdb").onclick=function(){GT("sdb");};document.getElementById("tab-stk").onclick=function(){GT("stk");};document.getElementById("tab-mar").onclick=function(){GT("mar");};
 document.getElementById("st-shoe").onclick=function(){ST("shoe");};document.getElementById("st-cloth").onclick=function(){ST("cloth");};document.getElementById("st-pants").onclick=function(){ST("pants");};document.getElementById("st-free").onclick=function(){ST("free");};
 document.getElementById("p-sp").oninput=CGT;document.getElementById("btn-manual").onclick=SVM;document.getElementById("btn-pj").onclick=PJsave;

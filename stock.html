@@ -1,0 +1,51 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LEESFACT 무신사 재고</title>
+<style>
+:root{--bg:#f4f5f7;--surface:#fff;--ink:#15181e;--muted:#5d6473;--line:#e1e4ea;--accent:#2448c7;--good:#137a4a;--good-soft:#e3f4ea;--warn:#9a6100;--warn-soft:#fbf0db;--bad:#b3261e;--bad-soft:#fbe6e4;color-scheme:light}
+@media(prefers-color-scheme:dark){:root{--bg:#101216;--surface:#181b21;--ink:#e9ebf0;--muted:#9aa1af;--line:#2a2f38;--accent:#7d9bff;--good:#5fcf94;--good-soft:#15301f;--warn:#e6b45a;--warn-soft:#33270f;--bad:#ff8a80;--bad-soft:#3a1a18;color-scheme:dark}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 "Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif}
+.wrap{max-width:900px;margin:0 auto;padding:16px max(16px,env(safe-area-inset-right)) 48px max(16px,env(safe-area-inset-left));display:grid;gap:14px}
+h1{font-size:18px;margin:0}.sub{color:var(--muted);font-size:13px}.num{font-variant-numeric:tabular-nums}
+form{display:flex;gap:8px}input{flex:1;min-width:0;font:inherit;color:inherit;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+button{font:inherit;border:0;border-radius:8px;padding:10px 16px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer}button:disabled{opacity:.5}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.name{font-weight:600;font-size:16px;overflow-wrap:anywhere}.meta{display:flex;flex-wrap:wrap;gap:4px 18px;margin-top:8px;color:var(--muted)}.meta b{color:var(--ink)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:6px;margin-top:12px}
+.c{border:1px solid var(--line);border-radius:8px;padding:6px 8px;text-align:center}.c .z{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.c .q{font-weight:600;font-size:15px}
+.c.no{background:var(--bad-soft);border-color:transparent}.c.no .q{color:var(--bad)}.c.lo{background:var(--warn-soft);border-color:transparent}.c.lo .q{color:var(--warn)}.c.ok{background:var(--good-soft);border-color:transparent}.c.ok .q{color:var(--good)}
+summary{cursor:pointer;font-weight:600}.err{color:var(--bad)}a{color:var(--accent)}.cands button{background:var(--surface);color:var(--ink);border:1px solid var(--line);margin:6px 6px 0 0;font-weight:500}
+</style></head><body><div class="wrap">
+<div><h1>LEESFACT 무신사 재고</h1><div class="sub">품번을 넣으면 사이즈별 재고 수량, 가격, 누적 구매수를 바로 보여줍니다. 가격은 비회원 기준입니다.</div></div>
+<form id="f"><input id="q" type="search" placeholder="품번 (예: JW0109, CW2288-111) 또는 무신사 상품 URL" autocomplete="off" autofocus><button id="go">조회</button></form>
+<div id="out"></div>
+<details id="cfgBox" class="card"><summary>연결 설정</summary>
+<div class="sub" style="margin:8px 0">Supabase Edge Function 주소와(선택) 보안 키를 한 번만 저장하면 이 브라우저에 기억합니다.</div>
+<div style="display:grid;gap:8px"><input id="cfgUrl" placeholder="https://프로젝트ID.supabase.co/functions/v1/musinsa-stock"><input id="cfgK" placeholder="보안 키 TOKEN (설정한 경우만)"><div><button id="cfgSave" type="button">저장</button> <span id="cfgMsg" class="sub"></span></div></div></details></div>
+<script>
+var $=function(i){return document.getElementById(i)};
+function esc(v){return String(v==null?"":v).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
+function won(n){return n==null?"–":Math.round(n).toLocaleString("ko-KR")+"원"}
+function qt(z){return z.qty==null?"있음":z.qty===0?"품절":z.qty.toLocaleString("ko-KR")+(z.plus?"+":"")+"개"}
+function show(d,ms){
+ if(d.error==="not_found"){var c=(d.cands||[]).map(function(x){return '<button type="button" data-g="'+esc(x.gid)+'">'+esc(x.style||x.gid)+" · "+esc(x.name||"")+"</button>"}).join("");
+  $("out").innerHTML='<div class="card cands"><div class="name">찾지 못했습니다</div><div class="sub">품번 철자를 확인하거나 상품 URL을 넣어 보세요.</div>'+c+"</div>";return}
+ var t=d.sellStart?new Date(d.sellStart):null,pd=null;if(t&&!isNaN(t)&&d.purchaseTotal!=null){var days=Math.max(1,Math.round((Date.now()-t.getTime())/864e5));pd={days:days,v:d.purchaseTotal/days}}
+ var tot=0;d.sizes.forEach(function(z){if(z.qty!=null)tot+=z.qty});var unk=d.sizes.filter(function(z){return z.qty==null}).length;
+ var g=d.sizes.map(function(z){var k=z.qty==null?"":z.qty===0?" no":(z.qty<5&&!z.plus)?" lo":" ok";return '<div class="c'+k+'"><div class="z" title="'+esc(z.size)+'">'+esc(z.size)+(z.extra?" +"+z.extra.toLocaleString("ko-KR"):"")+'</div><div class="q num">'+qt(z)+"</div></div>"}).join("");
+ $("out").innerHTML='<div class="card"><div class="name">'+esc(d.name)+'</div><div class="sub">'+esc([d.brand,d.style].filter(Boolean).join(" · "))+' · <a href="https://www.musinsa.com/products/'+esc(d.gid)+'" target="_blank" rel="noopener">무신사에서 보기</a></div>'+
+ '<div class="meta"><span>매입가 <b class="num">'+won(d.final!=null?d.final:d.price)+"</b>"+(d.final!=null&&d.price!=null&&d.final!==d.price?" (정가 "+won(d.price)+")":"")+"</span>"+
+ "<span>누적 구매 <b class=\"num\">"+(d.purchaseTotal!=null?d.purchaseTotal.toLocaleString("ko-KR")+"회":"–")+"</b></span>"+(pd?"<span>하루 평균 <b class=\"num\">"+(pd.v>=10?Math.round(pd.v):pd.v.toFixed(1))+"회</b> ("+pd.days+"일)</span>":"")+
+ "<span>조회수 <b class=\"num\">"+(d.pageView!=null?d.pageView.toLocaleString("ko-KR"):"–")+"</b></span></div>"+
+ '<div class="grid">'+g+'</div><div class="sub" style="margin-top:10px">재고 합계 <b class="num">'+tot.toLocaleString("ko-KR")+"개"+(d.sizes.some(function(z){return z.plus})?"+":"")+"</b>"+(unk?" · 수량 미확인 "+unk+"개 사이즈":"")+(d.oos?' · <span class="err">상품 전체 품절</span>':"")+" · "+ms+"ms · 숫자 뒤 + 는 그 이상</div></div>"}
+var seq=0;
+var CFG={url:"",k:""};try{CFG.url=localStorage.getItem("lf_fn_url")||"";CFG.k=localStorage.getItem("lf_fn_k")||""}catch(e){}
+$("cfgUrl").value=CFG.url;$("cfgK").value=CFG.k;if(!CFG.url)$("cfgBox").open=true;
+$("cfgSave").addEventListener("click",function(){var u=$("cfgUrl").value.trim().replace(/\/+$/,"");if(!/^https:\/\//i.test(u)){$("cfgMsg").textContent="https:// 로 시작하는 주소를 넣어 주세요.";return}CFG.url=u;CFG.k=$("cfgK").value.trim();try{localStorage.setItem("lf_fn_url",CFG.url);localStorage.setItem("lf_fn_k",CFG.k)}catch(e){}$("cfgMsg").textContent="저장했습니다.";$("cfgBox").open=false;if($("q").value)run($("q").value)});
+async function run(q){q=String(q||"").trim();if(!q)return;if(!CFG.url){$("cfgBox").open=true;$("out").innerHTML='<div class="card err">먼저 아래 연결 설정에 함수 주소를 저장하세요.</div>';return}var my=++seq,t0=performance.now();$("go").disabled=true;$("out").innerHTML='<div class="sub">조회 중…</div>';
+ try{var r=await fetch(CFG.url+"?q="+encodeURIComponent(q)+(CFG.k?"&k="+encodeURIComponent(CFG.k):"")),d=await r.json();if(my!==seq)return;if(!r.ok&&d.error!=="not_found")throw new Error(d.message||d.error);show(d,Math.round(performance.now()-t0));
+  try{history.replaceState(null,"","?q="+encodeURIComponent(q))}catch(e){}}
+ catch(e){if(my===seq)$("out").innerHTML='<div class="card err">조회 실패: '+esc(e.message||e)+"</div>"}finally{$("go").disabled=false}}
+$("f").addEventListener("submit",function(e){e.preventDefault();run($("q").value)});
+$("out").addEventListener("click",function(e){var b=e.target.closest("[data-g]");if(b){$("q").value=b.getAttribute("data-g");run(b.getAttribute("data-g"))}});
+var p=new URLSearchParams(location.search).get("q");if(p){$("q").value=p;run(p)}
+</script></body></html>

@@ -119,12 +119,18 @@ async function collectMusinsa(from, to) {
   }
   orders = orders.filter(function (o) { return o.isOnline !== false; });
 
-  // 2) 주문별 적립금 사용액 (주문 상세)
-  var points = {};
+  // 2) 주문별 적립금 사용액·카드 즉시할인 (주문 상세)
+  //    즉시할인 = 결제금액(recv_amt) - 즉시 할인가(without_recv_amt_promotion_discount_amt)
+  //    적립금 = point_amt (use_point_amt + pre_point_amt 선적립 사용 포함)
+  var points = {}, instant = {};
   await pool(orders, 3, async function (o) {
     var v = await J("https://www.musinsa.com/order-service/my/order/get_order_view/" + o.orderNo);
     var info = (v && v.orderInfo) || {};
-    points[o.orderNo] = num(info.use_point_amt);
+    points[o.orderNo] = num(info.point_amt) || (num(info.use_point_amt) + num(info.pre_point_amt));
+    var recv = num(info.recv_amt), after = num(info.without_recv_amt_promotion_discount_amt);
+    var inst = (recv > 0 && after > 0 && after < recv) ? recv - after : num(info.promotion_discount_amt);
+    inst += num(info.affiliateCardDiscountAmount) && !(after > 0 && after < recv) ? num(info.affiliateCardDiscountAmount) : 0;
+    instant[o.orderNo] = Math.max(0, inst);
   });
 
   // 3) 상품 정보 (품번/카테고리/정가)
@@ -147,13 +153,18 @@ async function collectMusinsa(from, to) {
   orders.forEach(function (o) {
     var opts = o.orderOptionList || [];
     var paidSum = opts.reduce(function (s, x) { return s + num(x.receiveAmount); }, 0);
-    var pt = points[o.orderNo] || 0, ptLeft = pt;
+    var pt = points[o.orderNo] || 0, ptLeft = pt, ins = instant[o.orderNo] || 0, insLeft = ins;
     opts.forEach(function (x, idx) {
       var paid = num(x.receiveAmount);
       var share = 0;
       if (pt > 0) {
         share = idx === opts.length - 1 ? ptLeft : (paidSum > 0 ? Math.round(pt * paid / paidSum) : Math.round(pt / opts.length));
         ptLeft -= share;
+      }
+      var cardDc = 0;
+      if (ins > 0) {
+        cardDc = idx === opts.length - 1 ? insLeft : (paidSum > 0 ? Math.round(ins * paid / paidSum) : Math.round(ins / opts.length));
+        insLeft -= cardDc;
       }
       var opt = String(x.goodsOption || x.originGoodsOption || "").trim();
       var parts = opt.split("·");
@@ -186,6 +197,7 @@ async function collectMusinsa(from, to) {
         size: size,
         quantity: num(x.quantity) || 1,
         paid: paid,
+        cardDc: cardDc,
         point: share,
         orderState: num(x.orderState),
         claimState: num(x.claimState),

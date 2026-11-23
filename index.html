@@ -4652,7 +4652,7 @@ dl.innerHTML=h;}
 }
 </style>
 <script>
-/* ===== LEESFACT 구매내역 관리 탭 v1.1 (2026-11-24: 반품·상태 자동 반영) =====
+/* ===== LEESFACT 구매내역 관리 탭 v1.2 (2026-11-24: 카드 즉시할인 반영, 매입가 자동 정정) =====
    - 크롬 확장 "LEESFACT 구매내역 연동"을 통해 소싱처 주문내역을 불러와 선택한 줄만 매입 DB에 추가
    - 자동 추가된 줄: id="ms_<주문옵션번호>", src="musinsa" → 다시 불러와도 중복 없음
    - 이미 등록된 줄은 상태(구입중→배송완료 등)만 갱신, 사용자가 고친 다른 값은 건드리지 않음 */
@@ -4693,9 +4693,10 @@ dl.innerHTML=h;}
   }
   function paintExt(){
     var e=$("ord-ext");if(!e)return;
-    e.innerHTML=ST.ext?"<span style=\"color:#16a34a\">● 확장프로그램 연결됨 v"+esc(ST.ext)+"</span>"
+    var old=ST.ext&&ST.ext!=="?"&&ST.ext.split(".").map(Number).reduce(function(a,v,i){return a+v*Math.pow(1000,2-i);},0)<1000001;
+    e.innerHTML=ST.ext?(old?"<span style=\"color:#d97706\">● 확장프로그램 v"+esc(ST.ext)+" — 카드 즉시할인 반영을 위해 v1.0.1로 업데이트해주세요 (새 파일로 폴더 교체 → chrome://extensions에서 ↻ 새로고침)</span>":"<span style=\"color:#16a34a\">● 확장프로그램 연결됨 v"+esc(ST.ext)+"</span>")
       :(/Android|iPhone|iPad|Mobi/i.test(navigator.userAgent)?"<span style=\"color:#64748b\">● 모바일에서는 불러오기를 할 수 없어요. 집 PC에서 반영된 매입 DB는 그대로 보입니다.</span>"
-      :"<span style=\"color:#dc2626\">● 확장프로그램 미설치</span> <span style=\"color:#64748b\">— 크롬 <b>chrome://extensions</b> → 개발자 모드 → <b>압축해제된 확장 프로그램 로드</b>로 <b>LEESFACT 구매내역 연동</b> 폴더를 불러오세요.</span>");
+      :"<span style=\"color:#dc2626\">● 확장프로그램 미설치</span> <span style=\"color:#64748b\">— 크롬 <b>chrome://extensions</b> → 개발자 모드 → <b>압축해제된 확장 프로그램 로드</b>로 <b>LEESFACT_purchase_sync</b> 폴더를 불러오세요.</span>");
   }
 
   /* ---- 매입 DB 매칭 ---- */
@@ -4713,19 +4714,29 @@ dl.innerHTML=h;}
   /* 이미 등록된(자동 추가) 줄의 상태·메모만 갱신. 새 줄 추가 없음, 수동 입력 줄 건드리지 않음 */
   function applyStatus(rows,why){
     var ch=[];
-    (rows||[]).forEach(function(r){var f=findPdb(r);if(f&&f.auto&&f.row.status!==statusOf(r))ch.push({r:r,row:f.row});});
-    if(!ch.length)return{n:0,ret:0};
+    (rows||[]).forEach(function(r){var f=findPdb(r);if(f&&f.auto&&(f.row.status!==statusOf(r)||priceDiff(f.row,r)))ch.push({r:r,row:f.row});});
+    if(!ch.length)return{n:0,ret:0,price:0};
     BAK("구매 상태 자동갱신 "+ch.length+"건");
-    var ret=0;
-    ch.forEach(function(u){var st=statusOf(u.r);if(/^(반품|취소|환불)/.test(st))ret++;
-      u.row.status=st;if(isAutoMemo(u.row.memo))u.row.memo=autoMemo(st);
+    var ret=0,price=0;
+    ch.forEach(function(u){var st=statusOf(u.r);
+      if(u.row.status!==st){if(/^(반품|취소|환불)/.test(st))ret++;u.row.status=st;if(isAutoMemo(u.row.memo))u.row.memo=autoMemo(st);}
+      if(priceDiff(u.row,u.r)){setPrice(u.row,u.r);price++;}
       u.row.claimState=u.r.claimState;u.row.syncedAt=new Date().toISOString();});
     if(typeof UH==="function")UH();
     SC();
     if(typeof REPAINT==="function")REPAINT();
-    return{n:ch.length,ret:ret};
+    return{n:ch.length,ret:ret,price:price};
   }
-  function costOf(r){var c=cfg();return(Number(r.paid)||0)+(c.noPoint?0:(Number(r.point)||0));}
+  function setPrice(row,r){var q=Number(row.quantity)||Number(r.quantity)||1,t=costOf(r),u=Math.round(t/q);
+    row.totalPrice=t;row.unitPrice=u;row.supplyPrice=u;row.autoTotal=t;row.paidAmount=Number(r.paid)||0;row.cardDc=Number(r.cardDc)||0;row.pointUsed=Number(r.point)||0;}
+  /* 매입가 = 결제금액 - 카드 즉시할인 (= 무신사 '즉시 할인가') [+ 적립금 사용액: 설정 시] */
+  function costOf(r){var c=cfg();return(Number(r.paid)||0)-(Number(r.cardDc)||0)+(c.withPoint?(Number(r.point)||0):0);}
+  function untouchedPrice(row){
+    if(row.autoTotal!=null)return Number(row.totalPrice)===Number(row.autoTotal);
+    var pa=Number(row.paidAmount)||0,pu=Number(row.pointUsed)||0,t=Number(row.totalPrice)||0;
+    return pa>0&&(t===pa||t===pa+pu);
+  }
+  function priceDiff(row,r){return r.cardDc!=null&&untouchedPrice(row)&&Number(row.totalPrice)!==costOf(r);}
   function catOf(r){var c=r.cat1||"";if(c==="바지")return"하의";return c||"기타";}
   function sizeTypeOf(r){if(r.cat1==="신발")return"shoe";if(r.size==="FREE")return"free";if(r.cat1==="바지")return"pants";return"cloth";}
   function cleanName(r){var n=String(r.goodsName||""),c=String(r.styleNo||"");if(c){var i=n.lastIndexOf(c);if(i>0&&i+c.length>=n.length-1)n=n.slice(0,i).replace(/[\s\/_\-(]+$/,"");}return n.trim();}
@@ -4741,11 +4752,12 @@ dl.innerHTML=h;}
     return{id:r.key,date:r.date,purchaseDate:r.date,itemCode:itemCodeOf(r),productName:cleanName(r),brand:r.brand||"",setNo:r.orderNo,
       category:catOf(r),sizeType:sizeTypeOf(r),sizes:o,color:r.color||"",retailPrice:Number(r.normalPrice)||0,unitPrice:unit,supplyPrice:unit,
       quantity:qty,totalPrice:tot,channel:site.ch,seller:"",status:st,memo:autoMemo(st),claimState:r.claimState,
-      src:site.id,orderNo:r.orderNo,orderOptionNo:r.orderOptionNo,paidAmount:Number(r.paid)||0,pointUsed:Number(r.point)||0,syncedAt:new Date().toISOString()};
+      src:site.id,orderNo:r.orderNo,orderOptionNo:r.orderOptionNo,paidAmount:Number(r.paid)||0,cardDc:Number(r.cardDc)||0,pointUsed:Number(r.point)||0,autoTotal:tot,syncedAt:new Date().toISOString()};
   }
   function regState(r){
     var f=findPdb(r);if(!f)return{t:"new",label:"미등록"};
-    if(f.auto&&f.row.status!==statusOf(r))return{t:"chg",label:"상태변경",row:f.row};
+    if(f.auto){var sd=f.row.status!==statusOf(r),pd=priceDiff(f.row,r);
+      if(sd||pd)return{t:"chg",label:sd&&pd?"상태·금액변경":sd?"상태변경":"매입가 정정",row:f.row,sd:sd,pd:pd};}
     return{t:"reg",label:f.auto?"등록됨":"등록됨(수동)",row:f.row};
   }
 
@@ -4768,13 +4780,13 @@ dl.innerHTML=h;}
     if(!site.on){w.innerHTML="<div class=\"emp\">"+site.name+" 연동은 준비 중입니다.</div>";updSel();return;}
     var rows=curRows();
     if(!rows.length){w.innerHTML="<div class=\"emp\">"+(meta?"조건에 맞는 주문이 없습니다.":"기간을 고르고 <b>새로고침</b>을 눌러 구매내역을 불러오세요.")+"</div>";updSel();return;}
-    var h="<table class=\"mt\"><thead><tr><th style=\"text-align:center\"><input type=\"checkbox\" id=\"ord-all\"></th><th>등록</th><th>사진</th><th>주문일시</th><th>주문번호</th><th>상태</th><th>브랜드</th><th>상품명</th><th>품번</th><th>옵션</th><th>사이즈</th><th class=\"r\">수량</th><th class=\"r\">결제금액</th><th class=\"r\">적립금</th><th class=\"r\">매입가</th><th class=\"r\">개당</th></tr></thead><tbody>";
+    var h="<table class=\"mt\"><thead><tr><th style=\"text-align:center\"><input type=\"checkbox\" id=\"ord-all\"></th><th>등록</th><th>사진</th><th>주문일시</th><th>주문번호</th><th>상태</th><th>브랜드</th><th>상품명</th><th>품번</th><th>옵션</th><th>사이즈</th><th class=\"r\">수량</th><th class=\"r\">결제금액</th><th class=\"r\">카드즉시할인</th><th class=\"r\">적립금</th><th class=\"r\">매입가</th><th class=\"r\">개당</th></tr></thead><tbody>";
     rows.forEach(function(r){
       var g=regState(r),tot=costOf(r),q=Number(r.quantity)||1,claim=isClaim(r);
       var col=g.t==="new"?"#2563eb":g.t==="chg"?"#d97706":"#16a34a";
       var dis=g.t==="reg"?" disabled":"";
       h+="<tr style=\""+(claim?"opacity:.5":"")+"\"><td style=\"text-align:center\"><input type=\"checkbox\" class=\"ord-chk\" data-k=\""+esc(r.key)+"\""+(ST.sel[r.key]&&!dis?" checked":"")+dis+"></td>"
-        +"<td style=\"color:"+col+";font-weight:600;white-space:nowrap\">"+g.label+(g.t==="chg"?"<div style=\"font-size:10px;color:#64748b\">"+esc(g.row.status||"-")+" → "+esc(statusOf(r))+"</div>":"")+"</td>"
+        +"<td style=\"color:"+col+";font-weight:600;white-space:nowrap\">"+g.label+(g.t==="chg"&&g.sd?"<div style=\"font-size:10px;color:#64748b\">"+esc(g.row.status||"-")+" → "+esc(statusOf(r))+"</div>":"")+(g.t==="chg"&&g.pd?"<div style=\"font-size:10px;color:#64748b\">₩"+won(g.row.totalPrice)+" → ₩"+won(costOf(r))+"</div>":"")+"</td>"
         +"<td>"+(r.image?"<a href=\""+esc(r.url)+"\" target=\"_blank\" rel=\"noopener\"><img src=\""+esc(r.image)+"\" style=\"width:38px;height:38px;object-fit:cover;border-radius:4px\" loading=\"lazy\"></a>":"")+"</td>"
         +"<td class=\"cl-sl\" style=\"white-space:nowrap\">"+esc(r.orderDatetime)+"</td>"
         +"<td style=\"font-size:10px\">"+esc(r.orderNo)+"</td>"
@@ -4786,6 +4798,7 @@ dl.innerHTML=h;}
         +"<td class=\"bld\">"+esc(r.size)+"</td>"
         +"<td class=\"r\">"+q+"</td>"
         +"<td class=\"r\">₩"+won(r.paid)+"</td>"
+        +"<td class=\"r\" style=\"color:#2563eb\">"+(r.cardDc?"-₩"+won(r.cardDc):"")+"</td>"
         +"<td class=\"r cl-sl\">"+(r.point?"₩"+won(r.point):"")+"</td>"
         +"<td class=\"r cl-gn bld\">₩"+won(tot)+"</td>"
         +"<td class=\"r cl-am\">₩"+won(Math.round(tot/q))+"</td></tr>";
@@ -4818,7 +4831,7 @@ dl.innerHTML=h;}
       try{localStorage.setItem("lf_ord_cache_"+ST.site,JSON.stringify({at:ST.rows[ST.site+"_at"],from:from,to:to,rows:rows}));}catch(e){}
       var a=cfg().noAuto?{n:0,ret:0}:applyStatus(rows,"manual");
       var nNew=rows.filter(function(r){return regState(r).t==="new"&&!isClaim(r);}).length,nChg=rows.filter(function(r){return regState(r).t==="chg";}).length;
-      msg("ms","✓ "+rows.length+"건 불러옴 · 미등록 "+nNew+"건"+(a.n?" · 상태 자동갱신 "+a.n+"건"+(a.ret?" (반품/취소 "+a.ret+")":""):"")+(nChg?" · 상태변경 "+nChg+"건":""));
+      msg("ms","✓ "+rows.length+"건 불러옴 · 미등록 "+nNew+"건"+(a.n?" · 자동갱신 "+a.n+"건"+(a.ret?" (반품/취소 "+a.ret+")":"")+(a.price?" (매입가 정정 "+a.price+")":""):"")+(nChg?" · 상태변경 "+nChg+"건":""));
       render();
     },function(e){
       if(e.code==="NOEXT"){ST.ext=null;paintExt();msg("md","확장프로그램이 응답하지 않습니다. 설치 여부를 확인하고 페이지를 새로고침해주세요.");}
@@ -4865,7 +4878,7 @@ dl.innerHTML=h;}
         try{localStorage.setItem("lf_ord_cache_musinsa",JSON.stringify({at:ST.rows.musinsa_at,from:from,to:to,rows:rows}));}catch(e){}
       }
       var a=applyStatus(rows,"auto");
-      if(a.n)SM("sku-msg","mi","🛒 무신사 주문 상태 자동반영 "+a.n+"건"+(a.ret?" (반품/취소 "+a.ret+"건)":""));
+      if(a.n)SM("sku-msg","mi","🛒 무신사 주문 자동반영 "+a.n+"건"+(a.ret?" (반품/취소 "+a.ret+"건)":"")+(a.price?" (매입가 정정 "+a.price+"건)":""));
       if($("pg-ord")&&$("pg-ord").classList.contains("on"))render();
     },function(e){console.warn("[구매내역 자동반영] 건너뜀:",e&&e.message);}).then(function(){autoBusy=false;});
   }
@@ -4890,7 +4903,7 @@ dl.innerHTML=h;}
       +"<div class=\"ord-bar\"><input type=\"text\" id=\"ord-q\" placeholder=\"브랜드·상품명·품번·주문번호 검색\" style=\"min-width:240px\">"
       +"<select id=\"ord-f\"><option value=\"\">전체</option><option value=\"new\">미등록만</option><option value=\"chg\">상태변경만</option><option value=\"reg\">등록됨만</option></select>"
       +"<label class=\"ck\"><input type=\"checkbox\" id=\"ord-claim\""+(c.showClaim?" checked":"")+">취소/반품 표시</label>"
-      +"<label class=\"ck\"><input type=\"checkbox\" id=\"ord-pt\""+(c.noPoint?"":" checked")+">매입가에 적립금 사용액 포함</label>"
+      +"<label class=\"ck\" title=\"끄면 매입가 = 무신사 '즉시 할인가'(결제금액 - 카드 즉시할인)\"><input type=\"checkbox\" id=\"ord-pt\""+(c.withPoint?" checked":"")+">매입가에 적립금 사용액 더하기</label>"
       +"<label class=\"ck\" title=\"확장이 설치된 PC에서 페이지를 열면 3시간마다 최근 90일 주문을 확인해, 이미 등록된 줄의 상태(배송완료·반품·취소)와 메모를 자동으로 바꿉니다. 새 줄은 추가하지 않습니다.\"><input type=\"checkbox\" id=\"ord-auto\""+(c.noAuto?"":" checked")+">반품·배송상태 자동 반영</label>"
       +"<span style=\"flex:1\"></span><button class=\"bp\" id=\"ord-save\" disabled>선택 항목 매입 DB 반영</button></div>"
       +"<div id=\"ord-tw\"></div></div>";
@@ -4903,7 +4916,7 @@ dl.innerHTML=h;}
     $("ord-load").onclick=load;
     $("ord-q").oninput=render;$("ord-f").onchange=render;
     $("ord-claim").onchange=function(){var x=cfg();x.showClaim=this.checked;saveCfg(x);render();};
-    $("ord-pt").onchange=function(){var x=cfg();x.noPoint=!this.checked;saveCfg(x);render();};
+    $("ord-pt").onchange=function(){var x=cfg();x.withPoint=this.checked;delete x.noPoint;saveCfg(x);render();};
     $("ord-auto").onchange=function(){var x=cfg();x.noAuto=!this.checked;saveCfg(x);if(this.checked)autoSync(true);};
     $("ord-save").onclick=saveSel;
     tb.onclick=function(){GT("ord");};

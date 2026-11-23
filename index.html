@@ -4626,8 +4626,33 @@ dl.innerHTML=h;}
 })();
 </script>
 
+<style>
+/* ===== LEESFACT Mobile Scroll FIX v20261124 =====
+   PC(900px 초과)는 기존 '표를 화면 폭에 맞춤' 유지.
+   모바일/좁은 화면은 표를 원래 너비로 두고 좌우 스크롤. (:is(#id…)로 기존 ID 규칙보다 우선) */
+@media (max-width:900px){
+  :is(.tw,#skuw,#ptw,#stw,#stkw,#marw,#mapw,#ana-top-sku,#ana-margin-sku,#margin-top-card,#ana-risk,#cash-table,#turnover-table,#defense-table,#calc-info,#calc-target,#direct-result,#direct-target,#pg-calc,#pg-price,#ord-tw){
+    overflow-x:auto!important;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;max-width:100%!important;
+  }
+  :is(.tw,#skuw,#ptw,#stw,#stkw,#marw,#mapw,#ana-top-sku,#ana-margin-sku,#margin-top-card,#ana-risk,#cash-table,#turnover-table,#defense-table,#calc-info,#calc-target,#direct-result,#direct-target,#pg-calc,#pg-price,#ord-tw) table.mt{
+    table-layout:auto!important;width:max-content!important;min-width:100%!important;max-width:none!important;
+  }
+  :is(.tw,#skuw,#ptw,#stw,#stkw,#marw,#mapw,#ana-top-sku,#ana-margin-sku,#margin-top-card,#ana-risk,#cash-table,#turnover-table,#defense-table,#calc-info,#calc-target,#direct-result,#direct-target,#pg-calc,#pg-price,#ord-tw) table.mt :is(th,td){
+    white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;max-width:none!important;
+  }
+  :is(.tw,#skuw,#ptw,#stw,#stkw,#marw,#mapw,#ord-tw) table.mt td[title]{max-width:220px!important;overflow:hidden!important;text-overflow:ellipsis!important;}
+  .pg{padding:10px 8px!important;}
+  .card{overflow:visible;}
+  .hdr{height:auto!important;min-height:50px;flex-wrap:wrap;gap:6px;padding:6px 10px!important;}
+  .hdr>div{flex-wrap:wrap;gap:6px;}
+  .tabs{flex-wrap:nowrap!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch;padding:0 6px!important;}
+  .tabs .tab{flex:0 0 auto;white-space:nowrap;}
+  #pg-ord .ord-bar{flex-wrap:wrap;}
+  #pg-ord #ord-q{min-width:0!important;flex:1 1 160px;}
+}
+</style>
 <script>
-/* ===== LEESFACT 구매내역 관리 탭 v1 (2026-11-23) =====
+/* ===== LEESFACT 구매내역 관리 탭 v1.1 (2026-11-24: 반품·상태 자동 반영) =====
    - 크롬 확장 "LEESFACT 구매내역 연동"을 통해 소싱처 주문내역을 불러와 선택한 줄만 매입 DB에 추가
    - 자동 추가된 줄: id="ms_<주문옵션번호>", src="musinsa" → 다시 불러와도 중복 없음
    - 이미 등록된 줄은 상태(구입중→배송완료 등)만 갱신, 사용자가 고친 다른 값은 건드리지 않음 */
@@ -4649,7 +4674,7 @@ dl.innerHTML=h;}
   window.addEventListener("message",function(ev){
     if(ev.source!==window||!ev.data)return;
     var m=ev.data;
-    if(m.__lf==="hello"){ST.ext=m.version;paintExt();return;}
+    if(m.__lf==="hello"){ST.ext=m.version;paintExt();setTimeout(function(){autoSync(false);},8000);return;}
     if(m.__lf!=="res")return;
     var r=REQ[m.id];if(!r)return;delete REQ[m.id];clearTimeout(r.t);
     if(m.ok)r.ok(m.data);else{var e=new Error(m.error||"확장 오류");e.code=m.code;r.no(e);}
@@ -4663,13 +4688,14 @@ dl.innerHTML=h;}
   }
   function detectExt(){
     var v=document.documentElement.getAttribute("data-lf-ext");
-    if(v){ST.ext=v;paintExt();return;}
-    ext("ping",{},1500).then(function(d){ST.ext=d&&d.version||"?";paintExt();},function(){ST.ext=null;paintExt();});
+    if(v){ST.ext=v;paintExt();setTimeout(function(){autoSync(false);},8000);return;}
+    ext("ping",{},1500).then(function(d){ST.ext=d&&d.version||"?";paintExt();setTimeout(function(){autoSync(false);},8000);},function(){ST.ext=null;paintExt();});
   }
   function paintExt(){
     var e=$("ord-ext");if(!e)return;
     e.innerHTML=ST.ext?"<span style=\"color:#16a34a\">● 확장프로그램 연결됨 v"+esc(ST.ext)+"</span>"
-      :"<span style=\"color:#dc2626\">● 확장프로그램 미설치</span> <span style=\"color:#64748b\">— 크롬 <b>chrome://extensions</b> → 개발자 모드 → <b>압축해제된 확장 프로그램 로드</b>로 <b>LEESFACT 구매내역 연동</b> 폴더를 불러오세요.</span>";
+      :(/Android|iPhone|iPad|Mobi/i.test(navigator.userAgent)?"<span style=\"color:#64748b\">● 모바일에서는 불러오기를 할 수 없어요. 집 PC에서 반영된 매입 DB는 그대로 보입니다.</span>"
+      :"<span style=\"color:#dc2626\">● 확장프로그램 미설치</span> <span style=\"color:#64748b\">— 크롬 <b>chrome://extensions</b> → 개발자 모드 → <b>압축해제된 확장 프로그램 로드</b>로 <b>LEESFACT 구매내역 연동</b> 폴더를 불러오세요.</span>");
   }
 
   /* ---- 매입 DB 매칭 ---- */
@@ -4681,7 +4707,24 @@ dl.innerHTML=h;}
     return null;
   }
   function isClaim(r){return r.claimState>0;}
-  function statusOf(r){if(isClaim(r))return r.stateText||"취소/반품";if(r.orderState<40)return"구입중";if(r.orderState===40)return"배송완료";return"구매확정";}
+  function statusOf(r){if(isClaim(r))return String(r.stateText||"취소/반품").replace(/\s+/g,"");if(r.orderState<40)return"구입중";if(r.orderState===40)return"배송완료";return"구매확정";}
+  function autoMemo(st){return/^(구입중|반품|취소|교환|환불)/.test(st)?st:"";}
+  function isAutoMemo(m){return!m||/^(구입중|반품|취소|교환|환불)/.test(String(m));}
+  /* 이미 등록된(자동 추가) 줄의 상태·메모만 갱신. 새 줄 추가 없음, 수동 입력 줄 건드리지 않음 */
+  function applyStatus(rows,why){
+    var ch=[];
+    (rows||[]).forEach(function(r){var f=findPdb(r);if(f&&f.auto&&f.row.status!==statusOf(r))ch.push({r:r,row:f.row});});
+    if(!ch.length)return{n:0,ret:0};
+    BAK("구매 상태 자동갱신 "+ch.length+"건");
+    var ret=0;
+    ch.forEach(function(u){var st=statusOf(u.r);if(/^(반품|취소|환불)/.test(st))ret++;
+      u.row.status=st;if(isAutoMemo(u.row.memo))u.row.memo=autoMemo(st);
+      u.row.claimState=u.r.claimState;u.row.syncedAt=new Date().toISOString();});
+    if(typeof UH==="function")UH();
+    SC();
+    if(typeof REPAINT==="function")REPAINT();
+    return{n:ch.length,ret:ret};
+  }
   function costOf(r){var c=cfg();return(Number(r.paid)||0)+(c.noPoint?0:(Number(r.point)||0));}
   function catOf(r){var c=r.cat1||"";if(c==="바지")return"하의";return c||"기타";}
   function sizeTypeOf(r){if(r.cat1==="신발")return"shoe";if(r.size==="FREE")return"free";if(r.cat1==="바지")return"pants";return"cloth";}
@@ -4697,7 +4740,7 @@ dl.innerHTML=h;}
     var st=statusOf(r);
     return{id:r.key,date:r.date,purchaseDate:r.date,itemCode:itemCodeOf(r),productName:cleanName(r),brand:r.brand||"",setNo:r.orderNo,
       category:catOf(r),sizeType:sizeTypeOf(r),sizes:o,color:r.color||"",retailPrice:Number(r.normalPrice)||0,unitPrice:unit,supplyPrice:unit,
-      quantity:qty,totalPrice:tot,channel:site.ch,seller:"",status:st,memo:st==="구입중"?"구입중":"",
+      quantity:qty,totalPrice:tot,channel:site.ch,seller:"",status:st,memo:autoMemo(st),claimState:r.claimState,
       src:site.id,orderNo:r.orderNo,orderOptionNo:r.orderOptionNo,paidAmount:Number(r.paid)||0,pointUsed:Number(r.point)||0,syncedAt:new Date().toISOString()};
   }
   function regState(r){
@@ -4773,8 +4816,9 @@ dl.innerHTML=h;}
       rows.sort(function(a,b){return String(b.orderDatetime).localeCompare(String(a.orderDatetime));});
       ST.rows[ST.site]=rows;ST.rows[ST.site+"_at"]=d&&d.at||new Date().toISOString();
       try{localStorage.setItem("lf_ord_cache_"+ST.site,JSON.stringify({at:ST.rows[ST.site+"_at"],from:from,to:to,rows:rows}));}catch(e){}
+      var a=cfg().noAuto?{n:0,ret:0}:applyStatus(rows,"manual");
       var nNew=rows.filter(function(r){return regState(r).t==="new"&&!isClaim(r);}).length,nChg=rows.filter(function(r){return regState(r).t==="chg";}).length;
-      msg("ms","✓ "+rows.length+"건 불러옴 · 미등록 "+nNew+"건"+(nChg?" · 상태변경 "+nChg+"건":""));
+      msg("ms","✓ "+rows.length+"건 불러옴 · 미등록 "+nNew+"건"+(a.n?" · 상태 자동갱신 "+a.n+"건"+(a.ret?" (반품/취소 "+a.ret+")":""):"")+(nChg?" · 상태변경 "+nChg+"건":""));
       render();
     },function(e){
       if(e.code==="NOEXT"){ST.ext=null;paintExt();msg("md","확장프로그램이 응답하지 않습니다. 설치 여부를 확인하고 페이지를 새로고침해주세요.");}
@@ -4791,7 +4835,7 @@ dl.innerHTML=h;}
     if(!confirm("매입 DB에 반영할까요?\n\n· 새로 추가: "+add.length+"건 (매입가 합계 ₩"+won(amt)+")\n· 상태 갱신: "+upd.length+"건\n\n추가되는 줄의 메모/상태: 배송 전이면 '구입중'"))return;
     BAK(site.name+" 구매내역 반영 "+s.length+"건");
     var rowsNew=add.map(function(r){return toPdb(r,site);});
-    upd.forEach(function(u){var st=statusOf(u.r);if(u.row.memo==="구입중"&&st!=="구입중")u.row.memo="";else if(!u.row.memo&&st==="구입중")u.row.memo="구입중";u.row.status=st;u.row.syncedAt=new Date().toISOString();});
+    upd.forEach(function(u){var st=statusOf(u.r);if(isAutoMemo(u.row.memo))u.row.memo=autoMemo(st);u.row.status=st;u.row.claimState=u.r.claimState;u.row.syncedAt=new Date().toISOString();});
     PDB=rowsNew.concat(PDB);
     ST.sel={};
     if(typeof UH==="function")UH();
@@ -4802,6 +4846,31 @@ dl.innerHTML=h;}
     render();
   }
 
+  /* ---- 자동 상태 반영 (확장 설치 PC에서만) ---- */
+  var AUTO_KEY="lf_ord_auto_at",AUTO_GAP=3*3600*1000,autoBusy=false;
+  function dataReady(){try{return typeof BASE!=="undefined"&&BASE&&BASE.purchase_db!=null;}catch(e){return false;}}
+  function autoSync(force){
+    if(autoBusy||!ST.ext||cfg().noAuto||!dataReady())return;
+    var last=Number(localStorage.getItem(AUTO_KEY)||0);
+    if(!force&&Date.now()-last<AUTO_GAP)return;
+    if(!PDB.some(function(p){return p&&p.src==="musinsa";}))return;   /* 자동 추가된 줄이 없으면 할 일 없음 */
+    autoBusy=true;
+    var from=daysAgo(90),to=ymd(new Date());
+    ext("orders",{site:"musinsa",from:from,to:to},120000).then(function(d){
+      try{localStorage.setItem(AUTO_KEY,String(Date.now()));}catch(e){}
+      var rows=(d&&d.rows)||[];
+      if(!ST.rows.musinsa||!ST.rows.musinsa_at||ST.rows.musinsa_at<(d&&d.at||"")){
+        rows.sort(function(a,b){return String(b.orderDatetime).localeCompare(String(a.orderDatetime));});
+        ST.rows.musinsa=rows;ST.rows.musinsa_at=d&&d.at||new Date().toISOString();
+        try{localStorage.setItem("lf_ord_cache_musinsa",JSON.stringify({at:ST.rows.musinsa_at,from:from,to:to,rows:rows}));}catch(e){}
+      }
+      var a=applyStatus(rows,"auto");
+      if(a.n)SM("sku-msg","mi","🛒 무신사 주문 상태 자동반영 "+a.n+"건"+(a.ret?" (반품/취소 "+a.ret+"건)":""));
+      if($("pg-ord")&&$("pg-ord").classList.contains("on"))render();
+    },function(e){console.warn("[구매내역 자동반영] 건너뜀:",e&&e.message);}).then(function(){autoBusy=false;});
+  }
+  setInterval(function(){autoSync(false);},10*60*1000);
+
   /* ---- 탭/페이지 생성 ---- */
   function build(){
     if($("pg-ord"))return;
@@ -4811,7 +4880,7 @@ dl.innerHTML=h;}
     var pg=document.createElement("div");pg.id="pg-ord";pg.className="pg";
     var c=cfg();
     pg.innerHTML=
-      "<style>#pg-ord .ord-on{background:#2563eb!important;color:#fff!important;border-color:#2563eb!important}#pg-ord .ord-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}#pg-ord .ord-bar input[type=date],#pg-ord .ord-bar input[type=text],#pg-ord .ord-bar select{padding:5px 8px;font-size:12px}#pg-ord label.ck{font-size:11px;color:#475569;display:flex;gap:4px;align-items:center}#ord-tw{overflow:auto;max-height:68vh}</style>"
+      "<style>#pg-ord .ord-on{background:#2563eb!important;color:#fff!important;border-color:#2563eb!important}#pg-ord .ord-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}#pg-ord .ord-bar input[type=date],#pg-ord .ord-bar input[type=text],#pg-ord .ord-bar select{padding:5px 8px;font-size:12px}#pg-ord label.ck{font-size:11px;color:#475569;display:flex;gap:4px;align-items:center;white-space:nowrap}#ord-tw{overflow:auto;max-height:68vh}</style>"
       +"<div id=\"ord-msg\" class=\"msg\"></div>"
       +"<div class=\"card\"><div class=\"slbl\">🛒 구매내역 관리 <span id=\"ord-ext\" style=\"font-size:11px;font-weight:400;margin-left:8px\"></span></div>"
       +"<p style=\"font-size:11px;color:#94a3b8;line-height:1.7;margin-bottom:10px\">이 PC 크롬에 로그인된 소싱처 계정의 주문내역을 불러옵니다. 체크한 줄만 매입 DB에 추가되고, 이미 추가된 주문은 상태(구입중 → 배송완료 등)만 갱신됩니다. 다른 매입처 데이터는 건드리지 않습니다.</p>"
@@ -4822,6 +4891,7 @@ dl.innerHTML=h;}
       +"<select id=\"ord-f\"><option value=\"\">전체</option><option value=\"new\">미등록만</option><option value=\"chg\">상태변경만</option><option value=\"reg\">등록됨만</option></select>"
       +"<label class=\"ck\"><input type=\"checkbox\" id=\"ord-claim\""+(c.showClaim?" checked":"")+">취소/반품 표시</label>"
       +"<label class=\"ck\"><input type=\"checkbox\" id=\"ord-pt\""+(c.noPoint?"":" checked")+">매입가에 적립금 사용액 포함</label>"
+      +"<label class=\"ck\" title=\"확장이 설치된 PC에서 페이지를 열면 3시간마다 최근 90일 주문을 확인해, 이미 등록된 줄의 상태(배송완료·반품·취소)와 메모를 자동으로 바꿉니다. 새 줄은 추가하지 않습니다.\"><input type=\"checkbox\" id=\"ord-auto\""+(c.noAuto?"":" checked")+">반품·배송상태 자동 반영</label>"
       +"<span style=\"flex:1\"></span><button class=\"bp\" id=\"ord-save\" disabled>선택 항목 매입 DB 반영</button></div>"
       +"<div id=\"ord-tw\"></div></div>";
     var ref=$("pg-map")||document.querySelector(".pg:last-of-type");
@@ -4834,6 +4904,7 @@ dl.innerHTML=h;}
     $("ord-q").oninput=render;$("ord-f").onchange=render;
     $("ord-claim").onchange=function(){var x=cfg();x.showClaim=this.checked;saveCfg(x);render();};
     $("ord-pt").onchange=function(){var x=cfg();x.noPoint=!this.checked;saveCfg(x);render();};
+    $("ord-auto").onchange=function(){var x=cfg();x.noAuto=!this.checked;saveCfg(x);if(this.checked)autoSync(true);};
     $("ord-save").onclick=saveSel;
     tb.onclick=function(){GT("ord");};
 
@@ -4859,7 +4930,7 @@ dl.innerHTML=h;}
   function init(){build();wrap();}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
   window.addEventListener("load",function(){setTimeout(init,500);setTimeout(init,2000);});
-  window.LF_ORD={state:ST,toPdb:toPdb,regState:regState,render:render};
+  window.LF_ORD={state:ST,toPdb:toPdb,regState:regState,render:render,autoSync:autoSync,applyStatus:applyStatus};
 })();
 </script>
 

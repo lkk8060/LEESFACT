@@ -4631,16 +4631,16 @@ dl.innerHTML=h;}
    PC(900px 초과)는 기존 '표를 화면 폭에 맞춤' 유지.
    모바일/좁은 화면은 표를 원래 너비로 두고 좌우 스크롤. (:is(#id…)로 기존 ID 규칙보다 우선) */
 @media (max-width:900px){
-  :is(.tw,#skuw,#ptw,#stw,#stkw,#marw,#mapw,#ana-top-sku,#ana-margin-sku,#margin-top-card,#ana-risk,#cash-table,#turnover-table,#defense-table,#calc-info,#calc-target,#direct-result,#direct-target,#pg-calc,#pg-price,#ord-tw){
+  :is(.tw,#skuw,#ptw,#stw,#stkw,#marw,#mapw,#ana-top-sku,#ana-margin-sku,#margin-top-card,#ana-risk,#cash-table,#turnover-table,#defense-table,#calc-info,#calc-target,#direct-result,#direct-target,#pg-calc,#pg-price,#ord-tw,#sal-tw){
     overflow-x:auto!important;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;max-width:100%!important;
   }
-  :is(.tw,#skuw,#ptw,#stw,#stkw,#marw,#mapw,#ana-top-sku,#ana-margin-sku,#margin-top-card,#ana-risk,#cash-table,#turnover-table,#defense-table,#calc-info,#calc-target,#direct-result,#direct-target,#pg-calc,#pg-price,#ord-tw) table.mt{
+  :is(.tw,#skuw,#ptw,#stw,#stkw,#marw,#mapw,#ana-top-sku,#ana-margin-sku,#margin-top-card,#ana-risk,#cash-table,#turnover-table,#defense-table,#calc-info,#calc-target,#direct-result,#direct-target,#pg-calc,#pg-price,#ord-tw,#sal-tw) table.mt{
     table-layout:auto!important;width:max-content!important;min-width:100%!important;max-width:none!important;
   }
-  :is(.tw,#skuw,#ptw,#stw,#stkw,#marw,#mapw,#ana-top-sku,#ana-margin-sku,#margin-top-card,#ana-risk,#cash-table,#turnover-table,#defense-table,#calc-info,#calc-target,#direct-result,#direct-target,#pg-calc,#pg-price,#ord-tw) table.mt :is(th,td){
+  :is(.tw,#skuw,#ptw,#stw,#stkw,#marw,#mapw,#ana-top-sku,#ana-margin-sku,#margin-top-card,#ana-risk,#cash-table,#turnover-table,#defense-table,#calc-info,#calc-target,#direct-result,#direct-target,#pg-calc,#pg-price,#ord-tw,#sal-tw) table.mt :is(th,td){
     white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;max-width:none!important;
   }
-  :is(.tw,#skuw,#ptw,#stw,#stkw,#marw,#mapw,#ord-tw) table.mt td[title]{max-width:220px!important;overflow:hidden!important;text-overflow:ellipsis!important;}
+  :is(.tw,#skuw,#ptw,#stw,#stkw,#marw,#mapw,#ord-tw,#sal-tw) table.mt td[title]{max-width:220px!important;overflow:hidden!important;text-overflow:ellipsis!important;}
   .pg{padding:10px 8px!important;}
   .card{overflow:visible;}
   .hdr{height:auto!important;min-height:50px;flex-wrap:wrap;gap:6px;padding:6px 10px!important;}
@@ -4967,8 +4967,169 @@ dl.innerHTML=h;}
   function init(){build();wrap();}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
   window.addEventListener("load",function(){setTimeout(init,500);setTimeout(init,2000);});
-  window.LF_ORD={state:ST,toPdb:toPdb,regState:regState,render:render,autoSync:autoSync,applyStatus:applyStatus};
+  window.LF_ORD={state:ST,toPdb:toPdb,regState:regState,render:render,autoSync:autoSync,applyStatus:applyStatus,ext:ext,extVersion:function(){return ST.ext;}};
 })();
 </script>
 
+<script>
+/* ===== LEESFACT 매출내역 관리 탭 v1 (2026-11-25: 스마트스토어 커머스API) =====
+   - 확장프로그램 v1.2.0+ 가 커머스API로 '구매확정' 상품주문을 조회 (ID/시크릿은 확장 설정 화면에만 저장)
+   - 체크한 줄만 매출 DB에 추가. id="nv_<상품주문번호>"로 중복 방지, 기존 수동 입력분(채널·날짜·사이즈·정산금액 일치)은 '등록됨(기존)'
+   - 형식은 기존 스마트스토어 매출과 동일: 날짜=구매확정일, 정산금액, 수수료, 결제(총)금액=정산+수수료 */
+(function(){
+  var ST={rows:null,at:null,sel:{},loading:false};
+  function $(id){return document.getElementById(id);}
+  function esc(v){return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+  function won(n){return(Number(n)||0).toLocaleString();}
+  function ymd(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+  function daysAgo(n){var d=new Date();d.setDate(d.getDate()-n);return ymd(d);}
+  function msg(c,t){if(typeof SM==="function")SM("sal-msg",c,t);}
+  function ext(t,p,ms){return window.LF_ORD&&LF_ORD.ext?LF_ORD.ext(t,p,ms):Promise.reject(new Error("확장프로그램 연결 모듈 없음"));}
+  function vnum(v){return String(v||"0").split(".").map(Number).reduce(function(a,x,i){return a+(x||0)*Math.pow(1000,2-i);},0);}
+  function nsz(x){return typeof NSZ==="function"?NSZ(x):x;}
+  function codeOf(r){
+    var cs=[],seen={};(r.codes||[]).forEach(function(c){c=String(c).trim();if(c&&!seen[c.toUpperCase()]){seen[c.toUpperCase()]=1;cs.push(c);}});
+    for(var i=0;i<cs.length;i++){var k=typeof skuFind==="function"?(skuFind(cs[i])||skuFind(cs[i].toUpperCase())):null;if(k)return{code:k.itemCode,how:"sku"};}
+    var m=String(r.productName||"").match(/\b([A-Z0-9]{2,}[-_][A-Z0-9]{2,}(?:[-_][A-Z0-9]{2,})?)\b/i);
+    if(m&&typeof skuFind==="function"){var k2=skuFind(m[1])||skuFind(m[1].toUpperCase());if(k2)return{code:k2.itemCode,how:"name"};}
+    if(typeof autoResolveItemCode==="function"){var a=autoResolveItemCode({productName:r.productName});if(a.code)return{code:a.code,how:"auto"};}
+    if(cs.length)return{code:cs[0],how:"seller"};
+    return{code:"",how:""};
+  }
+  function regState(r){
+    for(var i=0;i<SDB.length;i++){if(SDB[i]&&SDB[i].id===r.key)return{t:"reg",label:"등록됨"};}
+    var c=codeOf(r).code,sz=nsz(r.size);
+    for(var j=0;j<SDB.length;j++){var x=SDB[j];if(!x||!/스마트/.test(x.channel||""))continue;
+      if(String(x.date||"").slice(0,10)!==r.date)continue;
+      if(Math.abs((Number(x.settlementAmount)||0)-r.settle)>2)continue;
+      var s=x.sizes||{};if(Object.keys(s).length&&s[sz]==null&&s[r.size]==null)continue;
+      if(c&&x.itemCode&&String(x.itemCode).toUpperCase()!==c.toUpperCase())continue;
+      return{t:"old",label:"등록됨(기존)"};}
+    return{t:"new",label:"미등록"};
+  }
+  function weekLabel(pd){var d=new Date(pd),j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"년 "+Math.ceil(((d-j)/86400000+j.getDay()+1)/7)+"주차";}
+  function toSdb(r){
+    var cc=codeOf(r),sku=cc.code&&typeof skuFind==="function"?skuFind(cc.code):null,q=Number(r.quantity)||1,o={};o[nsz(r.size)]=q;
+    return{id:r.key,unit:"week",period:r.date,periodLabel:weekLabel(r.date),date:r.date,itemCode:cc.code,
+      productName:(sku&&sku.productName)||r.productName||"",sizeType:(sku&&sku.sizeType)||(/^\d{3}$/.test(nsz(r.size))&&Number(nsz(r.size))>=200?"shoe":"cloth"),
+      sizes:o,soldQty:q,salePrice:Math.round(r.settle/q),totalSales:r.settle,settlementAmount:r.settle,totalFee:r.fee,grossSales:r.settle+r.fee,
+      channel:"스마트스토어",memo:"스마트스토어 구매확정일:"+r.decisionDatetime+" ",src:"naver",productOrderId:r.productOrderId,orderNo:r.orderNo,paidAmount:r.paid,syncedAt:new Date().toISOString()};
+  }
+  function rows(){
+    var all=ST.rows||[],q=(($("sal-q")||{}).value||"").toLowerCase(),f=(($("sal-f")||{}).value||"");
+    return all.filter(function(r){
+      if(q&&[r.productName,r.option,r.orderNo,r.productOrderId,(r.codes||[]).join(" ")].join(" ").toLowerCase().indexOf(q)<0)return false;
+      if(f){var g=regState(r).t;if(f==="new"&&g!=="new")return false;if(f==="reg"&&g==="new")return false;}
+      return true;
+    });
+  }
+  function render(){
+    var w=$("sal-tw");if(!w)return;
+    $("sal-info").textContent=ST.at?("마지막 조회: "+new Date(ST.at).toLocaleString("ko-KR")+" · "+(ST.rows||[]).length+"건"):"";
+    var L=rows();
+    if(!L.length){w.innerHTML="<div class=\"emp\">"+(ST.rows?"조건에 맞는 주문이 없습니다.":"기간을 고르고 <b>새로고침</b>을 눌러 스마트스토어 구매확정 내역을 불러오세요.")+"</div>";upd();return;}
+    var h="<table class=\"mt\"><thead><tr><th style=\"text-align:center\"><input type=\"checkbox\" id=\"sal-all\"></th><th>등록</th><th>구매확정일</th><th>주문번호</th><th>상품명</th><th>옵션</th><th>품번</th><th>사이즈</th><th class=\"r\">수량</th><th class=\"r\">결제금액</th><th class=\"r\">수수료</th><th class=\"r\">정산금액</th></tr></thead><tbody>";
+    L.forEach(function(r){
+      var g=regState(r),cc=codeOf(r),dis=g.t!=="new"?" disabled":"";
+      var col=g.t==="new"?"#2563eb":"#16a34a";
+      h+="<tr><td style=\"text-align:center\"><input type=\"checkbox\" class=\"sal-chk\" data-k=\""+esc(r.key)+"\""+(ST.sel[r.key]&&!dis?" checked":"")+dis+"></td>"
+        +"<td style=\"color:"+col+";font-weight:600;white-space:nowrap\">"+g.label+"</td>"
+        +"<td style=\"white-space:nowrap\">"+esc(r.decisionDatetime)+"</td>"
+        +"<td style=\"font-size:10px\">"+esc(r.orderNo)+"<div class=\"cl-sl\">"+esc(r.productOrderId)+"</div></td>"
+        +"<td title=\""+esc(r.productName)+"\" style=\"max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap\">"+esc(r.productName)+"</td>"
+        +"<td class=\"cl-sl\" style=\"font-size:10px\">"+esc(r.option)+"</td>"
+        +"<td class=\"bld\" style=\"color:"+(cc.code?(cc.how==="seller"?"#d97706":"inherit"):"#dc2626")+"\" title=\""+(cc.how==="seller"?"SKU MASTER에 없는 판매자관리코드":cc.code?"SKU MASTER 매칭":"품번 못 찾음 → 저장 후 미매칭 SKU 탭에서 연결")+"\">"+esc(cc.code||"—")+"</td>"
+        +"<td class=\"bld\">"+esc(nsz(r.size))+"</td>"
+        +"<td class=\"r\">"+r.quantity+"</td>"
+        +"<td class=\"r\">₩"+won(r.paid)+"</td>"
+        +"<td class=\"r cl-sl\">₩"+won(r.fee)+"</td>"
+        +"<td class=\"r cl-gn bld\">₩"+won(r.settle)+"</td></tr>";
+    });
+    w.innerHTML=h+"</tbody></table>";
+    document.querySelectorAll("#sal-tw .sal-chk").forEach(function(c){c.onchange=function(){ST.sel[this.getAttribute("data-k")]=this.checked;upd();};});
+    var all=$("sal-all");if(all)all.onchange=function(){document.querySelectorAll("#sal-tw .sal-chk:not([disabled])").forEach(function(c){c.checked=all.checked;ST.sel[c.getAttribute("data-k")]=all.checked;});upd();};
+    upd();
+  }
+  function selected(){return(ST.rows||[]).filter(function(r){return ST.sel[r.key]&&regState(r).t==="new";});}
+  function upd(){var s=selected(),b=$("sal-save");if(b){b.disabled=!s.length;b.textContent=s.length?("✓ 선택 "+s.length+"건 매출 DB 추가"):"선택 항목 매출 DB 추가";}}
+  function load(){
+    if(ST.loading)return;
+    var v=window.LF_ORD&&LF_ORD.extVersion&&LF_ORD.extVersion();
+    if(!v){msg("md","확장프로그램이 연결돼 있지 않습니다. 스마트스토어 불러오기는 API 호출 IP를 등록한 집 PC 크롬에서 할 수 있습니다.");return;}
+    if(v!=="?"&&vnum(v)<vnum("1.2.0")){msg("md","스마트스토어 불러오기는 확장프로그램 v1.2.0 이상이 필요합니다. 새 파일로 폴더를 바꾸고 chrome://extensions에서 ↻ 새로고침해주세요.");return;}
+    var from=$("sal-from").value,to=$("sal-to").value;
+    if(!from||!to||from>to){msg("md","조회 기간을 확인해주세요.");return;}
+    ST.loading=true;var btn=$("sal-load");btn.disabled=true;btn.textContent="불러오는 중...";
+    msg("mi","스마트스토어 구매확정 내역을 불러오는 중입니다... (하루 단위로 조회해 기간이 길면 조금 걸립니다)");
+    ext("sales",{site:"naver",from:from,to:to},180000).then(function(d){
+      var R=(d&&d.rows)||[];R.sort(function(a,b){return String(b.decisionDatetime).localeCompare(String(a.decisionDatetime));});
+      ST.rows=R;ST.at=d&&d.at||new Date().toISOString();ST.sel={};
+      try{localStorage.setItem("lf_sal_cache_naver",JSON.stringify({at:ST.at,rows:R}));}catch(e){}
+      var nNew=R.filter(function(r){return regState(r).t==="new";}).length;
+      msg("ms","✓ 구매확정 "+R.length+"건 불러옴 · 미등록 "+nNew+"건");
+      render();
+    },function(e){
+      if(e.code==="NOCRED")msg("md",e.message+" (아래 '⚙ 스마트스토어 설정' 버튼)");
+      else msg("md","불러오기 실패: "+e.message);
+    }).then(function(){ST.loading=false;btn.disabled=false;btn.textContent="↻ 새로고침";});
+  }
+  function save(){
+    var s=selected();if(!s.length)return;
+    var tot=s.reduce(function(t,r){return t+r.settle;},0),noCode=s.filter(function(r){return !codeOf(r).code;}).length;
+    if(!confirm("매출 DB에 추가할까요?\n\n· "+s.length+"건 (정산금액 합계 ₩"+won(tot)+")\n· 채널: 스마트스토어, 날짜: 구매확정일"+(noCode?"\n· 품번 못 찾은 "+noCode+"건은 미매칭 SKU 탭에서 연결 필요":"")))return;
+    BAK("스마트스토어 매출내역 추가 "+s.length+"건");
+    SDB=s.map(toSdb).concat(SDB);
+    ST.sel={};
+    if(typeof UH==="function")UH();
+    SC();
+    if(typeof REPAINT==="function")REPAINT();
+    msg("ms","✓ 매출 "+s.length+"건 추가 완료"+(noCode?" (품번 없는 "+noCode+"건은 미매칭 SKU 탭에서 연결하세요)":""));
+    render();
+  }
+  function build(){
+    if($("pg-sal"))return;
+    var tabs=document.querySelector(".tabs");if(!tabs)return;
+    var tb=document.createElement("button");tb.className="tab";tb.id="tab-sal";tb.textContent="💰 매출내역 관리";
+    var ref=$("tab-sdb");if(ref&&ref.nextSibling)tabs.insertBefore(tb,ref.nextSibling);else tabs.appendChild(tb);
+    var pg=document.createElement("div");pg.id="pg-sal";pg.className="pg";
+    pg.innerHTML="<style>#pg-sal .sal-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}#pg-sal .sal-bar input[type=date],#pg-sal .sal-bar input[type=text],#pg-sal .sal-bar select{padding:5px 8px;font-size:12px}#sal-tw{overflow:auto;max-height:68vh}</style>"
+      +"<div id=\"sal-msg\" class=\"msg\"></div>"
+      +"<div class=\"card\"><div class=\"slbl\">💰 매출내역 관리 — 스마트스토어</div>"
+      +"<p style=\"font-size:11px;color:#94a3b8;line-height:1.7;margin-bottom:10px\">커머스API로 <b>구매확정</b>된 주문만 불러옵니다(반품·취소된 주문은 자동 제외). 체크한 줄만 매출 DB에 추가되고, 이미 들어간 주문은 '등록됨'으로 표시됩니다. 불러오기는 API 호출 IP를 등록한 집 PC 크롬(확장 v1.2.0+)에서만 됩니다.</p>"
+      +"<div class=\"sal-bar\"><button class=\"bs sal-pr\" data-d=\"7\">7일</button><button class=\"bs sal-pr\" data-d=\"30\">30일</button><button class=\"bs sal-pr\" data-d=\"90\">90일</button>"
+      +"<input type=\"date\" id=\"sal-from\"> ~ <input type=\"date\" id=\"sal-to\"> <button class=\"bp\" id=\"sal-load\">↻ 새로고침</button> <button class=\"bs\" id=\"sal-opt\">⚙ 스마트스토어 설정</button> <span id=\"sal-info\" style=\"font-size:11px;color:#64748b\"></span></div>"
+      +"<div class=\"sal-bar\"><input type=\"text\" id=\"sal-q\" placeholder=\"상품명·옵션·주문번호·품번 검색\" style=\"min-width:220px;flex:1 1 180px\">"
+      +"<select id=\"sal-f\"><option value=\"\">전체</option><option value=\"new\">미등록만</option><option value=\"reg\">등록됨만</option></select>"
+      +"<span style=\"flex:1\"></span><button class=\"bp\" id=\"sal-save\" disabled>선택 항목 매출 DB 추가</button></div>"
+      +"<div id=\"sal-tw\"></div></div>";
+    var after=$("pg-ord")||$("pg-map")||document.querySelector(".pg:last-of-type");
+    after.parentNode.insertBefore(pg,after.nextSibling);
+    $("sal-from").value=daysAgo(30);$("sal-to").value=ymd(new Date());
+    document.querySelectorAll("#pg-sal .sal-pr").forEach(function(b){b.onclick=function(){$("sal-from").value=daysAgo(Number(b.getAttribute("data-d")));$("sal-to").value=ymd(new Date());load();};});
+    $("sal-load").onclick=load;$("sal-save").onclick=save;$("sal-q").oninput=render;$("sal-f").onchange=render;
+    $("sal-opt").onclick=function(){ext("openOptions",{},4000).then(function(){msg("mi","확장프로그램 설정 화면을 새 탭으로 열었습니다. ID와 시크릿은 그 화면에만 입력하세요.");},function(){msg("md","확장프로그램(v1.2.0+)이 연결돼 있지 않습니다. chrome://extensions → LEESFACT 구매내역 연동 → 세부정보 → 확장 프로그램 옵션에서도 열 수 있습니다.");});};
+    tb.onclick=function(){GT("sal");};
+    try{var c=JSON.parse(localStorage.getItem("lf_sal_cache_naver")||"null");if(c&&c.rows){ST.rows=c.rows;ST.at=c.at;}}catch(e){}
+  }
+  function show(){
+    document.querySelectorAll(".tabs .tab").forEach(function(t){t.classList.remove("on");});
+    document.querySelectorAll(".pg").forEach(function(p){p.classList.remove("on");});
+    $("tab-sal").classList.add("on");$("pg-sal").classList.add("on");
+    try{curTab="sal";}catch(e){}
+    render();
+  }
+  function hide(){var t=$("tab-sal"),p=$("pg-sal");if(t)t.classList.remove("on");if(p)p.classList.remove("on");}
+  function wrap(){
+    if(!window.GT||window.__lfSalWrapped)return;
+    window.__lfSalWrapped=true;
+    var old=window.GT;
+    window.GT=function(id){if(id==="sal")return show();hide();return old.apply(this,arguments);};
+    document.addEventListener("click",function(ev){var t=ev.target&&ev.target.closest&&ev.target.closest(".tabs .tab");if(t&&t.id!=="tab-sal")hide();},true);
+  }
+  function init(){build();wrap();}
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
+  window.addEventListener("load",function(){setTimeout(init,700);setTimeout(init,2200);});
+  window.LF_SAL={state:ST,toSdb:toSdb,regState:regState,codeOf:codeOf,render:render};
+})();
+</script>
 </body></html>

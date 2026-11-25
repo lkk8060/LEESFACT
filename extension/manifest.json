@@ -1,16 +1,18 @@
 {
   "manifest_version": 3,
   "name": "LEESFACT 구매내역 연동",
-  "version": "1.1.0",
-  "description": "LEESFACT 재고관리 페이지에서 무신사·TUNE 구매내역을 불러옵니다. (로그인된 브라우저 세션 사용, 읽기 전용)",
+  "version": "1.2.0",
+  "description": "LEESFACT 재고관리 페이지에서 무신사·TUNE 구매내역과 스마트스토어 매출내역을 불러옵니다. (읽기 전용)",
   "permissions": [
     "scripting",
-    "tabs"
+    "tabs",
+    "storage"
   ],
   "host_permissions": [
     "https://*.musinsa.com/*",
     "https://lkk8060.github.io/*",
-    "https://tune.kr/*"
+    "https://tune.kr/*",
+    "https://api.commerce.naver.com/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -45,5 +47,9 @@
       ],
       "run_at": "document_start"
     }
-  ]
+  ],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  }
 }

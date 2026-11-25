@@ -5,12 +5,18 @@
      2차: 실패하면 무신사 탭(없으면 백그라운드로 잠깐 열기) 안에서 같은 조회를 실행 */
 
 var ALLOWED_ORIGIN = "https://lkk8060.github.io";
+try { importScripts("bcrypt.min.js"); } catch (e) { console.warn("[LEESFACT] bcrypt 로드 실패", e); }
 
 chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
   var from = (sender && (sender.origin || sender.url)) || "";
   if (msg && msg.type === "tuneCapture") {           /* tune.kr 탭에서 받은 주문 데이터 */
     if (from.indexOf("https://tune.kr") === 0) tuneCaptured(msg.payload || {});
     return false;
+  }
+  if (sender && sender.id === chrome.runtime.id && !sender.tab && msg && msg.type === "nvTest") {   /* 확장 설정 화면 */
+    nvToken(true).then(function () { sendResponse({ ok: true, data: { note: "이 PC IP에서 스마트스토어 API 호출이 허용돼 있습니다." } }); },
+      function (e) { sendResponse({ ok: false, error: String((e && e.message) || e) }); });
+    return true;
   }
   if (from.indexOf(ALLOWED_ORIGIN) !== 0) {
     sendResponse({ ok: false, error: "허용되지 않은 페이지" });
@@ -26,13 +32,19 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
 async function handle(msg) {
   var p = (msg && msg.payload) || {};
   if (msg.type === "ping") {
-    return { version: chrome.runtime.getManifest().version, sites: ["musinsa", "tune"] };
+    var cr = await chrome.storage.local.get(["nv_client_id", "nv_client_secret"]);
+    return { version: chrome.runtime.getManifest().version, sites: ["musinsa", "tune"], sales: ["naver"], naverReady: !!(cr.nv_client_id && cr.nv_client_secret) };
   }
   if (msg.type === "orders") {
     if (p.site === "musinsa") return musinsaOrders(p.from, p.to);
     if (p.site === "tune") return tuneOrders(p.from, p.to);
     var e = new Error("아직 지원하지 않는 사이트입니다: " + p.site); e.code = "UNSUPPORTED"; throw e;
   }
+  if (msg.type === "sales") {
+    if (p.site === "naver") return nvSales(p.from, p.to);
+    var e2 = new Error("아직 지원하지 않는 판매처입니다: " + p.site); e2.code = "UNSUPPORTED"; throw e2;
+  }
+  if (msg.type === "openOptions") { chrome.runtime.openOptionsPage(); return { opened: true }; }
   throw new Error("알 수 없는 요청: " + msg.type);
 }
 
@@ -368,4 +380,98 @@ function parseTune(orders, from, to) {
     });
   });
   return rows;
+}
+
+
+/* ===================== 네이버 스마트스토어 (커머스API) =====================
+   - ID/시크릿은 확장 설정 화면에서 입력 → chrome.storage.local (이 PC에만 저장)
+   - 토큰: client_secret_sign = base64(bcrypt(client_id + "_" + timestamp, 시크릿))
+   - 매출: 구매확정(PURCHASE_DECIDED)된 상품주문만 조회 → 반품/취소된 주문은 자연히 빠짐
+   - 조회만 함 (발송처리·주문확인 등 변경 요청 없음) */
+var NV = "https://api.commerce.naver.com/external";
+function nvSleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+function nvErr(status, j) {
+  var code = (j && j.code) || "", m = (j && (j.message || j.error_description)) || ("HTTP " + status);
+  if (/IP_NOT_ALLOWED/.test(code)) m = "이 PC의 IP가 커머스API센터 'API 호출 IP'에 등록돼 있지 않습니다. (" + m + ")";
+  else if (status === 401 || /AUTH|TOKEN|CLIENT/i.test(code)) m = "인증 실패 — 애플리케이션 ID/시크릿을 확인해주세요. (" + m + ")";
+  var e = new Error("스마트스토어: " + m); e.code = code || ("HTTP" + status); return e;
+}
+async function nvToken(force) {
+  var c = await chrome.storage.local.get(["nv_client_id", "nv_client_secret", "nv_token"]);
+  if (!c.nv_client_id || !c.nv_client_secret) { var e = new Error("스마트스토어 ID/시크릿이 없습니다. 확장프로그램 설정에서 입력해주세요."); e.code = "NOCRED"; throw e; }
+  if (!force && c.nv_token && c.nv_token.id === c.nv_client_id && c.nv_token.exp > Date.now() + 60000) return c.nv_token.v;
+  var bc = self.dcodeIO && self.dcodeIO.bcrypt;
+  if (!bc) throw new Error("서명 라이브러리(bcrypt)를 불러오지 못했습니다.");
+  var ts = String(Date.now() - 3000);
+  var sign = btoa(bc.hashSync(c.nv_client_id + "_" + ts, c.nv_client_secret));
+  var body = new URLSearchParams({ client_id: c.nv_client_id, timestamp: ts, client_secret_sign: sign, grant_type: "client_credentials", type: "SELF" });
+  var r = await fetch(NV + "/v1/oauth2/token", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: body.toString() });
+  var j = {}; try { j = await r.json(); } catch (x) {}
+  if (!r.ok || !j.access_token) throw nvErr(r.status, j);
+  await chrome.storage.local.set({ nv_token: { v: j.access_token, exp: Date.now() + (Number(j.expires_in) || 3600) * 1000, id: c.nv_client_id } });
+  return j.access_token;
+}
+async function nvCall(method, path, body) {
+  var tok = await nvToken(false);
+  for (var t = 0; t < 4; t++) {
+    var r = await fetch(NV + path, { method: method, headers: Object.assign({ Authorization: "Bearer " + tok }, body ? { "content-type": "application/json" } : {}), body: body ? JSON.stringify(body) : undefined });
+    if (r.status === 401 && t === 0) { tok = await nvToken(true); continue; }
+    if (r.status === 429) { await nvSleep(1200 * (t + 1)); continue; }
+    var j = {}; try { j = await r.json(); } catch (x) {}
+    if (!r.ok) throw nvErr(r.status, j);
+    return j;
+  }
+  throw new Error("스마트스토어: 요청이 너무 많아 잠시 후 다시 시도해주세요.");
+}
+function nvKst(ms) { return new Date(ms + 9 * 3600 * 1000).toISOString().replace("Z", "+09:00"); }
+async function nvSales(from, to) {
+  from = checkDate(from); to = checkDate(to);
+  var start = Date.parse(from + "T00:00:00+09:00"), end = Date.parse(to + "T23:59:59.999+09:00");
+  var now = Date.now(); if (end > now) end = now;
+  var ids = {}, order = [];
+  for (var t = start; t <= end; t += 24 * 3600 * 1000) {
+    var wEnd = Math.min(t + 24 * 3600 * 1000 - 1, end);
+    var qFrom = nvKst(t), seq = "";
+    for (var guard = 0; guard < 50; guard++) {
+      var q = "lastChangedFrom=" + encodeURIComponent(qFrom) + "&lastChangedTo=" + encodeURIComponent(nvKst(wEnd)) + "&lastChangedType=PURCHASE_DECIDED" + (seq ? "&moreSequence=" + encodeURIComponent(seq) : "");
+      var j = await nvCall("GET", "/v1/pay-order/seller/product-orders/last-changed-statuses?" + q);
+      var d = (j && j.data) || {};
+      (d.lastChangeStatuses || []).forEach(function (x) { if (x && x.productOrderId && !ids[x.productOrderId]) { ids[x.productOrderId] = 1; order.push(String(x.productOrderId)); } });
+      if (d.more && d.more.moreFrom) { qFrom = d.more.moreFrom; seq = d.more.moreSequence || ""; await nvSleep(250); } else break;
+    }
+    await nvSleep(250);
+  }
+  var details = [];
+  for (var i = 0; i < order.length; i += 300) {
+    var jj = await nvCall("POST", "/v1/pay-order/seller/product-orders/query", { productOrderIds: order.slice(i, i + 300) });
+    details = details.concat((jj && jj.data) || []);
+    await nvSleep(250);
+  }
+  return { site: "naver", rows: details.map(nvRow).filter(Boolean), count: order.length, at: new Date().toISOString() };
+}
+function nvRow(d) {
+  var po = (d && d.productOrder) || {}, o = (d && d.order) || {};
+  if (!po.productOrderId) return null;
+  function n(v) { var x = Number(v); return isFinite(x) ? Math.round(x) : 0; }
+  function kst(iso) { var t = Date.parse(iso || ""); if (!isFinite(t)) return ""; return new Date(t + 9 * 3600 * 1000).toISOString().slice(0, 16).replace("T", " "); }
+  var fee = 0, feeParts = {};
+  Object.keys(po).forEach(function (k) { if (/Commission$/i.test(k) && isFinite(Number(po[k]))) { fee += Number(po[k]); feeParts[k] = Number(po[k]); } });
+  fee = Math.round(fee);
+  var paid = n(po.totalPaymentAmount), settle = po.expectedSettlementAmount != null ? n(po.expectedSettlementAmount) : paid - fee;
+  var opt = String(po.productOption || "").trim(), sizeRaw = opt, m;
+  if (opt.indexOf(":") >= 0) { var parts = opt.split("/"); var sp = parts.filter(function (x) { return /사이즈|size|SIZE/i.test(x); })[0] || parts[parts.length - 1]; sizeRaw = sp.split(":").slice(1).join(":").trim(); }
+  var size = sizeRaw;
+  if ((m = sizeRaw.match(/\((\d{2,3})\)/))) size = m[1];
+  else if ((m = sizeRaw.match(/^(\d{2,3})(?:\D|$)/))) size = m[1];
+  else size = sizeRaw.toUpperCase() || "FREE";
+  var dt = kst(po.decisionDate || po.lastChangedDate || o.paymentDate);
+  return {
+    site: "naver", key: "nv_" + po.productOrderId, productOrderId: String(po.productOrderId), orderNo: String(o.orderId || po.orderId || ""),
+    decisionDatetime: dt, date: dt.slice(0, 10), orderDatetime: kst(o.orderDate || o.paymentDate),
+    productName: po.productName || "", option: opt, size: size,
+    codes: [po.optionManageCode, po.sellerProductCode, po.sellerCustomCode1, po.sellerCustomCode2].filter(function (x) { return x && String(x).trim(); }).map(String),
+    productId: String(po.productId || ""), quantity: n(po.quantity) || 1,
+    paid: paid, fee: fee, settle: settle, feeParts: feeParts,
+    status: po.productOrderStatus || "", claimType: po.claimType || "", claimStatus: po.claimStatus || ""
+  };
 }

@@ -13,7 +13,8 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
     if (from.indexOf("https://tune.kr") === 0) tuneCaptured(msg.payload || {});
     return false;
   }
-  if (sender && sender.id === chrome.runtime.id && !sender.tab && msg && msg.type === "nvTest") {   /* 확장 설정 화면 */
+  var extPage = !!(sender && sender.id === chrome.runtime.id && String(sender.url || "").indexOf(chrome.runtime.getURL("")) === 0);
+  if (extPage && msg && msg.type === "nvTest") {   /* 확장 설정 화면 (탭으로 열려도 허용) */
     nvToken(true).then(function () { sendResponse({ ok: true, data: { note: "이 PC IP에서 스마트스토어 API 호출이 허용돼 있습니다." } }); },
       function (e) { sendResponse({ ok: false, error: String((e && e.message) || e) }); });
     return true;

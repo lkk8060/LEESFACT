@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LEESFACT 구매내역 연동",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "LEESFACT 재고관리 페이지에서 무신사·TUNE 구매내역과 스마트스토어 매출내역을 불러옵니다. (읽기 전용)",
   "permissions": [
     "scripting",

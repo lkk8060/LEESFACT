@@ -4652,12 +4652,12 @@ dl.innerHTML=h;}
 }
 </style>
 <script>
-/* ===== LEESFACT 구매내역 관리 탭 v1.2 (2026-11-24: 카드 즉시할인 반영, 매입가 자동 정정) =====
+/* ===== LEESFACT 구매내역 관리 탭 v1.3 (2026-11-25: TUNE 연동 — 주문할인 상품별 배분) =====
    - 크롬 확장 "LEESFACT 구매내역 연동"을 통해 소싱처 주문내역을 불러와 선택한 줄만 매입 DB에 추가
    - 자동 추가된 줄: id="ms_<주문옵션번호>", src="musinsa" → 다시 불러와도 중복 없음
    - 이미 등록된 줄은 상태(구입중→배송완료 등)만 갱신, 사용자가 고친 다른 값은 건드리지 않음 */
 (function(){
-  var SITES=[{id:"musinsa",name:"무신사",ch:"무신사",on:true},{id:"29cm",name:"29CM",ch:"29CM",on:false},{id:"tune",name:"TUNE",ch:"TUNE",on:false}];
+  var SITES=[{id:"musinsa",name:"무신사",ch:"무신사",on:true},{id:"29cm",name:"29CM",ch:"29CM",on:false},{id:"tune",name:"TUNE",ch:"TUNE",on:true,need:"1.1.0"}];
   var ST={site:"musinsa",rows:{},loading:false,ext:null,sel:{}};
   var LSK="lf_ord_cfg_v1";
   function cfg(){try{return JSON.parse(localStorage.getItem(LSK)||"{}")||{};}catch(e){return{};}}
@@ -4752,7 +4752,8 @@ dl.innerHTML=h;}
     return{id:r.key,date:r.date,purchaseDate:r.date,itemCode:itemCodeOf(r),productName:cleanName(r),brand:r.brand||"",setNo:r.orderNo,
       category:catOf(r),sizeType:sizeTypeOf(r),sizes:o,color:r.color||"",retailPrice:Number(r.normalPrice)||0,unitPrice:unit,supplyPrice:unit,
       quantity:qty,totalPrice:tot,channel:site.ch,seller:"",status:st,memo:autoMemo(st),claimState:r.claimState,
-      src:site.id,orderNo:r.orderNo,orderOptionNo:r.orderOptionNo,paidAmount:Number(r.paid)||0,cardDc:Number(r.cardDc)||0,pointUsed:Number(r.point)||0,autoTotal:tot,syncedAt:new Date().toISOString()};
+      src:site.id,orderNo:r.orderNo,orderOptionNo:r.orderOptionNo,paidAmount:Number(r.paid)||0,cardDc:Number(r.cardDc)||0,pointUsed:Number(r.point)||0,autoTotal:tot,syncedAt:new Date().toISOString(),
+      lineOrig:r.lineOrig!=null?Number(r.lineOrig):undefined,orderDc:r.orderDc!=null?Number(r.orderDc):undefined,priceEst:r.priceEst?true:undefined};
   }
   function regState(r){
     var f=findPdb(r);if(!f)return{t:"new",label:"미등록"};
@@ -4780,7 +4781,7 @@ dl.innerHTML=h;}
     if(!site.on){w.innerHTML="<div class=\"emp\">"+site.name+" 연동은 준비 중입니다.</div>";updSel();return;}
     var rows=curRows();
     if(!rows.length){w.innerHTML="<div class=\"emp\">"+(meta?"조건에 맞는 주문이 없습니다.":"기간을 고르고 <b>새로고침</b>을 눌러 구매내역을 불러오세요.")+"</div>";updSel();return;}
-    var h="<table class=\"mt\"><thead><tr><th style=\"text-align:center\"><input type=\"checkbox\" id=\"ord-all\"></th><th>등록</th><th>사진</th><th>주문일시</th><th>주문번호</th><th>상태</th><th>브랜드</th><th>상품명</th><th>품번</th><th>옵션</th><th>사이즈</th><th class=\"r\">수량</th><th class=\"r\">결제금액</th><th class=\"r\">카드즉시할인</th><th class=\"r\">적립금</th><th class=\"r\">매입가</th><th class=\"r\">개당</th></tr></thead><tbody>";
+    var h="<table class=\"mt\"><thead><tr><th style=\"text-align:center\"><input type=\"checkbox\" id=\"ord-all\"></th><th>등록</th><th>사진</th><th>주문일시</th><th>주문번호</th><th>상태</th><th>브랜드</th><th>상품명</th><th>품번</th><th>옵션</th><th>사이즈</th><th class=\"r\">수량</th><th class=\"r\">"+(ST.site==="tune"?"상품금액":"결제금액")+"</th><th class=\"r\">"+(ST.site==="tune"?"주문할인 배분":"카드즉시할인")+"</th><th class=\"r\">적립금</th><th class=\"r\">매입가</th><th class=\"r\">개당</th></tr></thead><tbody>";
     rows.forEach(function(r){
       var g=regState(r),tot=costOf(r),q=Number(r.quantity)||1,claim=isClaim(r);
       var col=g.t==="new"?"#2563eb":g.t==="chg"?"#d97706":"#16a34a";
@@ -4797,8 +4798,8 @@ dl.innerHTML=h;}
         +"<td class=\"cl-sl\" style=\"font-size:10px\">"+esc(r.option)+"</td>"
         +"<td class=\"bld\">"+esc(r.size)+"</td>"
         +"<td class=\"r\">"+q+"</td>"
-        +"<td class=\"r\">₩"+won(r.paid)+"</td>"
-        +"<td class=\"r\" style=\"color:#2563eb\">"+(r.cardDc?"-₩"+won(r.cardDc):"")+"</td>"
+        +"<td class=\"r\">₩"+won(r.site==="tune"?r.lineOrig:r.paid)+"</td>"
+        +"<td class=\"r\" style=\"color:#2563eb\""+(r.priceEst?" title=\"TUNE가 상품별 배분값을 주지 않아 금액 비율로 나눈 추정값\"":"")+">"+(r.site==="tune"?(r.orderDc?"-₩"+won(r.orderDc)+(r.priceEst?" <span style=\"color:#d97706\">(추정)</span>":""):""):(r.cardDc?"-₩"+won(r.cardDc):""))+"</td>"
         +"<td class=\"r cl-sl\">"+(r.point?"₩"+won(r.point):"")+"</td>"
         +"<td class=\"r cl-gn bld\">₩"+won(tot)+"</td>"
         +"<td class=\"r cl-am\">₩"+won(Math.round(tot/q))+"</td></tr>";
@@ -4816,14 +4817,16 @@ dl.innerHTML=h;}
   }
 
   /* ---- 동작 ---- */
+  function vnum(v){return String(v||"0").split(".").map(Number).reduce(function(a,x,i){return a+(x||0)*Math.pow(1000,2-i);},0);}
   function load(){
     var site=SITES.filter(function(s){return s.id===ST.site;})[0];
     if(!site.on){msg("mw",site.name+" 연동은 준비 중입니다.");return;}
+    if(site.need&&ST.ext&&ST.ext!=="?"&&vnum(ST.ext)<vnum(site.need)){msg("md",site.name+" 불러오기는 확장프로그램 v"+site.need+" 이상이 필요합니다. 새 파일로 폴더를 바꾸고 chrome://extensions에서 ↻ 새로고침해주세요.");return;}
     if(ST.loading)return;
     var from=$("ord-from").value,to=$("ord-to").value;
     if(!from||!to||from>to){msg("md","조회 기간을 확인해주세요.");return;}
     ST.loading=true;var btn=$("ord-load");btn.disabled=true;btn.textContent="불러오는 중...";
-    msg("mi",site.name+" 구매내역을 불러오는 중입니다... (보통 5~20초)");
+    msg("mi",site.name+" 구매내역을 불러오는 중입니다... "+(site.id==="tune"?"(TUNE 창을 잠깐 열어 읽습니다, 10~30초)":"(보통 5~20초)"));
     ext("orders",{site:site.id,from:from,to:to},120000).then(function(d){
       var rows=(d&&d.rows)||[];
       rows.sort(function(a,b){return String(b.orderDatetime).localeCompare(String(a.orderDatetime));});
@@ -4866,21 +4869,25 @@ dl.innerHTML=h;}
     if(autoBusy||!ST.ext||cfg().noAuto||!dataReady())return;
     var last=Number(localStorage.getItem(AUTO_KEY)||0);
     if(!force&&Date.now()-last<AUTO_GAP)return;
-    if(!PDB.some(function(p){return p&&p.src==="musinsa";}))return;   /* 자동 추가된 줄이 없으면 할 일 없음 */
+    var sites=SITES.filter(function(s){return s.on&&(!s.need||vnum(ST.ext)>=vnum(s.need))&&PDB.some(function(p){return p&&p.src===s.id;});});
+    if(!sites.length)return;   /* 자동 추가된 줄이 없으면 할 일 없음 */
     autoBusy=true;
-    var from=daysAgo(90),to=ymd(new Date());
-    ext("orders",{site:"musinsa",from:from,to:to},120000).then(function(d){
-      try{localStorage.setItem(AUTO_KEY,String(Date.now()));}catch(e){}
-      var rows=(d&&d.rows)||[];
-      if(!ST.rows.musinsa||!ST.rows.musinsa_at||ST.rows.musinsa_at<(d&&d.at||"")){
-        rows.sort(function(a,b){return String(b.orderDatetime).localeCompare(String(a.orderDatetime));});
-        ST.rows.musinsa=rows;ST.rows.musinsa_at=d&&d.at||new Date().toISOString();
-        try{localStorage.setItem("lf_ord_cache_musinsa",JSON.stringify({at:ST.rows.musinsa_at,from:from,to:to,rows:rows}));}catch(e){}
-      }
-      var a=applyStatus(rows,"auto");
-      if(a.n)SM("sku-msg","mi","🛒 무신사 주문 자동반영 "+a.n+"건"+(a.ret?" (반품/취소 "+a.ret+"건)":"")+(a.price?" (매입가 정정 "+a.price+"건)":""));
+    var from=daysAgo(90),to=ymd(new Date()),tot={n:0,ret:0,price:0};
+    try{localStorage.setItem(AUTO_KEY,String(Date.now()));}catch(e){}
+    sites.reduce(function(pr,site){
+      return pr.then(function(){
+        return ext("orders",{site:site.id,from:from,to:to},120000).then(function(d){
+          var rows=(d&&d.rows)||[];
+          rows.sort(function(a,b){return String(b.orderDatetime).localeCompare(String(a.orderDatetime));});
+          ST.rows[site.id]=rows;ST.rows[site.id+"_at"]=d&&d.at||new Date().toISOString();
+          try{localStorage.setItem("lf_ord_cache_"+site.id,JSON.stringify({at:ST.rows[site.id+"_at"],from:from,to:to,rows:rows}));}catch(e){}
+          var a=applyStatus(rows,"auto");tot.n+=a.n;tot.ret+=a.ret;tot.price+=a.price||0;
+        },function(e){console.warn("[구매내역 자동반영] "+site.name+" 건너뜀:",e&&e.message);});
+      });
+    },Promise.resolve()).then(function(){
+      if(tot.n)SM("sku-msg","mi","🛒 구매내역 자동반영 "+tot.n+"건"+(tot.ret?" (반품/취소 "+tot.ret+"건)":"")+(tot.price?" (매입가 정정 "+tot.price+"건)":""));
       if($("pg-ord")&&$("pg-ord").classList.contains("on"))render();
-    },function(e){console.warn("[구매내역 자동반영] 건너뜀:",e&&e.message);}).then(function(){autoBusy=false;});
+    }).then(function(){autoBusy=false;},function(){autoBusy=false;});
   }
   setInterval(function(){autoSync(false);},10*60*1000);
 
@@ -4896,7 +4903,7 @@ dl.innerHTML=h;}
       "<style>#pg-ord .ord-on{background:#2563eb!important;color:#fff!important;border-color:#2563eb!important}#pg-ord .ord-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}#pg-ord .ord-bar input[type=date],#pg-ord .ord-bar input[type=text],#pg-ord .ord-bar select{padding:5px 8px;font-size:12px}#pg-ord label.ck{font-size:11px;color:#475569;display:flex;gap:4px;align-items:center;white-space:nowrap}#ord-tw{overflow:auto;max-height:68vh}</style>"
       +"<div id=\"ord-msg\" class=\"msg\"></div>"
       +"<div class=\"card\"><div class=\"slbl\">🛒 구매내역 관리 <span id=\"ord-ext\" style=\"font-size:11px;font-weight:400;margin-left:8px\"></span></div>"
-      +"<p style=\"font-size:11px;color:#94a3b8;line-height:1.7;margin-bottom:10px\">이 PC 크롬에 로그인된 소싱처 계정의 주문내역을 불러옵니다. 체크한 줄만 매입 DB에 추가되고, 이미 추가된 주문은 상태(구입중 → 배송완료 등)만 갱신됩니다. 다른 매입처 데이터는 건드리지 않습니다.</p>"
+      +"<p style=\"font-size:11px;color:#94a3b8;line-height:1.7;margin-bottom:10px\">이 PC 크롬에 로그인된 소싱처 계정(무신사·TUNE)의 주문내역을 불러옵니다. TUNE은 주문 전체에 붙는 할인(BLACK·쿠폰 등)을 상품별로 나눠 최종 매입가로 계산합니다. 체크한 줄만 매입 DB에 추가되고, 이미 추가된 주문은 상태(구입중 → 배송완료 등)만 갱신됩니다. 다른 매입처 데이터는 건드리지 않습니다.</p>"
       +"<div class=\"ord-bar\">"+SITES.map(function(s){return"<button class=\"bs ord-site\" data-s=\""+s.id+"\">"+s.name+(s.on?"":" (준비중)")+"</button>";}).join("")+"</div>"
       +"<div class=\"ord-bar\"><button class=\"bs ord-pr\" data-d=\"7\">7일</button><button class=\"bs ord-pr\" data-d=\"30\">30일</button><button class=\"bs ord-pr\" data-d=\"90\">90일</button><button class=\"bs ord-pr\" data-d=\"365\">1년</button>"
       +"<input type=\"date\" id=\"ord-from\"> ~ <input type=\"date\" id=\"ord-to\"> <button class=\"bp\" id=\"ord-load\">↻ 새로고침</button> <span id=\"ord-info\" style=\"font-size:11px;color:#64748b\"></span></div>"

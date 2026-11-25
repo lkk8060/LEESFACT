@@ -1,18 +1,48 @@
 {
   "manifest_version": 3,
   "name": "LEESFACT 구매내역 연동",
-  "version": "1.0.1",
-  "description": "LEESFACT 재고관리 페이지에서 무신사 구매내역을 불러옵니다. (로그인된 브라우저 세션 사용, 읽기 전용)",
-  "permissions": ["scripting", "tabs"],
+  "version": "1.1.0",
+  "description": "LEESFACT 재고관리 페이지에서 무신사·TUNE 구매내역을 불러옵니다. (로그인된 브라우저 세션 사용, 읽기 전용)",
+  "permissions": [
+    "scripting",
+    "tabs"
+  ],
   "host_permissions": [
     "https://*.musinsa.com/*",
-    "https://lkk8060.github.io/*"
+    "https://lkk8060.github.io/*",
+    "https://tune.kr/*"
   ],
-  "background": { "service_worker": "background.js" },
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
-      "matches": ["https://lkk8060.github.io/LEESFACT/*", "https://lkk8060.github.io/leesfact/*"],
-      "js": ["bridge.js"],
+      "matches": [
+        "https://lkk8060.github.io/LEESFACT/*",
+        "https://lkk8060.github.io/leesfact/*"
+      ],
+      "js": [
+        "bridge.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://tune.kr/*"
+      ],
+      "js": [
+        "tune_hook.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "https://tune.kr/*"
+      ],
+      "js": [
+        "tune_bridge.js"
+      ],
       "run_at": "document_start"
     }
   ]

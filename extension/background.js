@@ -8,6 +8,10 @@ var ALLOWED_ORIGIN = "https://lkk8060.github.io";
 
 chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
   var from = (sender && (sender.origin || sender.url)) || "";
+  if (msg && msg.type === "tuneCapture") {           /* tune.kr 탭에서 받은 주문 데이터 */
+    if (from.indexOf("https://tune.kr") === 0) tuneCaptured(msg.payload || {});
+    return false;
+  }
   if (from.indexOf(ALLOWED_ORIGIN) !== 0) {
     sendResponse({ ok: false, error: "허용되지 않은 페이지" });
     return false;
@@ -22,10 +26,11 @@ chrome.runtime.onMessage.addListener(function (msg, sender, sendResponse) {
 async function handle(msg) {
   var p = (msg && msg.payload) || {};
   if (msg.type === "ping") {
-    return { version: chrome.runtime.getManifest().version, sites: ["musinsa"] };
+    return { version: chrome.runtime.getManifest().version, sites: ["musinsa", "tune"] };
   }
   if (msg.type === "orders") {
     if (p.site === "musinsa") return musinsaOrders(p.from, p.to);
+    if (p.site === "tune") return tuneOrders(p.from, p.to);
     var e = new Error("아직 지원하지 않는 사이트입니다: " + p.site); e.code = "UNSUPPORTED"; throw e;
   }
   throw new Error("알 수 없는 요청: " + msg.type);
@@ -204,6 +209,161 @@ async function collectMusinsa(from, to) {
         stateText: x.orderStateText || "",
         image: x.goodsImage ? (String(x.goodsImage).indexOf("//") === 0 ? "https:" + x.goodsImage : x.goodsImage) : "",
         url: "https://www.musinsa.com/products/" + x.goodsNo
+      });
+    });
+  });
+  return rows;
+}
+
+
+/* ===================== TUNE (tune.kr, Shopify) =====================
+   TUNE 화면은 로그인할 때 주문 전체(최대 250건)를 Shopify에서 한 번에 받는다.
+   확장은 tune.kr 주문내역 페이지를 백그라운드 탭으로 잠깐 열고, 그 화면이 받은 응답을 tune_hook.js로 복사해 온다.
+   (요청을 새로 보내거나 로그인 토큰을 읽지 않음) */
+var TUNE_WAIT = [];
+function tuneCaptured(p) {
+  var w = TUNE_WAIT.slice();
+  w.forEach(function (f) { try { f(p); } catch (e) {} });
+}
+function tuneHasLines(o) {
+  var nodes = ((o && o.edges) || []).map(function (e) { return e.node; }).concat((o && o.nodes) || []);
+  return nodes.some(function (n) { return n && n.lineItems; }) || nodes.length === 0;
+}
+async function tuneOrders(from, to) {
+  from = checkDate(from); to = checkDate(to);
+  var got = null, best = null, done;
+  var finished = new Promise(function (r) { done = r; });
+  function onCap(p) {
+    if (!p || !p.orders) return;
+    if (tuneHasLines(p.orders)) { got = p; done(); }
+    else if (!best) best = p;
+  }
+  TUNE_WAIT.push(onCap);
+  var tab = await chrome.tabs.create({ url: "https://tune.kr/account/order-history", active: false });
+  var timer = setTimeout(function () { done(); }, 35000);
+  try {
+    await finished;
+  } finally {
+    clearTimeout(timer);
+    TUNE_WAIT = TUNE_WAIT.filter(function (f) { return f !== onCap; });
+    try { await chrome.tabs.remove(tab.id); } catch (e) {}
+  }
+  var cap = got || best;
+  if (!cap) {
+    var le = new Error("TUNE 주문내역을 받지 못했습니다. 이 크롬에서 tune.kr에 로그인돼 있는지 확인한 뒤 다시 시도해주세요.");
+    le.code = "LOGIN"; throw le;
+  }
+  var rows = parseTune(cap.orders, from, to);
+  return { site: "tune", mode: "capture", rows: rows, at: new Date().toISOString() };
+}
+
+function parseTune(orders, from, to) {
+  function amt(v) { if (v == null) return 0; var x = typeof v === "object" ? v.amount : v; var n = Number(String(x).replace(/[^\d.-]/g, "")); return isFinite(n) ? Math.round(n) : 0; }
+  function list(c) { if (!c) return []; return (c.edges || []).map(function (e) { return e.node; }).concat(c.nodes || []); }
+  function kst(iso) { var t = Date.parse(iso || ""); if (!isFinite(t)) return ""; return new Date(t + 9 * 3600 * 1000).toISOString().slice(0, 19).replace("T", " "); }
+  function sizeOf(v, title) {
+    var raw = "";
+    var so = (v && v.selectedOptions) || [];
+    for (var i = 0; i < so.length; i++) if (/size|사이즈/i.test(so[i].name || "")) { raw = so[i].value; break; }
+    if (!raw) raw = (v && v.title) || "";
+    raw = String(raw).trim();
+    var m;
+    if ((m = raw.match(/^(\d{2,3})(?:\D|$)/))) return String(parseInt(m[1], 10));
+    var s = raw.replace(/\s*\(.*?\)\s*/g, "").toUpperCase();
+    if (!s || /^(OS|O\/S|ONE ?SIZE|FREE|F|DEFAULT TITLE)$/.test(s)) return "FREE";
+    return s;
+  }
+  function rawSize(v) {
+    var so = (v && v.selectedOptions) || [];
+    for (var i = 0; i < so.length; i++) if (/size|사이즈/i.test(so[i].name || "")) return String(so[i].value || "").trim();
+    return String((v && v.title) || "").trim();
+  }
+  function styleOf(sku, size, raw) {
+    sku = String(sku || "").trim();
+    if (!sku) return "";
+    var cands = [raw, String(raw || "").replace(/\s*\(.*?\)\s*/g, ""), size, "OS", "FREE", "ONESIZE"];
+    for (var i = 0; i < cands.length; i++) {
+      var c = String(cands[i] || "").trim();
+      if (!c) continue;
+      var re = new RegExp("[-_ /]" + c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$", "i");
+      var s2 = sku.replace(re, "");
+      if (s2 && s2 !== sku) return s2;
+    }
+    return sku;
+  }
+  var rows = [];
+  list(orders).forEach(function (o) {
+    if (!o) return;
+    var dt = kst(o.processedAt), date = dt.slice(0, 10);
+    if (!date || date < from || date > to) return;
+    var name = String(o.name || o.orderNumber || "").replace(/^#/, "");
+    var lines = list(o.lineItems);
+    var L = lines.map(function (n, idx) {
+      var orig = amt(n.originalTotalPrice);
+      var disc = n.discountedTotalPrice != null ? amt(n.discountedTotalPrice) : orig;
+      var alloc = (n.discountAllocations || []).reduce(function (s, a) { return s + amt(a.allocatedAmount); }, 0);
+      return { n: n, idx: idx, orig: orig, disc: disc, alloc: alloc, fin: orig - alloc };
+    });
+    /* 주문 할인 후 상품 합계 = subtotalPrice (없으면 결제금액 - 배송비) */
+    var target = amt(o.subtotalPrice) || (amt(o.totalPrice) - amt(o.totalShippingPrice));
+    var sumA = L.reduce(function (s, x) { return s + x.fin; }, 0);
+    var est = false;
+    if (!(target > 0 && Math.abs(sumA - target) <= L.length)) {
+      /* 상품별 배분 값이 없거나 합계가 안 맞으면: 상품별 할인가 합계와 주문 금액 차이를 상품 금액 비율로 나눔(추정) */
+      var base = L.reduce(function (s, x) { return s + x.disc; }, 0), resid = base - target, left = resid;
+      L.forEach(function (x, i) {
+        var share = 0;
+        if (target > 0 && resid > 0) { share = i === L.length - 1 ? left : Math.round(resid * x.disc / (base || 1)); left -= share; }
+        x.fin = x.disc - share;
+      });
+      est = target > 0 && resid > 0;
+    }
+    var cancel = !!o.canceledReason || /VOIDED/.test(o.financialStatus || "");
+    var shipped = /^(FULFILLED)$/.test(o.fulfillmentStatus || "");
+    var ret = o.returnStatus && o.returnStatus.value ? String(o.returnStatus.value) : "";
+    var seen = {};
+    L.forEach(function (x) {
+      var n = x.n, v = n.variant || {}, prod = v.product || {};
+      var qty = Number(n.quantity) || 1;
+      var cur = n.currentQuantity != null ? Number(n.currentQuantity) : qty;
+      var size = sizeOf(v, n.title);
+      var vid = String(v.id || "").replace(/\D/g, "") || ("i" + x.idx);
+      var key = "tn_" + name + "_" + vid; if (seen[key]) key += "_" + x.idx; seen[key] = 1;
+      var orderState = shipped ? 40 : 20, claimState = 0, stateText = shipped ? "발송 완료" : "상품 준비 중";
+      if (cancel) { claimState = 90; stateText = "취소 완료"; }
+      else if (cur <= 0) { claimState = 61; stateText = "반품 완료"; }
+      else if (cur < qty) { claimState = 41; stateText = "부분 반품 (" + (qty - cur) + "/" + qty + ")"; }
+      rows.push({
+        site: "tune",
+        key: key,
+        orderNo: name,
+        orderOptionNo: key,
+        orderDatetime: dt,
+        date: date,
+        brand: prod.vendor || "",
+        goodsNo: prod.handle || "",
+        goodsName: n.title || prod.title || "",
+        styleNo: styleOf(v.sku, size, rawSize(v)),
+        sku: v.sku || "",
+        cat1: /shoe|sneaker|신발|스니커즈/i.test(prod.productType || "") ? "신발" : (prod.productType || ""),
+        cat2: "",
+        normalPrice: amt(v.compareAtPrice) || amt(v.price),
+        option: v.title || "",
+        color: "",
+        size: size,
+        quantity: qty,
+        paid: x.fin,
+        cardDc: 0,
+        point: 0,
+        lineOrig: x.orig,
+        orderDc: x.orig - x.fin,
+        priceEst: est,
+        orderState: orderState,
+        claimState: claimState,
+        stateText: stateText,
+        returnNote: ret,
+        image: (v.image && (v.image.url || v.image.src)) || "",
+        url: prod.handle ? "https://tune.kr/products/" + prod.handle : ""
       });
     });
   });

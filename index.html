@@ -5183,6 +5183,7 @@ dl.innerHTML=h;}
     return h;
   }
   function productsView(rows){
+    if(rows.length&&!rows.some(function(r){return r&&(r.name||r.statusType||r.salePrice!=null);}))return smartView(rows,{});
     var stk={};try{(typeof calcStk==="function"?calcStk():[]).forEach(function(x){stk[String(x.itemCode||"").toUpperCase()]=x;});}catch(e){}
     var c={},mis=0;
     var L=rows.map(function(r){var k=PRD_KO[r.statusType]||r.statusType||"";c[k]=(c[k]||0)+1;
@@ -5194,21 +5195,66 @@ dl.innerHTML=h;}
     return h+table(["상품번호","상품명","상태","판매가","할인가","스토어 재고","판매자관리코드","LEESFACT 현재고","등록일","수정일"],L,[3,4,5,7]);
   }
   function qnaView(rows){
+    if(rows.length&&!rows.some(function(r){return r&&(r.question||r.content);}))return smartView(rows,{});
     var un=0;var L=rows.map(function(r){if(!r.answered)un++;return[kst(r.createDate),r.questionId||r.id,r.productName,r.question||r.content,r.answered?"답변완료":"미답변",r.answer||r.commentContent||""];});
     return"<div class=\"mc\" style=\"display:inline-block;margin-bottom:10px\"><div class=\"mcl\">미답변</div><div class=\"mcv\" style=\"color:"+(un?"#dc2626":"#16a34a")+"\">"+un+"건</div></div>"+table(["작성일","문의번호","상품명","문의","상태","답변"],L,[]);
   }
-  function autoView(rows){
+  /* 네이버 원본 항목 → 한글 이름 (모르는 항목은 원래 이름 그대로) */
+  var LABEL={settleBasisStartDate:"정산기준 시작일",settleBasisEndDate:"정산기준 종료일",settleBasisDate:"정산기준일",settleExpectDate:"정산 예정일",settleCompleteDate:"정산 완료일",
+    settleAmount:"정산금액",paySettleAmount:"결제대금",commissionSettleAmount:"수수료",benefitSettleAmount:"혜택 정산",deductionRestoreSettleAmount:"공제·환급",payHoldbackAmount:"지급보류",
+    minusChargeAmount:"마이너스 충전",differenceSettleAmount:"차액 정산",returnCareSettleAmount:"반품안심케어",quickSettleAmount:"빠른정산",settlementLimitAmount:"정산 한도",preferentialCommissionRefundAmount:"우대수수료 환급",
+    settleMethodType:"정산 방법",settleType:"정산 구분",productOrderType:"주문 구분",productOrderId:"상품주문번호",orderId:"주문번호",productName:"상품명",productId:"상품번호",
+    totalPayAmount:"총 결제금액",payAmount:"결제금액",normalSettleAmount:"일반 정산",commissionAmount:"수수료",payCommissionAmount:"결제 수수료",saleCommissionAmount:"판매 수수료",
+    sellingInterlockCommissionAmount:"연동 수수료",knowledgeShoppingSellingInterlockCommissionAmount:"쇼핑 연동 수수료",orderDate:"주문일",payDate:"결제일",purchaseDecisionDate:"구매확정일",
+    questionId:"문의번호",question:"문의",answer:"답변",answered:"답변여부",createDate:"작성일",maskedWriterId:"작성자",
+    inquiryNo:"문의번호",inquiryTypeName:"문의 유형",category:"분류",title:"제목",inquiryContent:"문의 내용",inquiryRegistrationDateTime:"문의일시",answerContent:"답변 내용",answerRegistrationDateTime:"답변일시",customerName:"고객",customerId:"고객 ID",
+    channelProductNo:"상품번호",originProductNo:"원상품번호",name:"상품명",statusType:"상태",salePrice:"판매가",discountedPrice:"할인가",stockQuantity:"재고",sellerManagementCode:"판매자관리코드",regDate:"등록일",modifiedDate:"수정일"};
+  function lbl(k){var last=String(k).split(".").pop();return LABEL[k]||LABEL[last]||k;}
+  function isAmt(k){return /(amount|price|commission|quantity|count|fee)$/i.test(String(k).split(".").pop());}
+  var ENUM={NORMAL:"일반",QUICK:"빠른정산",QUICK_SETTLE:"빠른정산",GENERAL:"일반",SALE:"판매중",OUTOFSTOCK:"품절",SUSPENSION:"판매중지",PAYED:"결제완료",DELIVERING:"배송중",DELIVERED:"배송완료",PURCHASE_DECIDED:"구매확정",CANCELED:"취소",RETURNED:"반품",EXCHANGED:"교환"};
+  function fmtCell(k,v){
+    if(v==null||v==="")return"";
+    if(typeof v==="string"&&ENUM[v]&&/(Type|Status|status|type)$/.test(String(k).split(".").pop()))return ENUM[v];
+    if(typeof v==="boolean")return v?"예":"아니오";
+    if(typeof v==="number")return Math.abs(v)>=1000||isAmt(k)?won(v):String(v);
+    var t=String(v);if(/^\d{4}-\d\d-\d\dT\d\d:/.test(t))return kst(t);
+    return t;
+  }
+  /* 공통 표: 한글 머리글, 값이 전부 비었거나 0인 열 숨김, 금액 합계 줄 */
+  function smartView(rows,opt){
+    opt=opt||{};
     var fl=rows.map(function(r){return flat(r);}),keys=[];
     fl.forEach(function(r){Object.keys(r).forEach(function(k){if(keys.indexOf(k)<0)keys.push(k);});});
-    var show=keys.slice(0,16);
-    return"<div class=\"cl-sl\" style=\"font-size:11px;margin-bottom:6px\">항목 "+keys.length+"개 중 앞 "+show.length+"개 표시 · 전체는 엑셀 다운로드</div>"
-      +table(show,fl.map(function(r){return show.map(function(k){var v=r[k];return typeof v==="number"&&Math.abs(v)>=1000?won(v):v;});}),[]);
+    var pref=opt.order||[];
+    keys.sort(function(a,b){var ia=pref.indexOf(a),ib=pref.indexOf(b);if(ia<0)ia=999;if(ib<0)ib=999;return ia-ib;});
+    var hideEmpty=V.showAll!==true;
+    var shown=keys.filter(function(k){if(!hideEmpty)return true;return fl.some(function(r){var v=r[k];return!(v==null||v===""||v===0||v==="0");});});
+    var hidden=keys.length-shown.length;
+    var right=[],sums={};
+    shown.forEach(function(k,i){var num=fl.every(function(r){return r[k]==null||r[k]===""||typeof r[k]==="number";})&&fl.some(function(r){return typeof r[k]==="number";});
+      if(num){right.push(i);if(isAmt(k)||/Amount/i.test(k))sums[k]=fl.reduce(function(t,r){return t+(Number(r[k])||0);},0);}});
+    var body=fl.map(function(r){return shown.map(function(k){return fmtCell(k,r[k]);});});
+    if(Object.keys(sums).length&&fl.length>1)body.push(shown.map(function(k,i){return i===0?"합계":(k in sums?won(sums[k]):"");}));
+    var note="<div class=\"cl-sl\" style=\"font-size:11px;margin-bottom:6px\">"+shown.length+"개 항목 표시"+(hidden?" · 값이 모두 0이거나 빈 항목 "+hidden+"개 숨김 <a href=\"#\" id=\"nv-showall\">모두 보기</a>":(V.showAll?" · <a href=\"#\" id=\"nv-showall\">빈 항목 숨기기</a>":""))+" · 엑셀에는 전체 항목</div>";
+    return note+table(shown.map(lbl),body,right,!!Object.keys(sums).length&&fl.length>1);
   }
-  function table(head,rows,right){
+  function settleView(rows){
+    var kind=(V.data.settle&&V.data.settle.note)||"daily";
+    var tot={pay:0,fee:0,settle:0,hold:0,ded:0};
+    rows.forEach(function(r){tot.pay+=Number(r.paySettleAmount||r.payAmount||r.totalPayAmount)||0;tot.fee+=Number(r.commissionSettleAmount||r.commissionAmount)||0;tot.settle+=Number(r.settleAmount)||0;
+      tot.hold+=Number(r.payHoldbackAmount)||0;tot.ded+=(Number(r.deductionRestoreSettleAmount)||0)+(Number(r.minusChargeAmount)||0);});
+    var mc=function(t,v,c,sub){return"<div class=\"mc\" style=\"min-width:140px\"><div class=\"mcl\">"+t+"</div><div class=\"mcv\" style=\"color:"+(c||"inherit")+"\">"+(v<0?"-₩"+won(-v):"₩"+won(v))+"</div>"+(sub?"<div class=\"cl-sl\" style=\"font-size:10px\">"+sub+"</div>":"")+"</div>";};
+    var rate=tot.pay?(Math.abs(tot.fee)/tot.pay*100).toFixed(2)+"%":"";
+    var h="<div style=\"display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px\">"+mc("결제대금 합계",tot.pay)+mc("수수료 합계",tot.fee,"#dc2626",rate?"결제대금 대비 "+rate:"")+mc("공제·마이너스 충전",tot.ded,"#d97706")+mc("지급보류",tot.hold,"#64748b")+mc("정산금액 합계",tot.settle,"#16a34a")+"</div>"
+      +"<div class=\"cl-sl\" style=\"font-size:11px;margin-bottom:6px\">"+(kind==="case"?"건별 정산":"일별 정산")+" · 음수(−)는 반품·취소 등으로 차감된 금액입니다.</div>";
+    return h+smartView(rows,{order:["settleBasisStartDate","settleBasisEndDate","settleBasisDate","settleExpectDate","settleCompleteDate","orderId","productOrderId","productName","settleType","productOrderType","paySettleAmount","payAmount","totalPayAmount","commissionSettleAmount","commissionAmount","benefitSettleAmount","deductionRestoreSettleAmount","minusChargeAmount","payHoldbackAmount","differenceSettleAmount","settleAmount"]});
+  }
+  function autoView(rows){return smartView(rows,{});}
+  function table(head,rows,right,lastTotal){
     right=right||[];
     if(!rows.length)return"<div class=\"emp\">결과가 없습니다.</div>";
     return"<div id=\"nv-tw\" class=\"nv-wrap\"><table class=\"mt nv-t\"><thead><tr>"+head.map(function(h,i){return"<th"+(right.indexOf(i)>=0?" class=\"r\"":"")+">"+esc(h)+"</th>";}).join("")+"</tr></thead><tbody>"
-      +rows.slice(0,2000).map(function(r){return"<tr>"+r.map(function(v,i){var t=String(v==null?"":v);return"<td"+(right.indexOf(i)>=0?" class=\"r\"":"")+(t.length>40?" title=\""+esc(t)+"\" style=\"max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap\"":"")+">"+esc(t)+"</td>";}).join("")+"</tr>";}).join("")
+      +rows.slice(0,2000).map(function(r,ri){return"<tr"+(lastTotal&&ri===rows.length-1?" style=\"font-weight:700;background:#f1f5f9\"":"")+">"+r.map(function(v,i){var t=String(v==null?"":v);return"<td"+(right.indexOf(i)>=0?" class=\"r\"":"")+(t.length>40?" title=\""+esc(t)+"\" style=\"max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap\"":"")+">"+esc(t)+"</td>";}).join("")+"</tr>";}).join("")
       +"</tbody></table></div>"+(rows.length>2000?"<div class=\"cl-sl\" style=\"font-size:11px\">화면에는 2,000줄까지만 표시 · 전체 "+rows.length+"줄은 엑셀로</div>":"");
   }
   /* ---------- 화면 ---------- */
@@ -5226,7 +5272,8 @@ dl.innerHTML=h;}
     $("nv-xls").disabled=!(d&&d.rows.length);
     var w=$("nv-body");
     if(!d){w.innerHTML="<div class=\"emp\">"+(t.date?"기간을 고르고 ":"")+"<b>불러오기</b>를 누르세요.</div>";return;}
-    w.innerHTML=V.tab==="orders"?ordersView(d.rows):V.tab==="products"?productsView(d.rows):V.tab==="qnas"?qnaView(d.rows):autoView(d.rows);
+    w.innerHTML=V.tab==="orders"?ordersView(d.rows):V.tab==="products"?productsView(d.rows):V.tab==="qnas"?qnaView(d.rows):V.tab==="settle"?settleView(d.rows):V.tab==="inquiries"?smartView(d.rows,{order:["inquiryNo","inquiryRegistrationDateTime","category","inquiryTypeName","title","productName","inquiryContent","answered","answerContent"]}):autoView(d.rows);
+    var sa=$("nv-showall");if(sa)sa.onclick=function(ev){ev.preventDefault();V.showAll=!V.showAll;render();};
   }
   function load(){
     if(V.loading)return;
@@ -5256,7 +5303,7 @@ dl.innerHTML=h;}
     var d=V.data[V.tab];if(!d||!d.rows.length)return;
     if(typeof XLSX==="undefined"){msg("md","엑셀 라이브러리를 불러오지 못했습니다. 페이지를 새로고침해주세요.");return;}
     var t=tabDef(),wb=XLSX.utils.book_new();
-    var rows=d.rows.map(function(r){return flat(r);});
+    var rows=d.rows.map(function(r){var o=flat(r),out={},used={};Object.keys(o).forEach(function(k){var h=lbl(k);if(used[h]&&used[h]!==k)h=h+" ("+k+")";used[h]=k;out[h]=o[k];});return out;});
     XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),t.name.replace(/[\\\/?*\[\]:]/g,"").slice(0,30)||"data");
     var tag=d.from?(d.from.replace(/-/g,"")+"-"+d.to.replace(/-/g,"")):ymd(new Date()).replace(/-/g,"");
     XLSX.writeFile(wb,"스마트스토어_"+t.name.replace(/[·\s]/g,"")+"_"+tag+".xlsx");
@@ -5307,8 +5354,9 @@ dl.innerHTML=h;}
 /* ===== LEESFACT 버전 표시 =====
    업데이트할 때마다 APP_VERSION / CHANGELOG 맨 위에 한 줄 추가 (확장프로그램 버전과 같은 번호로 맞춤) */
 (function(){
-  var APP_VERSION="1.3.1";
+  var APP_VERSION="1.3.2";
   var CHANGELOG=[
+    {v:"1.3.2",d:"2026-11-25",t:"스마트스토어 정산 화면 정리(한글 항목·합계 카드·합계 줄·0인 항목 숨김), 고객문의·API 조회도 한글 항목, 엑셀 머리글 한글"},
     {v:"1.3.1",d:"2026-11-25",t:"스마트스토어 표 칸 잘림 수정 (내용 너비로 표시, 좌우 스크롤, 머리글 고정)"},
     {v:"1.3.0",d:"2026-11-25",t:"🟢 스마트스토어 탭 — 주문 현황(신규·발송대기·클레임), 상품·재고(LEESFACT 현재고 비교), 정산, 상품문의, 고객문의, API 직접 조회, 화면마다 엑셀 다운로드 (확장 v1.3.0 필요)"},
     {v:"1.2.1",d:"2026-11-25",t:"버전 표시 추가 · 확장 설정 화면 연결 테스트 오류 수정"},

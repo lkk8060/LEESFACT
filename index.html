@@ -4631,13 +4631,13 @@ dl.innerHTML=h;}
    PC(900px 초과)는 기존 '표를 화면 폭에 맞춤' 유지.
    모바일/좁은 화면은 표를 원래 너비로 두고 좌우 스크롤. (:is(#id…)로 기존 ID 규칙보다 우선) */
 @media (max-width:900px){
-  :is(.tw,#skuw,#ptw,#stw,#stkw,#marw,#mapw,#ana-top-sku,#ana-margin-sku,#margin-top-card,#ana-risk,#cash-table,#turnover-table,#defense-table,#calc-info,#calc-target,#direct-result,#direct-target,#pg-calc,#pg-price,#ord-tw,#sal-tw){
+  :is(.tw,#skuw,#ptw,#stw,#stkw,#marw,#mapw,#ana-top-sku,#ana-margin-sku,#margin-top-card,#ana-risk,#cash-table,#turnover-table,#defense-table,#calc-info,#calc-target,#direct-result,#direct-target,#pg-calc,#pg-price,#ord-tw,#sal-tw,#nv-tw){
     overflow-x:auto!important;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;max-width:100%!important;
   }
-  :is(.tw,#skuw,#ptw,#stw,#stkw,#marw,#mapw,#ana-top-sku,#ana-margin-sku,#margin-top-card,#ana-risk,#cash-table,#turnover-table,#defense-table,#calc-info,#calc-target,#direct-result,#direct-target,#pg-calc,#pg-price,#ord-tw,#sal-tw) table.mt{
+  :is(.tw,#skuw,#ptw,#stw,#stkw,#marw,#mapw,#ana-top-sku,#ana-margin-sku,#margin-top-card,#ana-risk,#cash-table,#turnover-table,#defense-table,#calc-info,#calc-target,#direct-result,#direct-target,#pg-calc,#pg-price,#ord-tw,#sal-tw,#nv-tw) table.mt{
     table-layout:auto!important;width:max-content!important;min-width:100%!important;max-width:none!important;
   }
-  :is(.tw,#skuw,#ptw,#stw,#stkw,#marw,#mapw,#ana-top-sku,#ana-margin-sku,#margin-top-card,#ana-risk,#cash-table,#turnover-table,#defense-table,#calc-info,#calc-target,#direct-result,#direct-target,#pg-calc,#pg-price,#ord-tw,#sal-tw) table.mt :is(th,td){
+  :is(.tw,#skuw,#ptw,#stw,#stkw,#marw,#mapw,#ana-top-sku,#ana-margin-sku,#margin-top-card,#ana-risk,#cash-table,#turnover-table,#defense-table,#calc-info,#calc-target,#direct-result,#direct-target,#pg-calc,#pg-price,#ord-tw,#sal-tw,#nv-tw) table.mt :is(th,td){
     white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;max-width:none!important;
   }
   :is(.tw,#skuw,#ptw,#stw,#stkw,#marw,#mapw,#ord-tw,#sal-tw) table.mt td[title]{max-width:220px!important;overflow:hidden!important;text-overflow:ellipsis!important;}
@@ -5133,11 +5133,183 @@ dl.innerHTML=h;}
 })();
 </script>
 <script>
+/* ===== LEESFACT 스마트스토어 탭 v1 (2026-11-25, 앱 v1.3.0 · 확장 v1.3.0+) =====
+   주문 현황 / 상품(LEESFACT 현재고 비교) / 정산 / 상품문의 / 고객문의 / API 직접 조회 — 모두 읽기 전용
+   각 화면 '엑셀 다운로드' = 불러온 원본 전체 필드를 펼쳐 .xlsx로 저장 */
+(function(){
+  var V={tab:"orders",data:{},loading:false};
+  function $(id){return document.getElementById(id);}
+  function esc(v){return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+  function won(n){var x=Number(n);return isFinite(x)?x.toLocaleString():"";}
+  function ymd(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+  function daysAgo(n){var d=new Date();d.setDate(d.getDate()-n);return ymd(d);}
+  function msg(c,t){if(typeof SM==="function")SM("nv-msg",c,t);}
+  function ext(t,p,ms){return window.LF_ORD&&LF_ORD.ext?LF_ORD.ext(t,p,ms):Promise.reject(new Error("확장프로그램 연결 모듈 없음"));}
+  function vnum(v){return String(v||"0").split(".").map(Number).reduce(function(a,x,i){return a+(x||0)*Math.pow(1000,2-i);},0);}
+  function kst(iso){var t=Date.parse(iso||"");if(!isFinite(t))return String(iso||"");return new Date(t+9*3600000).toISOString().slice(0,16).replace("T"," ");}
+  function flat(o,pre,out){out=out||{};pre=pre||"";
+    if(o==null||typeof o!=="object"){out[pre||"value"]=o;return out;}
+    if(Array.isArray(o)){out[pre||"list"]=JSON.stringify(o);return out;}
+    Object.keys(o).forEach(function(k){var v=o[k],key=pre?pre+"."+k:k;if(v&&typeof v==="object"&&!Array.isArray(v))flat(v,key,out);else out[key]=Array.isArray(v)?JSON.stringify(v):v;});
+    return out;}
+  var ST_KO={PAYMENT_WAITING:"결제대기",PAYED:"결제완료",DELIVERING:"배송중",DELIVERED:"배송완료",PURCHASE_DECIDED:"구매확정",EXCHANGED:"교환",CANCELED:"취소",RETURNED:"반품",CANCELED_BY_NOPAYMENT:"미결제취소"};
+  var CL_KO={CANCEL:"취소",RETURN:"반품",EXCHANGE:"교환",PURCHASE_DECISION_HOLDBACK:"구매확정보류",ADMIN_CANCEL:"직권취소"};
+  var PRD_KO={SALE:"판매중",OUTOFSTOCK:"품절",SUSPENSION:"판매중지",CLOSE:"판매종료",PROHIBITION:"판매금지",WAIT:"판매대기",UNADMISSION:"승인대기",REJECTION:"승인거부",DELETE:"삭제"};
+  var TABS=[
+    {id:"orders",name:"주문 현황",date:true,max:31,def:7,help:"기간 안에 상태가 바뀐 모든 주문을 불러와 현재 상태별로 묶습니다(최대 31일). 신규주문·발송대기·배송중·클레임을 한눈에 봅니다."},
+    {id:"products",name:"상품·재고",date:false,help:"스마트스토어 등록 상품 전체(판매가·할인가·재고·판매자관리코드)와 LEESFACT 현재고를 나란히 봅니다."},
+    {id:"settle",name:"정산",date:true,def:30,help:"일별 정산 내역(정산금액·수수료). '건별'로 바꾸면 상품주문 단위 정산 내역입니다."},
+    {id:"qnas",name:"상품문의",date:true,def:30,help:"상품 Q&A 목록. '미답변만'으로 답변 안 한 문의를 모아봅니다."},
+    {id:"inquiries",name:"고객문의",date:true,def:30,help:"고객 1:1 문의 목록. (네이버 쪽 조회 조건이 공개 문서와 다를 수 있어, 오류가 나면 메시지를 보고 맞춥니다)"},
+    {id:"raw",name:"API 직접 조회",date:false,help:"커머스API 조회 경로(/v1/...)를 직접 넣어 결과를 표·엑셀로 받습니다. 조회(GET)만 됩니다."}
+  ];
+  function tabDef(){return TABS.filter(function(t){return t.id===V.tab;})[0];}
+  /* ---------- 표 만들기 ---------- */
+  function ordersView(rows){
+    var cnt={},sum={},daily={},claim=0,newOrd=0,waitShip=0;
+    var L=rows.map(function(d){var po=d.productOrder||{},o=d.order||{};
+      var st=po.productOrderStatus||"",k=ST_KO[st]||st;cnt[k]=(cnt[k]||0)+1;sum[k]=(sum[k]||0)+(Number(po.totalPaymentAmount)||0);
+      if(po.claimType)claim++;
+      if(st==="PAYED"){if(po.placeOrderStatus==="OK")waitShip++;else newOrd++;}
+      var day=kst(o.paymentDate||o.orderDate).slice(0,10);if(day){daily[day]=daily[day]||{n:0,amt:0};daily[day].n++;daily[day].amt+=Number(po.totalPaymentAmount)||0;}
+      return{d:kst(o.paymentDate||o.orderDate),pid:po.productOrderId,st:k+(st==="PAYED"?(po.placeOrderStatus==="OK"?" (발송대기)":" (신규)"):""),cl:po.claimType?((CL_KO[po.claimType]||po.claimType)+" "+(po.claimStatus||"")):"",
+        name:po.productName,opt:po.productOption,code:po.optionManageCode||po.sellerProductCode||"",q:po.quantity,pay:po.totalPaymentAmount,set:po.expectedSettlementAmount};});
+    L.sort(function(a,b){return String(b.d).localeCompare(String(a.d));});
+    var mc=function(t,v,c){return"<div class=\"mc\" style=\"min-width:110px\"><div class=\"mcl\">"+t+"</div><div class=\"mcv\" style=\"color:"+(c||"inherit")+"\">"+v+"</div></div>";};
+    var h="<div style=\"display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px\">"+mc("신규주문",newOrd+"건","#2563eb")+mc("발송대기",waitShip+"건","#d97706")+mc("배송중",(cnt["배송중"]||0)+"건")+mc("배송완료",(cnt["배송완료"]||0)+"건")+mc("구매확정",(cnt["구매확정"]||0)+"건","#16a34a")+mc("클레임",claim+"건","#dc2626")+"</div>";
+    var days=Object.keys(daily).sort().reverse();
+    if(days.length)h+="<div class=\"slbl\" style=\"font-size:12px\">일별 주문(결제일 기준)</div><div class=\"tw\" style=\"margin-bottom:10px\"><table class=\"mt\"><thead><tr><th>날짜</th><th class=\"r\">주문</th><th class=\"r\">결제금액</th></tr></thead><tbody>"+days.map(function(k){return"<tr><td>"+k+"</td><td class=\"r\">"+daily[k].n+"</td><td class=\"r\">₩"+won(daily[k].amt)+"</td></tr>";}).join("")+"</tbody></table></div>";
+    h+=table(["주문일시","상품주문번호","상태","클레임","상품명","옵션","판매자코드","수량","결제금액","정산예정"],L.map(function(x){return[x.d,x.pid,x.st,x.cl,x.name,x.opt,x.code,x.q,"₩"+won(x.pay),"₩"+won(x.set)];}),[7,8,9]);
+    return h;
+  }
+  function productsView(rows){
+    var stk={};try{(typeof calcStk==="function"?calcStk():[]).forEach(function(x){stk[String(x.itemCode||"").toUpperCase()]=x;});}catch(e){}
+    var c={},mis=0;
+    var L=rows.map(function(r){var k=PRD_KO[r.statusType]||r.statusType||"";c[k]=(c[k]||0)+1;
+      var code=String(r.sellerManagementCode||"").trim(),lf=code?stk[code.toUpperCase()]:null,rem=lf?(lf.remQty!=null?lf.remQty:lf.rem):null;
+      var sq=Number(r.stockQuantity);if(lf&&rem!=null&&isFinite(sq)&&r.statusType==="SALE"&&sq>Number(rem))mis++;
+      return[r.channelProductNo||r.originProductNo,r.name,k,"₩"+won(r.salePrice),r.discountedPrice!=null?"₩"+won(r.discountedPrice):"",isFinite(sq)?sq:"",code,lf?(rem!=null?rem:"?"):(code?"SKU 없음":""),kst(r.regDate).slice(0,10),kst(r.modifiedDate).slice(0,10)];});
+    var h="<div style=\"display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px\">"+Object.keys(c).map(function(k){return"<div class=\"mc\" style=\"min-width:100px\"><div class=\"mcl\">"+esc(k)+"</div><div class=\"mcv\">"+c[k]+"개</div></div>";}).join("")
+      +"<div class=\"mc\" style=\"min-width:150px\"><div class=\"mcl\">스토어 재고 &gt; LEESFACT 현재고</div><div class=\"mcv\" style=\"color:"+(mis?"#dc2626":"#16a34a")+"\">"+mis+"개</div></div></div>";
+    return h+table(["상품번호","상품명","상태","판매가","할인가","스토어 재고","판매자관리코드","LEESFACT 현재고","등록일","수정일"],L,[3,4,5,7]);
+  }
+  function qnaView(rows){
+    var un=0;var L=rows.map(function(r){if(!r.answered)un++;return[kst(r.createDate),r.questionId||r.id,r.productName,r.question||r.content,r.answered?"답변완료":"미답변",r.answer||r.commentContent||""];});
+    return"<div class=\"mc\" style=\"display:inline-block;margin-bottom:10px\"><div class=\"mcl\">미답변</div><div class=\"mcv\" style=\"color:"+(un?"#dc2626":"#16a34a")+"\">"+un+"건</div></div>"+table(["작성일","문의번호","상품명","문의","상태","답변"],L,[]);
+  }
+  function autoView(rows){
+    var fl=rows.map(function(r){return flat(r);}),keys=[];
+    fl.forEach(function(r){Object.keys(r).forEach(function(k){if(keys.indexOf(k)<0)keys.push(k);});});
+    var show=keys.slice(0,16);
+    return"<div class=\"cl-sl\" style=\"font-size:11px;margin-bottom:6px\">항목 "+keys.length+"개 중 앞 "+show.length+"개 표시 · 전체는 엑셀 다운로드</div>"
+      +table(show,fl.map(function(r){return show.map(function(k){var v=r[k];return typeof v==="number"&&Math.abs(v)>=1000?won(v):v;});}),[]);
+  }
+  function table(head,rows,right){
+    right=right||[];
+    if(!rows.length)return"<div class=\"emp\">결과가 없습니다.</div>";
+    return"<div id=\"nv-tw\" class=\"tw\"><table class=\"mt\"><thead><tr>"+head.map(function(h,i){return"<th"+(right.indexOf(i)>=0?" class=\"r\"":"")+">"+esc(h)+"</th>";}).join("")+"</tr></thead><tbody>"
+      +rows.slice(0,2000).map(function(r){return"<tr>"+r.map(function(v,i){var t=String(v==null?"":v);return"<td"+(right.indexOf(i)>=0?" class=\"r\"":"")+(t.length>40?" title=\""+esc(t)+"\" style=\"max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap\"":"")+">"+esc(t)+"</td>";}).join("")+"</tr>";}).join("")
+      +"</tbody></table></div>"+(rows.length>2000?"<div class=\"cl-sl\" style=\"font-size:11px\">화면에는 2,000줄까지만 표시 · 전체 "+rows.length+"줄은 엑셀로</div>":"");
+  }
+  /* ---------- 화면 ---------- */
+  function render(){
+    var t=tabDef();
+    document.querySelectorAll("#pg-nv .nv-sub").forEach(function(b){b.className="bs nv-sub"+(b.getAttribute("data-t")===V.tab?" nv-on":"");});
+    $("nv-help").textContent=t.help;
+    $("nv-dates").style.display=t.date?"":"none";
+    $("nv-extra").innerHTML=V.tab==="products"?"<label class=\"ck\"><input type=\"checkbox\" id=\"nv-sale\" checked>판매중·품절만</label>"
+      :V.tab==="settle"?"<select id=\"nv-kind\"><option value=\"daily\">일별 정산</option><option value=\"case\">건별 정산</option></select>"
+      :(V.tab==="qnas"||V.tab==="inquiries")?"<label class=\"ck\"><input type=\"checkbox\" id=\"nv-un\">미답변만</label>"
+      :V.tab==="raw"?"<input type=\"text\" id=\"nv-path\" placeholder=\"/v1/...\" style=\"min-width:320px;flex:1 1 260px\" value=\""+esc(V.rawPath||"/v1/seller/account")+"\">":"";
+    var d=V.data[V.tab];
+    $("nv-info").textContent=d?("불러온 시각 "+new Date(d.at).toLocaleString("ko-KR")+" · "+d.rows.length+"건"):"";
+    $("nv-xls").disabled=!(d&&d.rows.length);
+    var w=$("nv-body");
+    if(!d){w.innerHTML="<div class=\"emp\">"+(t.date?"기간을 고르고 ":"")+"<b>불러오기</b>를 누르세요.</div>";return;}
+    w.innerHTML=V.tab==="orders"?ordersView(d.rows):V.tab==="products"?productsView(d.rows):V.tab==="qnas"?qnaView(d.rows):autoView(d.rows);
+  }
+  function load(){
+    if(V.loading)return;
+    var v=window.LF_ORD&&LF_ORD.extVersion&&LF_ORD.extVersion();
+    if(!v){msg("md","확장프로그램이 연결돼 있지 않습니다. 스마트스토어 조회는 API 호출 IP를 등록한 집 PC 크롬에서 할 수 있습니다.");return;}
+    if(v!=="?"&&vnum(v)<vnum("1.3.0")){msg("md","스마트스토어 탭은 확장프로그램 v1.3.0 이상이 필요합니다. 새 파일로 폴더 내용을 바꾸고 chrome://extensions에서 ↻ 새로고침해주세요.");return;}
+    var t=tabDef(),p={};
+    if(t.date){p.from=$("nv-from").value;p.to=$("nv-to").value;if(!p.from||!p.to||p.from>p.to){msg("md","기간을 확인해주세요.");return;}
+      if(t.max&&((Date.parse(p.to)-Date.parse(p.from))/86400000+1)>t.max){msg("md",t.name+"은(는) 한 번에 "+t.max+"일까지 조회할 수 있습니다.");return;}}
+    if(V.tab==="products"&&$("nv-sale")&&$("nv-sale").checked)p.statuses=["SALE","OUTOFSTOCK"];
+    if(V.tab==="settle")p.kind=$("nv-kind").value;
+    if((V.tab==="qnas"||V.tab==="inquiries")&&$("nv-un"))p.unanswered=$("nv-un").checked;
+    if(V.tab==="raw"){p.path=$("nv-path").value.trim();V.rawPath=p.path;}
+    V.loading=true;var b=$("nv-load");b.disabled=true;b.textContent="불러오는 중...";
+    var tabNow=V.tab;
+    msg("mi",t.name+" 불러오는 중입니다...");
+    ext("nv",{op:V.tab,params:p},240000).then(function(d){
+      V.data[tabNow]={rows:(d&&d.rows)||[],at:d&&d.at||new Date().toISOString(),note:d&&d.note,from:p.from,to:p.to};
+      msg("ms","✓ "+t.name+" "+V.data[tabNow].rows.length+"건 불러옴");
+      render();
+    },function(e){
+      if(e.code==="NOCRED")msg("md",e.message+" (매출내역 관리 탭의 '⚙ 스마트스토어 설정')");
+      else msg("md",t.name+" 불러오기 실패: "+e.message);
+    }).then(function(){V.loading=false;b.disabled=false;b.textContent="↻ 불러오기";});
+  }
+  function excel(){
+    var d=V.data[V.tab];if(!d||!d.rows.length)return;
+    if(typeof XLSX==="undefined"){msg("md","엑셀 라이브러리를 불러오지 못했습니다. 페이지를 새로고침해주세요.");return;}
+    var t=tabDef(),wb=XLSX.utils.book_new();
+    var rows=d.rows.map(function(r){return flat(r);});
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),t.name.replace(/[\\\/?*\[\]:]/g,"").slice(0,30)||"data");
+    var tag=d.from?(d.from.replace(/-/g,"")+"-"+d.to.replace(/-/g,"")):ymd(new Date()).replace(/-/g,"");
+    XLSX.writeFile(wb,"스마트스토어_"+t.name.replace(/[·\s]/g,"")+"_"+tag+".xlsx");
+  }
+  function build(){
+    if($("pg-nv"))return;
+    var tabs=document.querySelector(".tabs");if(!tabs)return;
+    var tb=document.createElement("button");tb.className="tab";tb.id="tab-nv";tb.textContent="🟢 스마트스토어";
+    var ref=$("tab-sal")||$("tab-sdb");if(ref&&ref.nextSibling)tabs.insertBefore(tb,ref.nextSibling);else tabs.appendChild(tb);
+    var pg=document.createElement("div");pg.id="pg-nv";pg.className="pg";
+    pg.innerHTML="<style>#pg-nv .nv-on{background:#16a34a!important;color:#fff!important;border-color:#16a34a!important}#pg-nv .nv-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}#pg-nv .nv-bar input,#pg-nv .nv-bar select{padding:5px 8px;font-size:12px}#pg-nv label.ck{font-size:11px;color:#475569;display:flex;gap:4px;align-items:center;white-space:nowrap}#pg-nv .tw{overflow:auto;max-height:62vh}</style>"
+      +"<div id=\"nv-msg\" class=\"msg\"></div><div class=\"card\"><div class=\"slbl\">🟢 스마트스토어 (커머스API · 조회 전용)</div>"
+      +"<div class=\"nv-bar\">"+TABS.map(function(t){return"<button class=\"bs nv-sub\" data-t=\""+t.id+"\">"+t.name+"</button>";}).join("")+"</div>"
+      +"<p id=\"nv-help\" style=\"font-size:11px;color:#94a3b8;line-height:1.7;margin-bottom:8px\"></p>"
+      +"<div class=\"nv-bar\"><span id=\"nv-dates\"><button class=\"bs nv-pr\" data-d=\"1\">오늘</button> <button class=\"bs nv-pr\" data-d=\"7\">7일</button> <button class=\"bs nv-pr\" data-d=\"30\">30일</button> <input type=\"date\" id=\"nv-from\"> ~ <input type=\"date\" id=\"nv-to\"></span>"
+      +"<span id=\"nv-extra\" style=\"display:flex;gap:6px;align-items:center;flex-wrap:wrap\"></span><button class=\"bp\" id=\"nv-load\">↻ 불러오기</button><button class=\"bs\" id=\"nv-xls\" disabled>⬇ 엑셀 다운로드</button><span id=\"nv-info\" style=\"font-size:11px;color:#64748b\"></span></div>"
+      +"<div id=\"nv-body\"></div></div>";
+    var after=$("pg-sal")||$("pg-ord")||document.querySelector(".pg:last-of-type");
+    after.parentNode.insertBefore(pg,after.nextSibling);
+    $("nv-from").value=daysAgo(6);$("nv-to").value=ymd(new Date());
+    document.querySelectorAll("#pg-nv .nv-sub").forEach(function(b){b.onclick=function(){V.tab=b.getAttribute("data-t");var t=tabDef();if(t.def){$("nv-from").value=daysAgo(t.def-1);$("nv-to").value=ymd(new Date());}render();};});
+    document.querySelectorAll("#pg-nv .nv-pr").forEach(function(b){b.onclick=function(){$("nv-from").value=daysAgo(Number(b.getAttribute("data-d"))-1);$("nv-to").value=ymd(new Date());load();};});
+    $("nv-load").onclick=load;$("nv-xls").onclick=excel;
+    tb.onclick=function(){GT("nv");};
+  }
+  function show(){
+    document.querySelectorAll(".tabs .tab").forEach(function(t){t.classList.remove("on");});
+    document.querySelectorAll(".pg").forEach(function(p){p.classList.remove("on");});
+    $("tab-nv").classList.add("on");$("pg-nv").classList.add("on");
+    try{curTab="nv";}catch(e){}
+    render();
+  }
+  function hide(){var t=$("tab-nv"),p=$("pg-nv");if(t)t.classList.remove("on");if(p)p.classList.remove("on");}
+  function wrap(){
+    if(!window.GT||window.__lfNvWrapped)return;
+    window.__lfNvWrapped=true;
+    var old=window.GT;
+    window.GT=function(id){if(id==="nv")return show();hide();return old.apply(this,arguments);};
+    document.addEventListener("click",function(ev){var t=ev.target&&ev.target.closest&&ev.target.closest(".tabs .tab");if(t&&t.id!=="tab-nv")hide();},true);
+  }
+  function init(){build();wrap();}
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
+  window.addEventListener("load",function(){setTimeout(init,900);setTimeout(init,2400);});
+  window.LF_NV={state:V,flat:flat,render:render};
+})();
+</script>
+<script>
 /* ===== LEESFACT 버전 표시 =====
    업데이트할 때마다 APP_VERSION / CHANGELOG 맨 위에 한 줄 추가 (확장프로그램 버전과 같은 번호로 맞춤) */
 (function(){
-  var APP_VERSION="1.2.1";
+  var APP_VERSION="1.3.0";
   var CHANGELOG=[
+    {v:"1.3.0",d:"2026-11-25",t:"🟢 스마트스토어 탭 — 주문 현황(신규·발송대기·클레임), 상품·재고(LEESFACT 현재고 비교), 정산, 상품문의, 고객문의, API 직접 조회, 화면마다 엑셀 다운로드 (확장 v1.3.0 필요)"},
     {v:"1.2.1",d:"2026-11-25",t:"버전 표시 추가 · 확장 설정 화면 연결 테스트 오류 수정"},
     {v:"1.2.0",d:"2026-11-25",t:"💰 매출내역 관리 탭 (스마트스토어 커머스API 구매확정 매출 불러오기)"},
     {v:"1.1.1",d:"2026-11-25",t:"구매내역 반영 시 SKU MASTER 자동 등록 (없는 품번 신규 등록, 있으면 별칭 추가)"},

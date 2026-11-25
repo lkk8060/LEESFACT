@@ -46,6 +46,7 @@ async function handle(msg) {
     var e2 = new Error("아직 지원하지 않는 판매처입니다: " + p.site); e2.code = "UNSUPPORTED"; throw e2;
   }
   if (msg.type === "openOptions") { chrome.runtime.openOptionsPage(); return { opened: true }; }
+  if (msg.type === "nv") return nvOp(p.op, p.params || {});
   throw new Error("알 수 없는 요청: " + msg.type);
 }
 
@@ -425,8 +426,8 @@ async function nvCall(method, path, body) {
   throw new Error("스마트스토어: 요청이 너무 많아 잠시 후 다시 시도해주세요.");
 }
 function nvKst(ms) { return new Date(ms + 9 * 3600 * 1000).toISOString().replace("Z", "+09:00"); }
-async function nvSales(from, to) {
-  from = checkDate(from); to = checkDate(to);
+/* 기간 안에 상태가 바뀐 상품주문번호 (type 없으면 모든 변경) — 하루 단위 창 */
+async function nvChangedIds(from, to, type) {
   var start = Date.parse(from + "T00:00:00+09:00"), end = Date.parse(to + "T23:59:59.999+09:00");
   var now = Date.now(); if (end > now) end = now;
   var ids = {}, order = [];
@@ -434,7 +435,7 @@ async function nvSales(from, to) {
     var wEnd = Math.min(t + 24 * 3600 * 1000 - 1, end);
     var qFrom = nvKst(t), seq = "";
     for (var guard = 0; guard < 50; guard++) {
-      var q = "lastChangedFrom=" + encodeURIComponent(qFrom) + "&lastChangedTo=" + encodeURIComponent(nvKst(wEnd)) + "&lastChangedType=PURCHASE_DECIDED" + (seq ? "&moreSequence=" + encodeURIComponent(seq) : "");
+      var q = "lastChangedFrom=" + encodeURIComponent(qFrom) + "&lastChangedTo=" + encodeURIComponent(nvKst(wEnd)) + (type ? "&lastChangedType=" + type : "") + (seq ? "&moreSequence=" + encodeURIComponent(seq) : "");
       var j = await nvCall("GET", "/v1/pay-order/seller/product-orders/last-changed-statuses?" + q);
       var d = (j && j.data) || {};
       (d.lastChangeStatuses || []).forEach(function (x) { if (x && x.productOrderId && !ids[x.productOrderId]) { ids[x.productOrderId] = 1; order.push(String(x.productOrderId)); } });
@@ -442,12 +443,21 @@ async function nvSales(from, to) {
     }
     await nvSleep(250);
   }
+  return order;
+}
+async function nvDetails(ids) {
   var details = [];
-  for (var i = 0; i < order.length; i += 300) {
-    var jj = await nvCall("POST", "/v1/pay-order/seller/product-orders/query", { productOrderIds: order.slice(i, i + 300) });
+  for (var i = 0; i < ids.length; i += 300) {
+    var jj = await nvCall("POST", "/v1/pay-order/seller/product-orders/query", { productOrderIds: ids.slice(i, i + 300) });
     details = details.concat((jj && jj.data) || []);
     await nvSleep(250);
   }
+  return details;
+}
+async function nvSales(from, to) {
+  from = checkDate(from); to = checkDate(to);
+  var order = await nvChangedIds(from, to, "PURCHASE_DECIDED");
+  var details = await nvDetails(order);
   return { site: "naver", rows: details.map(nvRow).filter(Boolean), count: order.length, at: new Date().toISOString() };
 }
 function nvRow(d) {
@@ -475,4 +485,83 @@ function nvRow(d) {
     paid: paid, fee: fee, settle: settle, feeParts: feeParts,
     status: po.productOrderStatus || "", claimType: po.claimType || "", claimStatus: po.claimStatus || ""
   };
+}
+
+
+/* ===================== 스마트스토어 조회 모음 (읽기 전용) =====================
+   op: orders | products | settle | qnas | inquiries | raw
+   각 결과는 { op, rows:[원본 객체...], at, note } — 페이지가 표·엑셀로 펼침 */
+function nvDays(from, to) { return Math.round((Date.parse(to) - Date.parse(from)) / 86400000) + 1; }
+async function nvOp(op, p) {
+  var at = new Date().toISOString();
+  if (op === "orders") {
+    var from = checkDate(p.from), to = checkDate(p.to);
+    if (nvDays(from, to) > 31) throw new Error("주문 현황은 한 번에 31일까지만 조회할 수 있습니다.");
+    var ids = await nvChangedIds(from, to, "");
+    var det = await nvDetails(ids);
+    return { op: op, rows: det, at: at };
+  }
+  if (op === "products") {
+    var rows = [], page = 1, total = 1;
+    for (; page <= total && page <= 40; page++) {
+      var body = { page: page, size: 500 };
+      if (p.statuses && p.statuses.length) body.productStatusTypes = p.statuses;
+      var j = await nvCall("POST", "/v1/products/search", body);
+      var cs = (j && j.contents) || [];
+      cs.forEach(function (c) {
+        var chs = c.channelProducts || [];
+        if (!chs.length) rows.push({ originProductNo: c.originProductNo });
+        chs.forEach(function (ch) { rows.push(Object.assign({ originProductNo: c.originProductNo }, ch)); });
+      });
+      total = Number(j && j.totalPages) || 1;
+      await nvSleep(300);
+    }
+    return { op: op, rows: rows, at: at };
+  }
+  if (op === "settle") {
+    var f = checkDate(p.from), t2 = checkDate(p.to), kind = p.kind === "case" ? "case" : "daily";
+    var out = [], pg = 1, more = true;
+    for (; more && pg <= 50; pg++) {
+      var jj = await nvCall("GET", "/v1/pay-settle/settle/" + kind + "?startDate=" + f + "&endDate=" + t2 + "&pageNumber=" + pg + "&pageSize=1000");
+      var el = (jj && (jj.elements || jj.data || jj.contents)) || [];
+      if (!Array.isArray(el) && el && Array.isArray(el.elements)) el = el.elements;
+      out = out.concat(Array.isArray(el) ? el : []);
+      var tp = jj && (jj.pagination ? jj.pagination.totalPages : jj.totalPages);
+      more = tp ? pg < tp : (Array.isArray(el) && el.length >= 1000);
+      await nvSleep(300);
+    }
+    return { op: op, rows: out, at: at, note: kind };
+  }
+  if (op === "qnas") {
+    var qf = checkDate(p.from), qt = checkDate(p.to), qrows = [], qp = 1, qtot = 1;
+    for (; qp <= qtot && qp <= 30; qp++) {
+      var qs = "fromDate=" + encodeURIComponent(qf + "T00:00:00.000+09:00") + "&toDate=" + encodeURIComponent(qt + "T23:59:59.999+09:00") + "&page=" + qp + "&size=100" + (p.unanswered ? "&answered=false" : "");
+      var qj = await nvCall("GET", "/v1/contents/qnas?" + qs);
+      var qc = (qj && (qj.contents || qj.data)) || [];
+      qrows = qrows.concat(qc);
+      qtot = Number(qj && qj.totalPages) || 1;
+      await nvSleep(300);
+    }
+    return { op: op, rows: qrows, at: at };
+  }
+  if (op === "inquiries") {
+    var inf = checkDate(p.from), intt = checkDate(p.to), irows = [], ip = 1, itot = 1;
+    for (; ip <= itot && ip <= 30; ip++) {
+      var iq = "startSearchDate=" + inf + "&endSearchDate=" + intt + "&page=" + ip + "&size=200" + (p.unanswered ? "&answered=false" : "");
+      var ij = await nvCall("GET", "/v1/pay-user/inquiries?" + iq);
+      var ic = (ij && (ij.content || ij.contents || ij.data)) || [];
+      irows = irows.concat(ic);
+      itot = Number(ij && ij.totalPages) || 1;
+      await nvSleep(300);
+    }
+    return { op: op, rows: irows, at: at };
+  }
+  if (op === "raw") {   /* 조회 전용: GET만, /v1 아래 경로만 */
+    var path = String(p.path || "");
+    if (!/^\/v\d\/[A-Za-z0-9\/_\-]+(\?[^#\s]*)?$/.test(path)) throw new Error("경로 형식 오류: /v1/... 로 시작하는 조회 경로만 됩니다.");
+    var rj = await nvCall("GET", path);
+    var arr = Array.isArray(rj) ? rj : (rj && (rj.data || rj.contents || rj.elements || rj.content));
+    return { op: op, rows: Array.isArray(arr) ? arr : [rj], at: at, raw: rj };
+  }
+  throw new Error("알 수 없는 스마트스토어 조회: " + op);
 }

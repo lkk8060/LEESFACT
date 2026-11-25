@@ -4977,12 +4977,8 @@ dl.innerHTML=h;}
    - 체크한 줄만 매출 DB에 추가. id="nv_<상품주문번호>"로 중복 방지, 기존 수동 입력분(채널·날짜·사이즈·정산금액 일치)은 '등록됨(기존)'
    - 형식은 기존 스마트스토어 매출과 동일: 날짜=구매확정일, 정산금액, 수수료, 결제(총)금액=정산+수수료 */
 (function(){
-  var ST={rows:null,at:null,sel:{},loading:false,site:"naver",info:""};
-  var CACHE={};   /* 판매처별 마지막 조회 결과 */
+  var ST={rows:null,at:null,sel:{},loading:false};
   function $(id){return document.getElementById(id);}
-  function KR(){return ST.site==="kream";}
-  function krCh(){var c=$("sal-kch");return(c&&c.value)||"크림개인";}
-  function krSize(s){s=String(s||"").replace(/\(.*?\)/g,"").trim();return nsz(s);}
   function esc(v){return String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
   function won(n){return(Number(n)||0).toLocaleString();}
   function ymd(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
@@ -5008,27 +5004,14 @@ dl.innerHTML=h;}
     for(var i=0;i<cs.length;i++){var k=skuLoose(cs[i]);if(k)return{code:k.itemCode,how:"sku"};}
     var toks=nameTokens(r.productName).filter(isCodeLike).reverse();          /* 끝 단어부터 */
     for(var j=0;j<toks.length;j++){var k2=skuLoose(toks[j]);if(k2)return{code:k2.itemCode,how:"name"};}
-    if(r.site==="kream"){if(cs.length)return{code:cs[0].toUpperCase(),how:"kream-new"};}   /* KREAM 모델번호 (SKU MASTER에 없음) */
-    else{var lc=lastCode(r.productName);if(lc)return{code:lc.toUpperCase(),how:"name-new"};}   /* SKU MASTER에 없지만 상품명 끝 품번 */
+    var lc=lastCode(r.productName);if(lc)return{code:lc.toUpperCase(),how:"name-new"};   /* SKU MASTER에 없지만 상품명 끝 품번 */
     if(typeof autoResolveItemCode==="function"){var a=autoResolveItemCode({productName:r.productName});if(a.code)return{code:a.code,how:"auto"};}
-    if(cs.length&&r.site!=="kream")return{code:cs[0],how:"seller"};
+    if(cs.length)return{code:cs[0],how:"seller"};
     return{code:"",how:""};
   }
   function nameWithoutCode(name,code){var t=nameTokens(name);if(t.length>1&&normC(t[t.length-1])===normC(code))t.pop();return t.join(" ");}
   function regState(r){
     for(var i=0;i<SDB.length;i++){if(SDB[i]&&SDB[i].id===r.key)return{t:"reg",label:"등록됨"};}
-    if(r.site==="kream"){
-      if(!r.detail)return{t:"wait",label:"상세 대기"};
-      if(!r.settled)return{t:"wait",label:"미정산"};
-      var kc=codeOf(r).code,ks=krSize(r.size);
-      for(var q=0;q<SDB.length;q++){var y=SDB[q];if(!y||!/크림/.test(y.channel||""))continue;
-        if(String(y.date||"").slice(0,10)!==r.date)continue;
-        if(Math.abs((Number(y.settlementAmount)||0)-r.settle)>2)continue;
-        var ys=y.sizes||{};if(Object.keys(ys).length&&ys[ks]==null&&ys[r.size]==null&&ys[String(r.size).replace(/\(.*?\)/g,"").trim()]==null)continue;
-        if(kc&&y.itemCode&&normC(y.itemCode)!==normC(kc))continue;
-        return{t:"old",label:"등록됨(기존)"};}
-      return{t:"new",label:"미등록"};
-    }
     var c=codeOf(r).code,sz=nsz(r.size);
     for(var j=0;j<SDB.length;j++){var x=SDB[j];if(!x||!/스마트/.test(x.channel||""))continue;
       if(String(x.date||"").slice(0,10)!==r.date)continue;
@@ -5039,16 +5022,7 @@ dl.innerHTML=h;}
     return{t:"new",label:"미등록"};
   }
   function weekLabel(pd){var d=new Date(pd),j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"년 "+Math.ceil(((d-j)/86400000+j.getDay()+1)/7)+"주차";}
-  function toSdbKr(r){
-    var cc=codeOf(r),sku=cc.code&&typeof skuFind==="function"?skuFind(cc.code):null,sz=krSize(r.size),o={};o[sz]=1;var ch=krCh();
-    return{id:r.key,unit:"week",period:r.date,periodLabel:weekLabel(r.date),date:r.date,itemCode:cc.code,
-      productName:(sku&&sku.productName)||r.productName||"",sizeType:(sku&&sku.sizeType)||(/^\d{3}$/.test(sz)&&Number(sz)>=200?"shoe":(sz==="FREE"?"free":"cloth")),
-      sizes:o,soldQty:1,salePrice:r.settle,totalSales:r.settle,settlementAmount:r.settle,totalFee:r.price-r.settle,grossSales:r.price,
-      channel:ch,memo:ch+" 정산일:"+(r.paidDatetime||r.date)+" / 판매일:"+r.saleDate+" / 주문번호:"+r.oid+" / "+r.type+" / 원본브랜드:"+r.brand+" / 원본상품명:"+r.productName+" / 원본모델번호:"+(r.style||"-")+" / 원본옵션:"+r.size+" ",
-      src:"kream",askId:r.askId,orderNo:r.oid,syncedAt:new Date().toISOString()};
-  }
   function toSdb(r){
-    if(r.site==="kream")return toSdbKr(r);
     var cc=codeOf(r),sku=cc.code&&typeof skuFind==="function"?skuFind(cc.code):null,q=Number(r.quantity)||1,o={};o[nsz(r.size)]=q;
     return{id:r.key,unit:"week",period:r.date,periodLabel:weekLabel(r.date),date:r.date,itemCode:cc.code,
       productName:(sku&&sku.productName)||r.productName||"",sizeType:(sku&&sku.sizeType)||(/^\d{3}$/.test(nsz(r.size))&&Number(nsz(r.size))>=200?"shoe":"cloth"),
@@ -5058,43 +5032,16 @@ dl.innerHTML=h;}
   function rows(){
     var all=ST.rows||[],q=(($("sal-q")||{}).value||"").toLowerCase(),f=(($("sal-f")||{}).value||"");
     return all.filter(function(r){
-      if(q&&[r.productName,r.option,r.orderNo,r.productOrderId,r.oid,r.brand,r.en,r.size,(r.codes||[]).join(" ")].join(" ").toLowerCase().indexOf(q)<0)return false;
-      if(f){var g=regState(r).t;if(f==="new"&&g!=="new")return false;if(f==="reg"&&g!=="reg"&&g!=="old")return false;}
+      if(q&&[r.productName,r.option,r.orderNo,r.productOrderId,(r.codes||[]).join(" ")].join(" ").toLowerCase().indexOf(q)<0)return false;
+      if(f){var g=regState(r).t;if(f==="new"&&g!=="new")return false;if(f==="reg"&&g==="new")return false;}
       return true;
     });
   }
-  function totals(L){var t={n:L.length,price:0,fee:0,settle:0};L.forEach(function(r){t.price+=KR()?(r.price||0):(r.paid||0);t.fee+=r.fee||0;t.settle+=r.settle||0;});return t;}
-  function sumBar(L){var t=totals(L),b=$("sal-sum");if(!b)return;
-    b.innerHTML=L.length?("<b>"+t.n+"건</b> · "+(KR()?"판매가":"결제금액")+" ₩"+won(t.price)+" · 수수료 ₩"+won(t.fee)+" · <span class=\"cl-gn bld\">정산 ₩"+won(t.settle)+"</span>"+(KR()?" <span style=\"color:#94a3b8\">(상세 받은 건 기준)</span>":"")):"";}
-  function renderKr(w,L){
-    var h="<table class=\"mt\"><thead><tr><th style=\"text-align:center\"><input type=\"checkbox\" id=\"sal-all\"></th><th>등록</th><th>정산일</th><th>판매일</th><th>판매유형</th><th>브랜드</th><th>상품명</th><th>모델번호</th><th>옵션</th><th>상태</th><th class=\"r\">판매가</th><th class=\"r\">수수료</th><th class=\"r\">정산금액</th><th>주문번호</th></tr></thead><tbody>";
-    L.forEach(function(r){
-      var g=regState(r),cc=codeOf(r),dis=g.t!=="new"?" disabled":"";
-      var col=g.t==="new"?"#2563eb":g.t==="wait"?"#94a3b8":"#16a34a";
-      h+="<tr><td style=\"text-align:center\"><input type=\"checkbox\" class=\"sal-chk\" data-k=\""+esc(r.key)+"\""+(ST.sel[r.key]&&!dis?" checked":"")+dis+"></td>"
-        +"<td style=\"color:"+col+";font-weight:600;white-space:nowrap\">"+g.label+"</td>"
-        +"<td style=\"white-space:nowrap\">"+esc(r.paidDatetime||r.date||"-")+"</td>"
-        +"<td style=\"white-space:nowrap\" class=\"cl-sl\">"+esc(r.saleDate||"")+"</td>"
-        +"<td style=\"white-space:nowrap;font-size:11px\">"+esc(r.detail?r.type:"")+"</td>"
-        +"<td style=\"white-space:nowrap\">"+esc(r.brand)+"</td>"
-        +"<td title=\""+esc(r.productName+(r.en?" / "+r.en:""))+"\" style=\"max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap\">"+esc(r.productName)+"</td>"
-        +"<td class=\"bld\" style=\"color:"+(cc.code?(cc.how==="kream-new"?"#d97706":"inherit"):"#dc2626")+"\" title=\""+(cc.how==="kream-new"?"KREAM 모델번호 · SKU MASTER에 없음 → 추가할 때 SKU MASTER에도 등록":cc.how==="auto"?"상품명이 비슷한 SKU로 추정":cc.code?"SKU MASTER 매칭":"품번 못 찾음 → 저장 후 미매칭 SKU 탭에서 연결")+"\">"+esc(cc.code||r.style||"—")+(cc.how==="kream-new"?" <span style=\"font-size:9px;font-weight:400\">신규</span>":"")+"</td>"
-        +"<td class=\"bld\" style=\"white-space:nowrap\">"+esc(r.size)+"</td>"
-        +"<td style=\"white-space:nowrap;font-size:11px\">"+esc(r.status)+"</td>"
-        +"<td class=\"r\">"+(r.detail?"₩"+won(r.price):"")+"</td>"
-        +"<td class=\"r cl-sl\">"+(r.detail?"₩"+won(r.fee):"")+"</td>"
-        +"<td class=\"r cl-gn bld\">"+(r.detail?"₩"+won(r.settle):"")+"</td>"
-        +"<td style=\"font-size:10px;white-space:nowrap\">"+esc(r.oid||r.askId)+"</td></tr>";
-    });
-    return h+"</tbody></table>";
-  }
   function render(){
     var w=$("sal-tw");if(!w)return;
-    paintSite();
-    $("sal-info").textContent=ST.at?("마지막 조회: "+new Date(ST.at).toLocaleString("ko-KR")+" · "+(ST.rows||[]).length+"건"+(ST.info?" · "+ST.info:"")):"";
-    var L=rows();sumBar(L);
-    if(!L.length){w.innerHTML="<div class=\"emp\">"+(ST.rows?"조건에 맞는 내역이 없습니다.":(KR()?"기간을 고르고 <b>새로고침</b>을 눌러 KREAM 판매내역(종료된 거래)을 불러오세요.":"기간을 고르고 <b>새로고침</b>을 눌러 스마트스토어 구매확정 내역을 불러오세요."))+"</div>";upd();return;}
-    if(KR()){w.innerHTML=renderKr(w,L);bindChk();upd();return;}
+    $("sal-info").textContent=ST.at?("마지막 조회: "+new Date(ST.at).toLocaleString("ko-KR")+" · "+(ST.rows||[]).length+"건"):"";
+    var L=rows();
+    if(!L.length){w.innerHTML="<div class=\"emp\">"+(ST.rows?"조건에 맞는 주문이 없습니다.":"기간을 고르고 <b>새로고침</b>을 눌러 스마트스토어 구매확정 내역을 불러오세요.")+"</div>";upd();return;}
     var h="<table class=\"mt\"><thead><tr><th style=\"text-align:center\"><input type=\"checkbox\" id=\"sal-all\"></th><th>등록</th><th>구매확정일</th><th>주문번호</th><th>상품명</th><th>옵션</th><th>품번</th><th>사이즈</th><th class=\"r\">수량</th><th class=\"r\">결제금액</th><th class=\"r\">수수료</th><th class=\"r\">정산금액</th></tr></thead><tbody>";
     L.forEach(function(r){
       var g=regState(r),cc=codeOf(r),dis=g.t!=="new"?" disabled":"";
@@ -5113,43 +5060,15 @@ dl.innerHTML=h;}
         +"<td class=\"r cl-gn bld\">₩"+won(r.settle)+"</td></tr>";
     });
     w.innerHTML=h+"</tbody></table>";
-    bindChk();
-    upd();
-  }
-  function bindChk(){
     document.querySelectorAll("#sal-tw .sal-chk").forEach(function(c){c.onchange=function(){ST.sel[this.getAttribute("data-k")]=this.checked;upd();};});
     var all=$("sal-all");if(all)all.onchange=function(){document.querySelectorAll("#sal-tw .sal-chk:not([disabled])").forEach(function(c){c.checked=all.checked;ST.sel[c.getAttribute("data-k")]=all.checked;});upd();};
+    upd();
   }
   function selected(){return(ST.rows||[]).filter(function(r){return ST.sel[r.key]&&regState(r).t==="new";});}
   function upd(){var s=selected(),b=$("sal-save");if(b){b.disabled=!s.length;b.textContent=s.length?("✓ 선택 "+s.length+"건 매출 DB 추가"):"선택 항목 매출 DB 추가";}}
-  function loadKr(v){
-    if(v!=="?"&&vnum(v)<vnum("1.4.0")){msg("md","KREAM 판매내역은 확장프로그램 v1.4.0 이상이 필요합니다. 새 파일로 폴더를 바꾸고 chrome://extensions에서 ↻ 새로고침해주세요.");return;}
-    var from=$("sal-from").value,to=$("sal-to").value;
-    if(!from||!to||from>to){msg("md","조회 기간을 확인해주세요.");return;}
-    var site="kream";
-    ST.loading=true;var btn=$("sal-load");btn.disabled=true;btn.textContent="KREAM 읽는 중...";
-    msg("mw","KREAM 판매내역을 읽는 중입니다. 작은 KREAM 창이 잠깐 열립니다 — 끝날 때까지 닫지 마세요. 판매 1건마다 4~7초씩 천천히 읽어서 새 건이 많으면 몇 분 걸립니다(한 번에 최대 60건, 정산완료 건은 다음부터 다시 읽지 않음).");
-    ext("sales",{site:"kream",from:from,to:to,max:60},1800000).then(function(d){
-      var R=(d&&d.rows)||[];R.sort(function(a,b){return String(b.paidDatetime||b.date||"9").localeCompare(String(a.paidDatetime||a.date||"9"));});
-      var info=[];if(d.pending>0)info.push("상세 대기 "+d.pending+"건");if(d.stopped)info.push("중단:"+d.stopped);
-      CACHE[site]={rows:R,at:d.at||new Date().toISOString(),info:info.join(" · ")};
-      try{localStorage.setItem("lf_sal_cache_kream",JSON.stringify(CACHE[site]));}catch(e){}
-      if(ST.site===site){ST.rows=R;ST.at=CACHE[site].at;ST.info=CACHE[site].info;ST.sel={};}
-      var nNew=R.filter(function(r){return regState(r).t==="new";}).length;
-      var tail=d.stopped==="BLOCK"?" ⚠ KREAM 응답 이상으로 즉시 멈췄습니다(한동안 쉼). 평소 크롬에서 KREAM 마이페이지가 정상인지 확인해주세요."
-        :d.stopped==="LOGIN"?" ⚠ KREAM 로그인이 풀렸습니다. 크롬에서 다시 로그인해주세요."
-        :d.stopped==="CLOSED"?" (KREAM 창이 닫혀서 중간에 멈췄습니다)"
-        :d.stopped?" (중단: "+d.stopped+")":"";
-      msg(d.stopped?"md":"ms","✓ KREAM 판매 "+R.length+"건 (이번에 상세 "+d.fetched+"건 새로 읽음"+(d.pending>0?", 남은 "+d.pending+"건은 3분 뒤 새로고침하면 이어서 읽음":"")+") · 미등록 "+nNew+"건"+tail);
-      render();
-    },function(e){
-      msg("md","KREAM 불러오기 실패: "+e.message);
-    }).then(function(){ST.loading=false;btn.disabled=false;btn.textContent="↻ 새로고침";});
-  }
   function load(){
     if(ST.loading)return;
     var v=window.LF_ORD&&LF_ORD.extVersion&&LF_ORD.extVersion();
-    if(KR()){if(!v){msg("md","확장프로그램이 연결돼 있지 않습니다. KREAM 판매내역은 확장프로그램(v1.4.0+)을 설치하고 KREAM에 로그인한 PC 크롬에서 불러올 수 있습니다.");return;}return loadKr(v);}
     if(!v){msg("md","확장프로그램이 연결돼 있지 않습니다. 스마트스토어 불러오기는 API 호출 IP를 등록한 집 PC 크롬에서 할 수 있습니다.");return;}
     if(v!=="?"&&vnum(v)<vnum("1.2.0")){msg("md","스마트스토어 불러오기는 확장프로그램 v1.2.0 이상이 필요합니다. 새 파일로 폴더를 바꾸고 chrome://extensions에서 ↻ 새로고침해주세요.");return;}
     var from=$("sal-from").value,to=$("sal-to").value;
@@ -5158,9 +5077,8 @@ dl.innerHTML=h;}
     msg("mi","스마트스토어 구매확정 내역을 불러오는 중입니다... (하루 단위로 조회해 기간이 길면 조금 걸립니다)");
     ext("sales",{site:"naver",from:from,to:to},180000).then(function(d){
       var R=(d&&d.rows)||[];R.sort(function(a,b){return String(b.decisionDatetime).localeCompare(String(a.decisionDatetime));});
-      CACHE.naver={rows:R,at:d&&d.at||new Date().toISOString(),info:""};
-      try{localStorage.setItem("lf_sal_cache_naver",JSON.stringify(CACHE.naver));}catch(e){}
-      if(ST.site==="naver"){ST.rows=R;ST.at=CACHE.naver.at;ST.info="";ST.sel={};}
+      ST.rows=R;ST.at=d&&d.at||new Date().toISOString();ST.sel={};
+      try{localStorage.setItem("lf_sal_cache_naver",JSON.stringify({at:ST.at,rows:R}));}catch(e){}
       var nNew=R.filter(function(r){return regState(r).t==="new";}).length;
       msg("ms","✓ 구매확정 "+R.length+"건 불러옴 · 미등록 "+nNew+"건");
       render();
@@ -5172,16 +5090,15 @@ dl.innerHTML=h;}
   function save(){
     var s=selected();if(!s.length)return;
     var tot=s.reduce(function(t,r){return t+r.settle;},0),noCode=s.filter(function(r){return !codeOf(r).code;}).length;
-    var kr=KR(),chName=kr?krCh():"스마트스토어",srcName=kr?"KREAM":"스마트스토어";
     var newSku=[],seenN={},alias=[];
     s.forEach(function(r){var cc=codeOf(r);if(!cc.code)return;
-      if(cc.how==="name-new"||cc.how==="seller"||cc.how==="kream-new"){var key=normC(cc.code);if(seenN[key]||skuLoose(cc.code))return;seenN[key]=1;
-        var sz=kr?krSize(r.size):(typeof NSZ==="function"?NSZ(r.size):r.size);
-        newSku.push({id:cc.code,itemCode:cc.code,productName:kr?r.productName:nameWithoutCode(r.productName,cc.code),brand:kr?(r.brand||""):"",category:kr?(r.category||""):"",sizeType:(/^\d{3}$/.test(sz)&&Number(sz)>=200)?"shoe":(sz==="FREE"?"free":"cloth"),color:"",retailPrice:0,
-          memo:"자동등록 ("+srcName+" 매출 "+r.date+")",aliases:kr&&r.en?[r.productName,r.en]:[r.productName],src:kr?"kream":"naver",updated_at:new Date().toISOString()});}
+      if(cc.how==="name-new"||cc.how==="seller"){var key=normC(cc.code);if(seenN[key]||skuLoose(cc.code))return;seenN[key]=1;
+        var sz=typeof NSZ==="function"?NSZ(r.size):r.size;
+        newSku.push({id:cc.code,itemCode:cc.code,productName:nameWithoutCode(r.productName,cc.code),brand:"",category:"",sizeType:(/^\d{3}$/.test(sz)&&Number(sz)>=200)?"shoe":(sz==="FREE"?"free":"cloth"),color:"",retailPrice:0,
+          memo:"자동등록 (스마트스토어 매출 "+r.date+")",aliases:[r.productName],src:"naver",updated_at:new Date().toISOString()});}
       else alias.push({code:cc.code,alias:r.productName});});
-    if(!confirm("매출 DB에 추가할까요?\n\n· "+s.length+"건 (정산금액 합계 ₩"+won(tot)+")\n· 채널: "+chName+", 날짜: "+(kr?"정산일":"구매확정일")+"\n· SKU MASTER 신규 등록: "+newSku.length+"건"+(newSku.length?" ("+newSku.slice(0,4).map(function(x){return x.itemCode;}).join(", ")+(newSku.length>4?" 외":"")+")":"")+(noCode?"\n· 품번 못 찾은 "+noCode+"건은 미매칭 SKU 탭에서 연결 필요":"")))return;
-    BAK(srcName+" 매출내역 추가 "+s.length+"건");
+    if(!confirm("매출 DB에 추가할까요?\n\n· "+s.length+"건 (정산금액 합계 ₩"+won(tot)+")\n· 채널: 스마트스토어, 날짜: 구매확정일\n· SKU MASTER 신규 등록: "+newSku.length+"건"+(newSku.length?" ("+newSku.slice(0,4).map(function(x){return x.itemCode;}).join(", ")+(newSku.length>4?" 외":"")+")":"")+(noCode?"\n· 품번 못 찾은 "+noCode+"건은 미매칭 SKU 탭에서 연결 필요":"")))return;
+    BAK("스마트스토어 매출내역 추가 "+s.length+"건");
     if(newSku.length)SKUDB=newSku.concat(SKUDB);
     alias.forEach(function(a){if(typeof addSkuAlias==="function")addSkuAlias(a.code,a.alias);});
     SDB=s.map(toSdb).concat(SDB);
@@ -5200,57 +5117,22 @@ dl.innerHTML=h;}
     var pg=document.createElement("div");pg.id="pg-sal";pg.className="pg";
     pg.innerHTML="<style>#pg-sal .sal-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}#pg-sal .sal-bar input[type=date],#pg-sal .sal-bar input[type=text],#pg-sal .sal-bar select{padding:5px 8px;font-size:12px}#sal-tw{overflow:auto;max-height:68vh}</style>"
       +"<div id=\"sal-msg\" class=\"msg\"></div>"
-      +"<div class=\"card\"><div class=\"slbl\">💰 매출내역 관리 — <select id=\"sal-site\" style=\"font-size:13px;font-weight:700;padding:3px 6px\"><option value=\"naver\">스마트스토어</option><option value=\"kream\">KREAM</option></select></div>"
-      +"<p id=\"sal-help-kream\" style=\"display:none;font-size:11px;color:#94a3b8;line-height:1.7;margin-bottom:10px\">KREAM <b>판매 내역 &gt; 종료</b>된 거래를 읽습니다(날짜 = 정산일). 확장(v1.4.0+)이 작은 KREAM 창을 열어 화면이 스스로 받는 데이터만 읽고, 판매 1건마다 4~7초 간격으로 천천히 읽습니다(한 번에 최대 60건, 3분 간격, 응답 이상 시 즉시 멈춤). 정산완료 건만 매출 DB에 추가할 수 있고, 기존에 직접 넣은 크림 매출(같은 정산일·정산금액·사이즈·품번)은 '등록됨(기존)'으로 막습니다. 판매·입찰·취소 버튼은 절대 누르지 않습니다.</p>"
-      +"<p id=\"sal-help-naver\" style=\"font-size:11px;color:#94a3b8;line-height:1.7;margin-bottom:10px\">커머스API로 <b>구매확정</b>된 주문만 불러옵니다(반품·취소된 주문은 자동 제외). 체크한 줄만 매출 DB에 추가되고, 이미 들어간 주문은 '등록됨'으로 표시됩니다. 불러오기는 API 호출 IP를 등록한 집 PC 크롬(확장 v1.2.0+)에서만 됩니다.</p>"
+      +"<div class=\"card\"><div class=\"slbl\">💰 매출내역 관리 — 스마트스토어</div>"
+      +"<p style=\"font-size:11px;color:#94a3b8;line-height:1.7;margin-bottom:10px\">커머스API로 <b>구매확정</b>된 주문만 불러옵니다(반품·취소된 주문은 자동 제외). 체크한 줄만 매출 DB에 추가되고, 이미 들어간 주문은 '등록됨'으로 표시됩니다. 불러오기는 API 호출 IP를 등록한 집 PC 크롬(확장 v1.2.0+)에서만 됩니다.</p>"
       +"<div class=\"sal-bar\"><button class=\"bs sal-pr\" data-d=\"7\">7일</button><button class=\"bs sal-pr\" data-d=\"30\">30일</button><button class=\"bs sal-pr\" data-d=\"90\">90일</button>"
-      +"<input type=\"date\" id=\"sal-from\"> ~ <input type=\"date\" id=\"sal-to\"> <button class=\"bp\" id=\"sal-load\">↻ 새로고침</button> <button class=\"bs\" id=\"sal-opt\">⚙ 스마트스토어 설정</button><span id=\"sal-kch-w\" style=\"display:none;font-size:12px\">저장 채널 <select id=\"sal-kch\"><option>크림개인</option><option>크림사업자</option></select></span> <button class=\"bs\" id=\"sal-xls\">⬇ 엑셀</button> <span id=\"sal-info\" style=\"font-size:11px;color:#64748b\"></span></div>"
+      +"<input type=\"date\" id=\"sal-from\"> ~ <input type=\"date\" id=\"sal-to\"> <button class=\"bp\" id=\"sal-load\">↻ 새로고침</button> <button class=\"bs\" id=\"sal-opt\">⚙ 스마트스토어 설정</button> <span id=\"sal-info\" style=\"font-size:11px;color:#64748b\"></span></div>"
       +"<div class=\"sal-bar\"><input type=\"text\" id=\"sal-q\" placeholder=\"상품명·옵션·주문번호·품번 검색\" style=\"min-width:220px;flex:1 1 180px\">"
       +"<select id=\"sal-f\"><option value=\"\">전체</option><option value=\"new\">미등록만</option><option value=\"reg\">등록됨만</option></select>"
       +"<span style=\"flex:1\"></span><button class=\"bp\" id=\"sal-save\" disabled>선택 항목 매출 DB 추가</button></div>"
-      +"<div id=\"sal-sum\" style=\"font-size:12px;color:#475569;margin:2px 0 6px\"></div>"
       +"<div id=\"sal-tw\"></div></div>";
     var after=$("pg-ord")||$("pg-map")||document.querySelector(".pg:last-of-type");
     after.parentNode.insertBefore(pg,after.nextSibling);
     $("sal-from").value=daysAgo(30);$("sal-to").value=ymd(new Date());
     document.querySelectorAll("#pg-sal .sal-pr").forEach(function(b){b.onclick=function(){$("sal-from").value=daysAgo(Number(b.getAttribute("data-d")));$("sal-to").value=ymd(new Date());load();};});
-    $("sal-load").onclick=load;$("sal-save").onclick=save;$("sal-q").oninput=render;$("sal-f").onchange=render;$("sal-xls").onclick=excel;
-    try{var sv=localStorage.getItem("lf_sal_site");if(sv==="kream"||sv==="naver")ST.site=sv;var kc=localStorage.getItem("lf_sal_kch");if(kc)$("sal-kch").value=kc;}catch(e){}
-    $("sal-site").value=ST.site;
-    $("sal-site").onchange=function(){switchSite(this.value);};
-    $("sal-kch").onchange=function(){try{localStorage.setItem("lf_sal_kch",this.value);}catch(e){}};
+    $("sal-load").onclick=load;$("sal-save").onclick=save;$("sal-q").oninput=render;$("sal-f").onchange=render;
     $("sal-opt").onclick=function(){ext("openOptions",{},4000).then(function(){msg("mi","확장프로그램 설정 화면을 새 탭으로 열었습니다. ID와 시크릿은 그 화면에만 입력하세요.");},function(){msg("md","확장프로그램(v1.2.0+)이 연결돼 있지 않습니다. chrome://extensions → LEESFACT 구매내역 연동 → 세부정보 → 확장 프로그램 옵션에서도 열 수 있습니다.");});};
     tb.onclick=function(){GT("sal");};
-    ["naver","kream"].forEach(function(k){try{var c=JSON.parse(localStorage.getItem("lf_sal_cache_"+k)||"null");if(c&&c.rows)CACHE[k]=c;}catch(e){}});
-    switchSite(ST.site,true);
-  }
-  function switchSite(site,quiet){
-    if(ST.loading&&!quiet){$("sal-site").value=ST.site;msg("md","불러오는 중에는 판매처를 바꿀 수 없습니다.");return;}
-    ST.site=site==="kream"?"kream":"naver";try{localStorage.setItem("lf_sal_site",ST.site);}catch(e){}
-    var c=CACHE[ST.site];ST.rows=c?c.rows:null;ST.at=c?c.at:null;ST.info=c&&c.info||"";ST.sel={};
-    if(!quiet)render();else paintSite();
-  }
-  function paintSite(){
-    var k=KR();
-    if($("sal-help-naver"))$("sal-help-naver").style.display=k?"none":"";
-    if($("sal-help-kream"))$("sal-help-kream").style.display=k?"":"none";
-    if($("sal-opt"))$("sal-opt").style.display=k?"none":"";
-    if($("sal-kch-w"))$("sal-kch-w").style.display=k?"":"none";
-    if($("sal-q"))$("sal-q").placeholder=k?"상품명·브랜드·모델번호·주문번호 검색":"상품명·옵션·주문번호·품번 검색";
-  }
-  function excel(){
-    if(!window.XLSX){msg("md","엑셀 모듈을 불러오는 중입니다. 잠시 후 다시 눌러주세요.");return;}
-    var L=rows();if(!L.length){msg("md","내보낼 내역이 없습니다. 먼저 새로고침으로 불러오세요.");return;}
-    var data=KR()?L.map(function(r){return{"정산일":r.paidDatetime||r.date,"판매일":r.saleDate,"판매유형":r.type,"브랜드":r.brand,"상품명":r.productName,"영문명":r.en,"모델번호":r.style,"LEESFACT 품번":codeOf(r).code,"옵션":r.size,"상태":r.status,"판매가":r.detail?r.price:"","수수료(합계)":r.detail?r.fee:"","판매수수료":r.detail?-r.feeProc:"","검수비":r.detail?-r.feeAuth:"","페널티":r.penalty||"","정산금액":r.detail?r.settle:"","주문번호":r.oid,"판매번호":r.askId,"등록":regState(r).label};})
-      :L.map(function(r){return{"구매확정일":r.decisionDatetime,"주문번호":r.orderNo,"상품주문번호":r.productOrderId,"상품명":r.productName,"옵션":r.option,"품번":codeOf(r).code,"사이즈":nsz(r.size),"수량":r.quantity,"결제금액":r.paid,"수수료":r.fee,"정산금액":r.settle,"등록":regState(r).label};});
-    var t=totals(L),tot={};var ks=Object.keys(data[0]);tot[ks[0]]="합계 "+t.n+"건";
-    if(KR()){tot["판매가"]=t.price;tot["수수료(합계)"]=t.fee;tot["정산금액"]=t.settle;}else{tot["결제금액"]=t.price;tot["수수료"]=t.fee;tot["정산금액"]=t.settle;}
-    data.push(tot);
-    var ws=XLSX.utils.json_to_sheet(data),wb=XLSX.utils.book_new(),nm=KR()?"KREAM_판매내역":"스마트스토어_구매확정";
-    ws["!cols"]=ks.map(function(k){return{wch:/상품명|영문명/.test(k)?40:/일$|번호/.test(k)?18:12};});
-    XLSX.utils.book_append_sheet(wb,ws,nm.slice(0,30));
-    XLSX.writeFile(wb,"LEESFACT_"+nm+"_"+$("sal-from").value+"_"+$("sal-to").value+".xlsx");
-    msg("ms","✓ 엑셀 저장: "+L.length+"건 (지금 화면의 검색·필터 그대로)");
+    try{var c=JSON.parse(localStorage.getItem("lf_sal_cache_naver")||"null");if(c&&c.rows){ST.rows=c.rows;ST.at=c.at;}}catch(e){}
   }
   function show(){
     document.querySelectorAll(".tabs .tab").forEach(function(t){t.classList.remove("on");});
@@ -5270,7 +5152,7 @@ dl.innerHTML=h;}
   function init(){build();wrap();}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
   window.addEventListener("load",function(){setTimeout(init,700);setTimeout(init,2200);});
-  window.LF_SAL={state:ST,toSdb:toSdb,regState:regState,codeOf:codeOf,render:render,switchSite:function(s){switchSite(s);},excel:excel};
+  window.LF_SAL={state:ST,toSdb:toSdb,regState:regState,codeOf:codeOf,render:render};
 })();
 </script>
 <script>
@@ -5495,9 +5377,8 @@ dl.innerHTML=h;}
 /* ===== LEESFACT 버전 표시 =====
    업데이트할 때마다 APP_VERSION / CHANGELOG 맨 위에 한 줄 추가 (확장프로그램 버전과 같은 번호로 맞춤) */
 (function(){
-  var APP_VERSION="1.4.0";
+  var APP_VERSION="1.3.3";
   var CHANGELOG=[
-    {v:"1.4.0",d:"2026-11-25",t:"💰 매출내역 관리에 KREAM 판매내역 추가 (종료된 거래: 판매가·수수료·정산금액·모델번호·정산일, 엑셀 저장, 크림개인/크림사업자로 매출 DB 추가, 기존 수동 입력분 중복 방지) · 스마트스토어도 엑셀·합계 표시 · 확장 v1.4.0 필요"},
     {v:"1.3.3",d:"2026-11-25",t:"스마트스토어 품번 = 상품명 맨 끝 단어 우선 매칭 (하이픈 없는 품번도 인식), 매출 추가 시 SKU MASTER에 없는 품번 자동 등록, 주문 현황 품번 칸 같은 규칙"},
     {v:"1.3.2",d:"2026-11-25",t:"스마트스토어 정산 화면 정리(한글 항목·합계 카드·합계 줄·0인 항목 숨김), 고객문의·API 조회도 한글 항목, 엑셀 머리글 한글"},
     {v:"1.3.1",d:"2026-11-25",t:"스마트스토어 표 칸 잘림 수정 (내용 너비로 표시, 좌우 스크롤, 머리글 고정)"},

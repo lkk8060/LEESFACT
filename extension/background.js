@@ -34,7 +34,7 @@ async function handle(msg) {
   var p = (msg && msg.payload) || {};
   if (msg.type === "ping") {
     var cr = await chrome.storage.local.get(["nv_client_id", "nv_client_secret"]);
-    return { version: chrome.runtime.getManifest().version, sites: ["musinsa", "tune"], sales: ["naver", "kream"], naverReady: !!(cr.nv_client_id && cr.nv_client_secret) };
+    return { version: chrome.runtime.getManifest().version, sites: ["musinsa", "tune"], sales: ["naver"], naverReady: !!(cr.nv_client_id && cr.nv_client_secret) };
   }
   if (msg.type === "orders") {
     if (p.site === "musinsa") return musinsaOrders(p.from, p.to);
@@ -43,7 +43,6 @@ async function handle(msg) {
   }
   if (msg.type === "sales") {
     if (p.site === "naver") return nvSales(p.from, p.to);
-    if (p.site === "kream") return krSales(p);
     var e2 = new Error("아직 지원하지 않는 판매처입니다: " + p.site); e2.code = "UNSUPPORTED"; throw e2;
   }
   if (msg.type === "openOptions") { chrome.runtime.openOptionsPage(); return { opened: true }; }
@@ -565,179 +564,4 @@ async function nvOp(op, p) {
     return { op: op, rows: Array.isArray(arr) ? arr : [rj], at: at, raw: rj };
   }
   throw new Error("알 수 없는 스마트스토어 조회: " + op);
-}
-
-/* ===================== KREAM 판매내역 (v1.4.0) =====================
-   - 작은 KREAM 창(포커스 없음)을 열어 '판매 내역 > 종료' 화면을 KREAM 자신이 그리게 하고,
-     목록은 화면에 그려진 내용으로, 판매 상세는 KREAM 화면 이동($router)으로 받은 화면 데이터에서 읽습니다.
-   - API 직접 호출·헤더 흉내·토큰 사용 없음. 버튼(판매/입찰/취소 등)은 절대 누르지 않습니다.
-   - 차단 방지: 상세 1건마다 4~7초 간격, 1회 최대 60건, 실행 간 최소 3분, 응답 없음 2번이면 즉시 중단 후 1시간 쉼.
-   - 정산완료 건은 확장 저장소에 보관해 다음부터 다시 읽지 않음. 주소·전화·계좌·카드 등 개인정보는 저장하지 않음. */
-var KR_RUN = false;
-function krSleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
-function krRand(a, b) { return a + Math.floor(Math.random() * (b - a)); }
-function krErr(code, m) { var e = new Error(m); e.code = code; return e; }
-
-async function krExec(tabId, func, args) {
-  var r = await chrome.scripting.executeScript({ target: { tabId: tabId }, world: "MAIN", func: func, args: args || [] });
-  var x = r && r[0];
-  if (!x) throw new Error("KREAM 창에서 결과를 받지 못했습니다.");
-  if (x.error) throw new Error(x.error.message || String(x.error));
-  return x.result;
-}
-
-/* ⚠ KREAM 창 안에서 실행 — 바깥 변수 사용 금지. 화면에 그려진 '종료' 목록을 읽고, 필요하면 아래로 스크롤(사람이 넘기는 속도) */
-async function krListStep(from, to, maxScroll) {
-  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
-  function parse() {
-    var out = [], seen = {};
-    document.querySelectorAll('a[href*="/my/selling/"]').forEach(function (a) {
-      var m = (a.getAttribute("href") || "").match(/\/my\/selling\/(\d+)/); if (!m || seen[m[1]]) return; seen[m[1]] = 1;
-      var L = String(a.innerText || "").split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
-      var date = "", di = -1;
-      for (var i = 0; i < L.length; i++) { var d = L[i].match(/^(\d{2})\/(\d{2})\/(\d{2})$/); if (d) { date = "20" + d[1] + "-" + d[2] + "-" + d[3]; di = i; break; } if (L[i] === "-" && i >= 1 && di < 0) { di = i; break; } }
-      out.push({ id: m[1], name: L[0] || "", opt: di > 1 ? L[1] : "", date: date, status: di >= 0 ? L.slice(di + 1).join(" ") : L.slice(2).join(" ") });
-    });
-    return out;
-  }
-  if (location.pathname.indexOf("/login") === 0) return { login: false };
-  var t0 = Date.now();
-  while (Date.now() - t0 < 20000) { if (parse().length || /종료된 판매 내역이 없|내역이 없습니다/.test(document.body.innerText || "")) break; if (location.pathname.indexOf("/login") === 0) return { login: false }; await sleep(500); }
-  var rows = parse(), scrolls = 0;
-  while (scrolls < maxScroll) {
-    var dated = rows.filter(function (r) { return r.date; }), tail = dated.slice(-5);
-    if (tail.length && tail.every(function (r) { return r.date < from; })) break;
-    var n0 = rows.length;
-    window.scrollTo(0, document.documentElement.scrollHeight);
-    scrolls++;
-    var grew = false;
-    for (var k = 0; k < 16; k++) { await sleep(500); rows = parse(); if (rows.length > n0) { grew = true; break; } }
-    if (!grew) break;
-    await sleep(2500 + Math.floor(Math.random() * 1500));
-  }
-  return { login: true, scrolls: scrolls, total: rows.length, rows: rows.filter(function (r) { return r.date && r.date >= from && r.date <= to; }) };   /* 취소 등 날짜 없는 건 제외 */
-}
-
-/* ⚠ KREAM 창 안에서 실행 — 판매 상세 화면으로 이동(KREAM 화면 자신의 이동)하고,
-   kream_hook.js가 복사해 둔 그 화면의 상세 응답에서 필요한 항목만 꺼냄 (첫 이동은 화면 저장값으로도 확인) */
-async function krDetailStep(id) {
-  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
-  function v(x) { return x && typeof x === "object" ? Number(x.value) || 0 : Number(x) || 0; }
-  function pick(d) {
-    var pb = d.price_breakdown || {}, pr = d.product || {}, rel = pr.release || {}, br = pr.brand || {};
-    return {
-      id: String(d.id), oid: d.oid || "", price: Number(d.price) || Number(pb.price) || 0, isInstant: !!d.is_instant,
-      option: d.option || (d.product_option && d.product_option.name) || "", status: d.status || "", statusText: d.status_display || "",
-      created: d.date_created || "", traded: (d.transaction && d.transaction.date_created) || "", paid: d.date_paid || "",
-      shipment: d.shipment_method || "", txType: d.transaction_type || "",
-      feeProc: v(pb.processing_fee), feeAuth: v(pb.authentication_fee), payout: Number(pb.total_payout) || 0,
-      penalty: (d.penalty && Number(d.penalty.amount)) || 0,
-      name: rel.translated_name || rel.name || "", en: rel.name || "", style: rel.style_code || "", brand: br.name || "",
-      category: rel.shop_category_name || rel.category || "", productId: rel.id || d.product_id || ""
-    };
-  }
-  var app = document.querySelector("#__nuxt") && document.querySelector("#__nuxt").__vue_app__;
-  if (!app) return { err: "NOAPP" };
-  if (!window.__LF_KR_HOOK) return { err: "NOHOOK" };
-  var g = app.config.globalProperties, CAP = window.__LF_KR_CAP || {};
-  delete CAP[id];
-  function cur() { try { return g.$pinia.state.value.my.myAskDetail; } catch (e) { return null; } }
-  try { await g.$router.push("/my/selling/" + id); } catch (e) {}
-  for (var t = 0; t < 60; t++) {
-    if (location.pathname.indexOf("/login") === 0) return { err: "LOGIN" };
-    var c = CAP[id];
-    if (c) {
-      delete CAP[id];
-      if (c.status === 401) return { err: "LOGIN" };
-      if (c.status !== 200) return { err: "HTTP", status: c.status };
-      var b = c.body; if (b && !b.price_breakdown && b.data && b.data.price_breakdown) b = b.data;
-      if (b && String(b.id) === String(id)) return { d: pick(b) };
-      return { err: "SHAPE" };
-    }
-    var d = cur();
-    if (d && String(d.id) === String(id) && d.price_breakdown) return { d: pick(d) };
-    await sleep(250);
-  }
-  return { err: "TIMEOUT" };
-}
-
-function krKst(iso, len) { var t = Date.parse(iso || ""); if (!isFinite(t)) return ""; return new Date(t + 9 * 3600 * 1000).toISOString().slice(0, len || 16).replace("T", " "); }
-function krRow(l, d) {
-  d = d || {};
-  var price = d.price || 0, settle = d.payout || 0;
-  var type = !d.id ? "" : d.shipment && d.shipment !== "normal" ? (/inventory|storage|keep/i.test(d.shipment) ? "보관판매" : d.shipment) : "일반판매";
-  return {
-    key: "kr_" + l.id, site: "kream", askId: l.id, oid: d.oid || "", detail: !!d.id,
-    date: (d.paid ? krKst(d.paid, 10) : "") || l.date || "", paidDatetime: krKst(d.paid), saleDate: krKst(d.traded || d.created),
-    productName: d.name || l.name, en: d.en || "", brand: d.brand || "", category: d.category || "",
-    codes: d.style ? String(d.style).split("/").map(function (s) { return s.trim(); }).filter(function (s) { return s && s !== "-"; }) : [],
-    style: d.style || "", size: d.option || l.opt || "", quantity: 1,
-    type: type + (d.id ? (d.isInstant ? " · 즉시판매" : " · 판매입찰") : ""), status: d.statusText || l.status || "", statusCode: d.status || "",
-    listStatus: l.status || "",
-    price: price, feeProc: d.feeProc || 0, feeAuth: d.feeAuth || 0, penalty: d.penalty || 0,
-    fee: d.id && settle > 0 ? price - settle : 0, settle: settle, settled: !!(d.paid && settle > 0)
-  };
-}
-
-async function krSales(p) {
-  var from = checkDate(p.from), to = checkDate(p.to);
-  var maxNew = Math.max(1, Math.min(150, Number(p.max) || 60));
-  if (KR_RUN) throw krErr("BUSY", "이미 KREAM 판매내역을 읽는 중입니다. 끝날 때까지 기다려주세요.");
-  var st = await chrome.storage.local.get(["kr_cache", "kr_block_until", "kr_last_run"]);
-  var now = Date.now();
-  if ((st.kr_block_until || 0) > now) throw krErr("BLOCK", "KREAM 응답이 없어 쉬는 중입니다 (" + new Date(st.kr_block_until).toLocaleTimeString("ko-KR") + " 이후 다시 시도). 평소 크롬에서 KREAM 마이페이지가 정상으로 열리는지 확인해주세요.");
-  if (now - (st.kr_last_run || 0) < 180000) {
-    var wait = Math.ceil((180000 - (now - st.kr_last_run)) / 1000);
-    throw krErr("WAIT", "KREAM 보호를 위해 3분 간격으로만 불러옵니다. " + wait + "초 뒤에 다시 눌러주세요.");
-  }
-  KR_RUN = true;
-  await chrome.storage.local.set({ kr_last_run: now });
-  var cache = st.kr_cache || {}, win = null, tabId = null, list = [], fetched = 0, pending = 0, stopped = "", scrolls = 0, total = 0;
-  try {
-    win = await chrome.windows.create({ url: "https://kream.co.kr/my/selling?tab=finished", type: "popup", focused: false, width: 460, height: 760 });
-    tabId = win.tabs && win.tabs[0] && win.tabs[0].id;
-    if (!tabId) { var ts = await chrome.tabs.query({ windowId: win.id }); tabId = ts[0] && ts[0].id; }
-    await waitTabComplete(tabId, 30000);
-    await krSleep(2500);
-    var L = await krExec(tabId, krListStep, [from, to, 30]);
-    if (!L || L.login === false) throw krErr("LOGIN", "KREAM 로그인이 필요합니다. 이 크롬에서 kream.co.kr에 로그인한 뒤 다시 시도해주세요.");
-    list = L.rows || []; scrolls = L.scrolls; total = L.total;
-    var need = list.filter(function (r) {
-      if (/취소|거부|불합격|실패|만료/.test(r.status)) return false;
-      var c = cache[r.id]; return !(c && c.status === "payout_completed" && c.paid);
-    });
-    pending = need.length;
-    var fails = 0;
-    for (var i = 0; i < need.length && fetched < maxNew; i++) {
-      await krSleep(krRand(4000, 7000));
-      var res = await krExec(tabId, krDetailStep, [need[i].id]);
-      if (res && res.d) { cache[res.d.id] = res.d; fetched++; pending--; fails = 0; if (fetched % 5 === 0) await chrome.storage.local.set({ kr_cache: cache }); continue; }
-      var code = res && res.err;
-      if (code === "LOGIN") { stopped = "LOGIN"; break; }
-      if (code === "NOHOOK" || code === "NOAPP" || code === "SHAPE") { stopped = code; break; }
-      if (code === "HTTP") {   /* 403·429·5xx 등 → 즉시 멈추고 6시간 쉼 */
-        stopped = "BLOCK"; await chrome.storage.local.set({ kr_block_until: Date.now() + 6 * 3600000, kr_block_status: res.status }); break;
-      }
-      fails++;
-      if (fails >= 2) {
-        stopped = "BLOCK";
-        await chrome.storage.local.set({ kr_block_until: Date.now() + 3600000 });
-        break;
-      }
-      await krSleep(10000);
-      i--;   /* 같은 건 한 번 더 */
-    }
-  } catch (e) {
-    if (e && e.code) throw e;
-    if (/No tab|closed|Frame|removed/i.test(String(e && e.message))) stopped = "CLOSED";
-    else throw e;
-  } finally {
-    KR_RUN = false;
-    var keys = Object.keys(cache);
-    if (keys.length > 4000) { keys.sort(function (a, b) { return String(cache[a].paid || cache[a].created).localeCompare(String(cache[b].paid || cache[b].created)); }); keys.slice(0, keys.length - 4000).forEach(function (k) { delete cache[k]; }); }
-    await chrome.storage.local.set({ kr_cache: cache });
-    if (win) { try { await chrome.windows.remove(win.id); } catch (e) {} }
-  }
-  var rows = list.map(function (l) { return krRow(l, cache[l.id]); });
-  return { site: "kream", rows: rows, at: new Date().toISOString(), fetched: fetched, pending: pending, stopped: stopped, listed: total, scrolls: scrolls };
 }

@@ -4987,15 +4987,29 @@ dl.innerHTML=h;}
   function ext(t,p,ms){return window.LF_ORD&&LF_ORD.ext?LF_ORD.ext(t,p,ms):Promise.reject(new Error("확장프로그램 연결 모듈 없음"));}
   function vnum(v){return String(v||"0").split(".").map(Number).reduce(function(a,x,i){return a+(x||0)*Math.pow(1000,2-i);},0);}
   function nsz(x){return typeof NSZ==="function"?NSZ(x):x;}
+  /* 품번 찾기: 스마트스토어 상품명은 보통 '맨 끝 단어 = 품번' (예: ... 블랙 RCCMAC734A005269G999) */
+  function normC(x){return String(x||"").toUpperCase().replace(/[^A-Z0-9]/g,"");}
+  function skuLoose(c){
+    if(!c||typeof skuFind!=="function")return null;
+    var k=skuFind(c)||skuFind(String(c).toUpperCase());if(k)return k;
+    var n=normC(c);if(n.length<4)return null;
+    for(var i=0;i<SKUDB.length;i++){if(SKUDB[i]&&normC(SKUDB[i].itemCode)===n)return SKUDB[i];}
+    return null;
+  }
+  function isCodeLike(t){t=String(t||"");return t.length>=5&&t.length<=32&&/\d/.test(t)&&/^[A-Za-z0-9][A-Za-z0-9\-_.\/]*[A-Za-z0-9]$/.test(t)&&!/^\d+(ml|mm|cm|g|kg|개|ea)$/i.test(t);}
+  function nameTokens(name){return String(name||"").replace(/[()\[\]{}<>,]/g," ").split(/\s+/).filter(Boolean);}
+  function lastCode(name){var t=nameTokens(name);var l=t[t.length-1];return isCodeLike(l)?l:"";}
   function codeOf(r){
     var cs=[],seen={};(r.codes||[]).forEach(function(c){c=String(c).trim();if(c&&!seen[c.toUpperCase()]){seen[c.toUpperCase()]=1;cs.push(c);}});
-    for(var i=0;i<cs.length;i++){var k=typeof skuFind==="function"?(skuFind(cs[i])||skuFind(cs[i].toUpperCase())):null;if(k)return{code:k.itemCode,how:"sku"};}
-    var m=String(r.productName||"").match(/\b([A-Z0-9]{2,}[-_][A-Z0-9]{2,}(?:[-_][A-Z0-9]{2,})?)\b/i);
-    if(m&&typeof skuFind==="function"){var k2=skuFind(m[1])||skuFind(m[1].toUpperCase());if(k2)return{code:k2.itemCode,how:"name"};}
+    for(var i=0;i<cs.length;i++){var k=skuLoose(cs[i]);if(k)return{code:k.itemCode,how:"sku"};}
+    var toks=nameTokens(r.productName).filter(isCodeLike).reverse();          /* 끝 단어부터 */
+    for(var j=0;j<toks.length;j++){var k2=skuLoose(toks[j]);if(k2)return{code:k2.itemCode,how:"name"};}
+    var lc=lastCode(r.productName);if(lc)return{code:lc.toUpperCase(),how:"name-new"};   /* SKU MASTER에 없지만 상품명 끝 품번 */
     if(typeof autoResolveItemCode==="function"){var a=autoResolveItemCode({productName:r.productName});if(a.code)return{code:a.code,how:"auto"};}
     if(cs.length)return{code:cs[0],how:"seller"};
     return{code:"",how:""};
   }
+  function nameWithoutCode(name,code){var t=nameTokens(name);if(t.length>1&&normC(t[t.length-1])===normC(code))t.pop();return t.join(" ");}
   function regState(r){
     for(var i=0;i<SDB.length;i++){if(SDB[i]&&SDB[i].id===r.key)return{t:"reg",label:"등록됨"};}
     var c=codeOf(r).code,sz=nsz(r.size);
@@ -5038,7 +5052,7 @@ dl.innerHTML=h;}
         +"<td style=\"font-size:10px\">"+esc(r.orderNo)+"<div class=\"cl-sl\">"+esc(r.productOrderId)+"</div></td>"
         +"<td title=\""+esc(r.productName)+"\" style=\"max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap\">"+esc(r.productName)+"</td>"
         +"<td class=\"cl-sl\" style=\"font-size:10px\">"+esc(r.option)+"</td>"
-        +"<td class=\"bld\" style=\"color:"+(cc.code?(cc.how==="seller"?"#d97706":"inherit"):"#dc2626")+"\" title=\""+(cc.how==="seller"?"SKU MASTER에 없는 판매자관리코드":cc.code?"SKU MASTER 매칭":"품번 못 찾음 → 저장 후 미매칭 SKU 탭에서 연결")+"\">"+esc(cc.code||"—")+"</td>"
+        +"<td class=\"bld\" style=\"color:"+(cc.code?((cc.how==="seller"||cc.how==="name-new")?"#d97706":"inherit"):"#dc2626")+"\" title=\""+(cc.how==="name-new"?"상품명 끝 품번 · SKU MASTER에 없음 → 추가할 때 SKU MASTER에도 등록":cc.how==="seller"?"판매자관리코드 · SKU MASTER에 없음 → 추가할 때 SKU MASTER에도 등록":cc.how==="auto"?"상품명이 비슷한 SKU로 추정":cc.code?"SKU MASTER 매칭":"품번 못 찾음 → 저장 후 미매칭 SKU 탭에서 연결")+"\">"+esc(cc.code||"—")+(cc.how==="name-new"||cc.how==="seller"?" <span style=\"font-size:9px;font-weight:400\">신규</span>":"")+"</td>"
         +"<td class=\"bld\">"+esc(nsz(r.size))+"</td>"
         +"<td class=\"r\">"+r.quantity+"</td>"
         +"<td class=\"r\">₩"+won(r.paid)+"</td>"
@@ -5076,14 +5090,23 @@ dl.innerHTML=h;}
   function save(){
     var s=selected();if(!s.length)return;
     var tot=s.reduce(function(t,r){return t+r.settle;},0),noCode=s.filter(function(r){return !codeOf(r).code;}).length;
-    if(!confirm("매출 DB에 추가할까요?\n\n· "+s.length+"건 (정산금액 합계 ₩"+won(tot)+")\n· 채널: 스마트스토어, 날짜: 구매확정일"+(noCode?"\n· 품번 못 찾은 "+noCode+"건은 미매칭 SKU 탭에서 연결 필요":"")))return;
+    var newSku=[],seenN={},alias=[];
+    s.forEach(function(r){var cc=codeOf(r);if(!cc.code)return;
+      if(cc.how==="name-new"||cc.how==="seller"){var key=normC(cc.code);if(seenN[key]||skuLoose(cc.code))return;seenN[key]=1;
+        var sz=typeof NSZ==="function"?NSZ(r.size):r.size;
+        newSku.push({id:cc.code,itemCode:cc.code,productName:nameWithoutCode(r.productName,cc.code),brand:"",category:"",sizeType:(/^\d{3}$/.test(sz)&&Number(sz)>=200)?"shoe":(sz==="FREE"?"free":"cloth"),color:"",retailPrice:0,
+          memo:"자동등록 (스마트스토어 매출 "+r.date+")",aliases:[r.productName],src:"naver",updated_at:new Date().toISOString()});}
+      else alias.push({code:cc.code,alias:r.productName});});
+    if(!confirm("매출 DB에 추가할까요?\n\n· "+s.length+"건 (정산금액 합계 ₩"+won(tot)+")\n· 채널: 스마트스토어, 날짜: 구매확정일\n· SKU MASTER 신규 등록: "+newSku.length+"건"+(newSku.length?" ("+newSku.slice(0,4).map(function(x){return x.itemCode;}).join(", ")+(newSku.length>4?" 외":"")+")":"")+(noCode?"\n· 품번 못 찾은 "+noCode+"건은 미매칭 SKU 탭에서 연결 필요":"")))return;
     BAK("스마트스토어 매출내역 추가 "+s.length+"건");
+    if(newSku.length)SKUDB=newSku.concat(SKUDB);
+    alias.forEach(function(a){if(typeof addSkuAlias==="function")addSkuAlias(a.code,a.alias);});
     SDB=s.map(toSdb).concat(SDB);
     ST.sel={};
     if(typeof UH==="function")UH();
     SC();
     if(typeof REPAINT==="function")REPAINT();
-    msg("ms","✓ 매출 "+s.length+"건 추가 완료"+(noCode?" (품번 없는 "+noCode+"건은 미매칭 SKU 탭에서 연결하세요)":""));
+    msg("ms","✓ 매출 "+s.length+"건 추가 완료 · SKU MASTER 신규 "+newSku.length+"건"+(noCode?" (품번 없는 "+noCode+"건은 미매칭 SKU 탭에서 연결하세요)":""));
     render();
   }
   function build(){
@@ -5173,13 +5196,13 @@ dl.innerHTML=h;}
       if(st==="PAYED"){if(po.placeOrderStatus==="OK")waitShip++;else newOrd++;}
       var day=kst(o.paymentDate||o.orderDate).slice(0,10);if(day){daily[day]=daily[day]||{n:0,amt:0};daily[day].n++;daily[day].amt+=Number(po.totalPaymentAmount)||0;}
       return{d:kst(o.paymentDate||o.orderDate),pid:po.productOrderId,st:k+(st==="PAYED"?(po.placeOrderStatus==="OK"?" (발송대기)":" (신규)"):""),cl:po.claimType?((CL_KO[po.claimType]||po.claimType)+" "+(po.claimStatus||"")):"",
-        name:po.productName,opt:po.productOption,code:po.optionManageCode||po.sellerProductCode||"",q:po.quantity,pay:po.totalPaymentAmount,set:po.expectedSettlementAmount};});
+        name:po.productName,opt:po.productOption,code:(window.LF_SAL&&LF_SAL.codeOf?LF_SAL.codeOf({codes:[po.optionManageCode,po.sellerProductCode].filter(Boolean),productName:po.productName}).code:"")||po.optionManageCode||po.sellerProductCode||"",q:po.quantity,pay:po.totalPaymentAmount,set:po.expectedSettlementAmount};});
     L.sort(function(a,b){return String(b.d).localeCompare(String(a.d));});
     var mc=function(t,v,c){return"<div class=\"mc\" style=\"min-width:110px\"><div class=\"mcl\">"+t+"</div><div class=\"mcv\" style=\"color:"+(c||"inherit")+"\">"+v+"</div></div>";};
     var h="<div style=\"display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px\">"+mc("신규주문",newOrd+"건","#2563eb")+mc("발송대기",waitShip+"건","#d97706")+mc("배송중",(cnt["배송중"]||0)+"건")+mc("배송완료",(cnt["배송완료"]||0)+"건")+mc("구매확정",(cnt["구매확정"]||0)+"건","#16a34a")+mc("클레임",claim+"건","#dc2626")+"</div>";
     var days=Object.keys(daily).sort().reverse();
     if(days.length)h+="<div class=\"slbl\" style=\"font-size:12px\">일별 주문(결제일 기준)</div><div class=\"nv-wrap nv-cwrap\" style=\"margin-bottom:12px\"><table class=\"mt nv-compact\"><thead><tr><th>날짜</th><th class=\"r\">주문</th><th class=\"r\">결제금액</th></tr></thead><tbody>"+days.map(function(k){return"<tr><td>"+k+"</td><td class=\"r\">"+daily[k].n+"</td><td class=\"r\">₩"+won(daily[k].amt)+"</td></tr>";}).join("")+"</tbody></table></div>";
-    h+=table(["주문일시","상품주문번호","상태","클레임","상품명","옵션","판매자코드","수량","결제금액","정산예정"],L.map(function(x){return[x.d,x.pid,x.st,x.cl,x.name,x.opt,x.code,x.q,"₩"+won(x.pay),"₩"+won(x.set)];}),[7,8,9]);
+    h+=table(["주문일시","상품주문번호","상태","클레임","상품명","옵션","품번","수량","결제금액","정산예정"],L.map(function(x){return[x.d,x.pid,x.st,x.cl,x.name,x.opt,x.code,x.q,"₩"+won(x.pay),"₩"+won(x.set)];}),[7,8,9]);
     return h;
   }
   function productsView(rows){
@@ -5354,8 +5377,9 @@ dl.innerHTML=h;}
 /* ===== LEESFACT 버전 표시 =====
    업데이트할 때마다 APP_VERSION / CHANGELOG 맨 위에 한 줄 추가 (확장프로그램 버전과 같은 번호로 맞춤) */
 (function(){
-  var APP_VERSION="1.3.2";
+  var APP_VERSION="1.3.3";
   var CHANGELOG=[
+    {v:"1.3.3",d:"2026-11-25",t:"스마트스토어 품번 = 상품명 맨 끝 단어 우선 매칭 (하이픈 없는 품번도 인식), 매출 추가 시 SKU MASTER에 없는 품번 자동 등록, 주문 현황 품번 칸 같은 규칙"},
     {v:"1.3.2",d:"2026-11-25",t:"스마트스토어 정산 화면 정리(한글 항목·합계 카드·합계 줄·0인 항목 숨김), 고객문의·API 조회도 한글 항목, 엑셀 머리글 한글"},
     {v:"1.3.1",d:"2026-11-25",t:"스마트스토어 표 칸 잘림 수정 (내용 너비로 표시, 좌우 스크롤, 머리글 고정)"},
     {v:"1.3.0",d:"2026-11-25",t:"🟢 스마트스토어 탭 — 주문 현황(신규·발송대기·클레임), 상품·재고(LEESFACT 현재고 비교), 정산, 상품문의, 고객문의, API 직접 조회, 화면마다 엑셀 다운로드 (확장 v1.3.0 필요)"},

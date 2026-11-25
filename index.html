@@ -4652,7 +4652,7 @@ dl.innerHTML=h;}
 }
 </style>
 <script>
-/* ===== LEESFACT 구매내역 관리 탭 v1.3 (2026-11-25: TUNE 연동 — 주문할인 상품별 배분) =====
+/* ===== LEESFACT 구매내역 관리 탭 v1.4 (2026-11-25: 반영 시 SKU MASTER 자동 등록) =====
    - 크롬 확장 "LEESFACT 구매내역 연동"을 통해 소싱처 주문내역을 불러와 선택한 줄만 매입 DB에 추가
    - 자동 추가된 줄: id="ms_<주문옵션번호>", src="musinsa" → 다시 불러와도 중복 없음
    - 이미 등록된 줄은 상태(구입중→배송완료 등)만 갱신, 사용자가 고친 다른 값은 건드리지 않음 */
@@ -4842,14 +4842,31 @@ dl.innerHTML=h;}
       else msg("md","불러오기 실패: "+e.message);
     }).then(function(){ST.loading=false;btn.disabled=false;btn.textContent="↻ 새로고침";});
   }
+  /* SKU MASTER에 없는 품번은 새로 등록, 있으면 소싱처 상품명을 별칭으로만 추가 */
+  function skuPlan(rows,site){
+    var plan={add:[],alias:[]},seen={};
+    rows.forEach(function(r){
+      var code=itemCodeOf(r);if(!code)return;
+      var key=code.toUpperCase();if(seen[key])return;seen[key]=1;
+      var ex=typeof skuFind==="function"?(skuFind(code)||skuFind(key)):null;
+      if(ex){plan.alias.push({code:ex.itemCode,alias:cleanName(r)});return;}
+      plan.add.push({id:code,itemCode:code,productName:cleanName(r),brand:r.brand||"",category:catOf(r),sizeType:sizeTypeOf(r),color:"",
+        retailPrice:Number(r.normalPrice)||0,memo:"자동등록 ("+site.name+" 구매내역 "+(r.date||"")+")",
+        aliases:[String(r.goodsName||"")].filter(function(x){return x&&x!==cleanName(r);}),src:site.id,updated_at:new Date().toISOString()});
+    });
+    return plan;
+  }
   function saveSel(){
     var site=SITES.filter(function(s){return s.id===ST.site;})[0],s=selected();
     if(!s.length)return;
     var add=[],upd=[];
     s.forEach(function(r){var g=regState(r);if(g.t==="new")add.push(r);else if(g.t==="chg")upd.push({r:r,row:g.row});});
     var amt=add.reduce(function(t,r){return t+costOf(r);},0);
-    if(!confirm("매입 DB에 반영할까요?\n\n· 새로 추가: "+add.length+"건 (매입가 합계 ₩"+won(amt)+")\n· 상태 갱신: "+upd.length+"건\n\n추가되는 줄의 메모/상태: 배송 전이면 '구입중'"))return;
+    var sp=skuPlan(add,site);
+    if(!confirm("매입 DB에 반영할까요?\n\n· 새로 추가: "+add.length+"건 (매입가 합계 ₩"+won(amt)+")\n· 상태 갱신: "+upd.length+"건\n· SKU MASTER 신규 등록: "+sp.add.length+"건"+(sp.add.length?" ("+sp.add.slice(0,5).map(function(x){return x.itemCode;}).join(", ")+(sp.add.length>5?" 외":"")+")":"")+"\n\n추가되는 줄의 메모/상태: 배송 전이면 '구입중'"))return;
     BAK(site.name+" 구매내역 반영 "+s.length+"건");
+    if(sp.add.length)SKUDB=sp.add.concat(SKUDB);
+    sp.alias.forEach(function(a){if(typeof addSkuAlias==="function"&&a.alias)addSkuAlias(a.code,a.alias);});
     var rowsNew=add.map(function(r){return toPdb(r,site);});
     upd.forEach(function(u){var st=statusOf(u.r);if(isAutoMemo(u.row.memo))u.row.memo=autoMemo(st);u.row.status=st;u.row.claimState=u.r.claimState;u.row.syncedAt=new Date().toISOString();});
     PDB=rowsNew.concat(PDB);
@@ -4858,7 +4875,7 @@ dl.innerHTML=h;}
     SC();
     if(typeof fillPurchaseSkuOptions==="function")fillPurchaseSkuOptions();
     var miss=rowsNew.filter(function(x){return !x.itemCode;}).length;
-    msg("ms","✓ 추가 "+rowsNew.length+"건 · 상태갱신 "+upd.length+"건 반영 완료"+(miss?" (품번 없는 "+miss+"건은 미매칭 SKU 탭에서 연결하세요)":""));
+    msg("ms","✓ 추가 "+rowsNew.length+"건 · 상태갱신 "+upd.length+"건 · SKU MASTER 신규 "+sp.add.length+"건 반영 완료"+(miss?" (품번 없는 "+miss+"건은 미매칭 SKU 탭에서 연결하세요)":""));
     render();
   }
 

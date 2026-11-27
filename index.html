@@ -4782,22 +4782,21 @@ dl.innerHTML=h;}
     if(!site.on){w.innerHTML="<div class=\"emp\">"+site.name+" 연동은 준비 중입니다.</div>";updSel();return;}
     var rows=curRows();
     if(!rows.length){w.innerHTML="<div class=\"emp\">"+(meta?"조건에 맞는 주문이 없습니다.":"기간을 고르고 <b>새로고침</b>을 눌러 구매내역을 불러오세요.")+"</div>";updSel();return;}
-    var h="<table class=\"mt\"><thead><tr><th style=\"text-align:center\"><input type=\"checkbox\" id=\"ord-all\"></th><th>등록</th><th>사진</th><th>주문일시</th><th>주문번호</th><th>상태</th><th>브랜드</th><th>상품명</th><th>품번</th><th>옵션</th><th>사이즈</th><th class=\"r\">수량</th>"+(ST.site==="tune"?"":"<th class=\"r\" title=\"무신사 결제금액에 이미 빠져 있는 적립금 사용액 (참고용)\">적립금 사용</th>")+"<th class=\"r\">"+(ST.site==="tune"?"상품금액":"결제금액")+"</th><th class=\"r\">"+(ST.site==="tune"?"주문할인 배분":"카드즉시할인")+"</th><th class=\"r\">매입가</th><th class=\"r\">개당</th></tr></thead><tbody>";
+    var tune=ST.site==="tune";
+    var cg="<colgroup><col style=\"width:28px\"><col style=\"width:70px\"><col style=\"width:44px\"><col style=\"width:108px\"><col style=\"width:62px\"><col><col style=\"width:106px\"><col style=\"width:56px\"><col style=\"width:36px\">"+(tune?"":"<col style=\"width:64px\">")+"<col style=\"width:80px\"><col style=\"width:74px\"><col style=\"width:82px\"><col style=\"width:74px\"></colgroup>";
+    var h="<table class=\"mt ord-fit\">"+cg+"<thead><tr><th style=\"text-align:center\"><input type=\"checkbox\" id=\"ord-all\"></th><th>등록</th><th>사진</th><th>주문일시 · 번호</th><th>상태</th><th>브랜드 · 상품명</th><th>품번</th><th>사이즈</th><th class=\"r\">수량</th>"+(ST.site==="tune"?"":"<th class=\"r\" title=\"무신사 결제금액에 이미 빠져 있는 적립금 사용액 (참고용)\">적립금 사용</th>")+"<th class=\"r\">"+(ST.site==="tune"?"상품금액":"결제금액")+"</th><th class=\"r\">"+(ST.site==="tune"?"주문할인 배분":"카드즉시할인")+"</th><th class=\"r\">매입가</th><th class=\"r\">개당</th></tr></thead><tbody>";
     rows.forEach(function(r){
       var g=regState(r),tot=costOf(r),q=Number(r.quantity)||1,claim=isClaim(r);
       var col=g.t==="new"?"#2563eb":g.t==="chg"?"#d97706":"#16a34a";
       var dis=g.t==="reg"?" disabled":"";
       h+="<tr style=\""+(claim?"opacity:.5":"")+"\"><td style=\"text-align:center\"><input type=\"checkbox\" class=\"ord-chk\" data-k=\""+esc(r.key)+"\""+(ST.sel[r.key]&&!dis?" checked":"")+dis+"></td>"
-        +"<td style=\"color:"+col+";font-weight:600;white-space:nowrap\">"+g.label+(g.t==="chg"&&g.sd?"<div style=\"font-size:10px;color:#64748b\">"+esc(g.row.status||"-")+" → "+esc(statusOf(r))+"</div>":"")+(g.t==="chg"&&g.pd?"<div style=\"font-size:10px;color:#64748b\">₩"+won(g.row.totalPrice)+" → ₩"+won(costOf(r))+"</div>":"")+"</td>"
+        +"<td class=\"ord-wrap\" style=\"color:"+col+";font-weight:600\">"+g.label+(g.t==="chg"&&g.sd?"<div style=\"font-size:10px;color:#64748b\">"+esc(g.row.status||"-")+" → "+esc(statusOf(r))+"</div>":"")+(g.t==="chg"&&g.pd?"<div style=\"font-size:10px;color:#64748b\">₩"+won(g.row.totalPrice)+" → ₩"+won(costOf(r))+"</div>":"")+"</td>"
         +"<td>"+(r.image?"<a href=\""+esc(r.url)+"\" target=\"_blank\" rel=\"noopener\"><img src=\""+esc(r.image)+"\" style=\"width:38px;height:38px;object-fit:cover;border-radius:4px\" loading=\"lazy\"></a>":"")+"</td>"
-        +"<td class=\"cl-sl\" style=\"white-space:nowrap\">"+esc(r.orderDatetime)+"</td>"
-        +"<td style=\"font-size:10px\">"+esc(r.orderNo)+"</td>"
-        +"<td style=\"white-space:nowrap\">"+esc(r.stateText)+"</td>"
-        +"<td>"+esc(r.brand)+"</td>"
-        +"<td title=\""+esc(r.goodsName)+"\" style=\"max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap\">"+esc(cleanName(r))+"</td>"
-        +"<td class=\"cl-tl bld\">"+esc(r.styleNo||"—")+"</td>"
-        +"<td class=\"cl-sl\" style=\"font-size:10px\">"+esc(r.option)+"</td>"
-        +"<td class=\"bld\">"+esc(r.size)+"</td>"
+        +"<td class=\"cl-sl\" title=\""+esc(r.orderDatetime+" / "+r.orderNo)+"\">"+esc(String(r.orderDatetime||"").slice(0,16))+"<div class=\"ord-sub\">"+esc(r.orderNo)+"</div></td>"
+        +"<td class=\"ord-wrap\">"+esc(r.stateText)+"</td>"
+        +"<td class=\"ord-ell\" title=\""+esc((r.brand?r.brand+" · ":"")+r.goodsName)+"\"><div class=\"ord-sub\">"+esc(r.brand)+"</div>"+esc(cleanName(r))+"</td>"
+        +"<td class=\"cl-tl bld ord-code\" title=\""+esc(r.styleNo||"")+"\">"+esc(r.styleNo||"—")+"</td>"
+        +"<td class=\"bld ord-ell\" title=\""+esc(r.option)+"\">"+esc(r.size)+(r.option&&String(r.option).trim()!==String(r.size)?"<div class=\"ord-sub\">"+esc(r.option)+"</div>":"")+"</td>"
         +"<td class=\"r\">"+q+"</td>"
         +(r.site==="tune"?"":"<td class=\"r cl-sl\" title=\"결제금액에 이미 반영됨\">"+(r.point?"-₩"+won(r.point):"")+"</td>")
         +"<td class=\"r\">₩"+won(r.site==="tune"?r.lineOrig:r.paid)+"</td>"
@@ -4918,7 +4917,7 @@ dl.innerHTML=h;}
     var pg=document.createElement("div");pg.id="pg-ord";pg.className="pg";
     var c=cfg();
     pg.innerHTML=
-      "<style>#pg-ord .ord-on{background:#2563eb!important;color:#fff!important;border-color:#2563eb!important}#pg-ord .ord-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}#pg-ord .ord-bar input[type=date],#pg-ord .ord-bar input[type=text],#pg-ord .ord-bar select{padding:5px 8px;font-size:12px}#pg-ord label.ck{font-size:11px;color:#475569;display:flex;gap:4px;align-items:center;white-space:nowrap}#ord-tw{overflow:auto;max-height:68vh}</style>"
+      "<style>#pg-ord .ord-on{background:#2563eb!important;color:#fff!important;border-color:#2563eb!important}#pg-ord .ord-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}#pg-ord .ord-bar input[type=date],#pg-ord .ord-bar input[type=text],#pg-ord .ord-bar select{padding:5px 8px;font-size:12px}#pg-ord label.ck{font-size:11px;color:#475569;display:flex;gap:4px;align-items:center;white-space:nowrap}#ord-tw{overflow:auto;max-height:68vh}#pg-ord .ord-bar input[type=date]{width:auto!important;flex:0 0 auto}#pg-ord .ord-bar input[type=text]{width:auto!important;flex:1 1 220px}#pg-ord .ord-bar select{width:auto!important;flex:0 0 auto}#pg-ord .ord-sub{font-size:10px;color:#94a3b8;font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}@media (min-width:901px){#ord-tw table.ord-fit{table-layout:fixed!important;width:100%!important;min-width:0!important}#ord-tw table.ord-fit :is(th,td){overflow:hidden;text-overflow:ellipsis;padding-left:5px!important;padding-right:5px!important}#ord-tw table.ord-fit th{white-space:normal!important;word-break:keep-all}#ord-tw table.ord-fit td{white-space:nowrap}#ord-tw table.ord-fit td.ord-wrap{white-space:normal;word-break:keep-all}#ord-tw table.ord-fit td.ord-code{white-space:normal;word-break:break-all;font-size:11px;line-height:1.3}}</style>"
       +"<div id=\"ord-msg\" class=\"msg\"></div>"
       +"<div class=\"card\"><div class=\"slbl\">🛒 구매내역 관리 <span id=\"ord-ext\" style=\"font-size:11px;font-weight:400;margin-left:8px\"></span></div>"
       +"<p style=\"font-size:11px;color:#94a3b8;line-height:1.7;margin-bottom:10px\">이 PC 크롬에 로그인된 소싱처 계정(무신사·TUNE)의 주문내역을 불러옵니다. TUNE은 주문 전체에 붙는 할인(BLACK·쿠폰 등)을 상품별로 나눠 최종 매입가로 계산합니다. 체크한 줄만 매입 DB에 추가되고, 이미 추가된 주문은 상태(구입중 → 배송완료 등)만 갱신됩니다. 다른 매입처 데이터는 건드리지 않습니다.</p>"
@@ -5378,8 +5377,9 @@ dl.innerHTML=h;}
 /* ===== LEESFACT 버전 표시 =====
    업데이트할 때마다 APP_VERSION / CHANGELOG 맨 위에 한 줄 추가 (확장프로그램 버전과 같은 번호로 맞춤) */
 (function(){
-  var APP_VERSION="1.3.4";
+  var APP_VERSION="1.3.5";
   var CHANGELOG=[
+    {v:"1.3.5",d:"2026-11-27",t:"구매내역 관리 표가 화면 폭에 맞게 (좌우 스크롤 없음): 주문일시·번호, 브랜드·상품명을 한 칸으로 합치고 옵션은 사이즈 아래 작은 글씨로, 긴 글자는 …로 줄임(마우스 올리면 전체). 기간·검색 칸 한 줄 정리. 휴대폰(900px 이하)은 기존처럼 좌우 스크롤"},
     {v:"1.3.4",d:"2026-11-27",t:"구매내역 관리(무신사): 적립금을 매입가에 더하던 계산 수정 — 매입가 = 결제금액 − 카드즉시할인(무신사 즉시 할인가). 결제금액에 적립금이 이미 빠져 있어 적립금은 -로 참고 표시, '적립금 더하기' 옵션 제거. 이미 저장된 무신사 매입 중 손대지 않은 줄은 새로고침 시 '매입가 정정'으로 자동 수정"},
     {v:"1.3.3",d:"2026-11-25",t:"스마트스토어 품번 = 상품명 맨 끝 단어 우선 매칭 (하이픈 없는 품번도 인식), 매출 추가 시 SKU MASTER에 없는 품번 자동 등록, 주문 현황 품번 칸 같은 규칙"},
     {v:"1.3.2",d:"2026-11-25",t:"스마트스토어 정산 화면 정리(한글 항목·합계 카드·합계 줄·0인 항목 숨김), 고객문의·API 조회도 한글 항목, 엑셀 머리글 한글"},

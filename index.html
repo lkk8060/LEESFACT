@@ -4729,8 +4729,9 @@ dl.innerHTML=h;}
   }
   function setPrice(row,r){var q=Number(row.quantity)||Number(r.quantity)||1,t=costOf(r),u=Math.round(t/q);
     row.totalPrice=t;row.unitPrice=u;row.supplyPrice=u;row.autoTotal=t;row.paidAmount=Number(r.paid)||0;row.cardDc=Number(r.cardDc)||0;row.pointUsed=Number(r.point)||0;}
-  /* 매입가 = 결제금액 - 카드 즉시할인 (= 무신사 '즉시 할인가') [+ 적립금 사용액: 설정 시] */
-  function costOf(r){var c=cfg();return(Number(r.paid)||0)-(Number(r.cardDc)||0)+(c.withPoint?(Number(r.point)||0):0);}
+  /* 매입가 = 결제금액 - 카드 즉시할인 (= 무신사 '즉시 할인가')
+     무신사 결제금액(recv_amt)은 이미 적립금 사용액을 뺀 금액 → 적립금은 다시 더하거나 빼지 않음 (2026-11-27 실측: 375,000-할인123,140(적립금5,030 포함)=246,830, -카드8,000=238,830) */
+  function costOf(r){return(Number(r.paid)||0)-(Number(r.cardDc)||0);}
   function untouchedPrice(row){
     if(row.autoTotal!=null)return Number(row.totalPrice)===Number(row.autoTotal);
     var pa=Number(row.paidAmount)||0,pu=Number(row.pointUsed)||0,t=Number(row.totalPrice)||0;
@@ -4781,7 +4782,7 @@ dl.innerHTML=h;}
     if(!site.on){w.innerHTML="<div class=\"emp\">"+site.name+" 연동은 준비 중입니다.</div>";updSel();return;}
     var rows=curRows();
     if(!rows.length){w.innerHTML="<div class=\"emp\">"+(meta?"조건에 맞는 주문이 없습니다.":"기간을 고르고 <b>새로고침</b>을 눌러 구매내역을 불러오세요.")+"</div>";updSel();return;}
-    var h="<table class=\"mt\"><thead><tr><th style=\"text-align:center\"><input type=\"checkbox\" id=\"ord-all\"></th><th>등록</th><th>사진</th><th>주문일시</th><th>주문번호</th><th>상태</th><th>브랜드</th><th>상품명</th><th>품번</th><th>옵션</th><th>사이즈</th><th class=\"r\">수량</th><th class=\"r\">"+(ST.site==="tune"?"상품금액":"결제금액")+"</th><th class=\"r\">"+(ST.site==="tune"?"주문할인 배분":"카드즉시할인")+"</th><th class=\"r\">적립금</th><th class=\"r\">매입가</th><th class=\"r\">개당</th></tr></thead><tbody>";
+    var h="<table class=\"mt\"><thead><tr><th style=\"text-align:center\"><input type=\"checkbox\" id=\"ord-all\"></th><th>등록</th><th>사진</th><th>주문일시</th><th>주문번호</th><th>상태</th><th>브랜드</th><th>상품명</th><th>품번</th><th>옵션</th><th>사이즈</th><th class=\"r\">수량</th>"+(ST.site==="tune"?"":"<th class=\"r\" title=\"무신사 결제금액에 이미 빠져 있는 적립금 사용액 (참고용)\">적립금 사용</th>")+"<th class=\"r\">"+(ST.site==="tune"?"상품금액":"결제금액")+"</th><th class=\"r\">"+(ST.site==="tune"?"주문할인 배분":"카드즉시할인")+"</th><th class=\"r\">매입가</th><th class=\"r\">개당</th></tr></thead><tbody>";
     rows.forEach(function(r){
       var g=regState(r),tot=costOf(r),q=Number(r.quantity)||1,claim=isClaim(r);
       var col=g.t==="new"?"#2563eb":g.t==="chg"?"#d97706":"#16a34a";
@@ -4798,9 +4799,9 @@ dl.innerHTML=h;}
         +"<td class=\"cl-sl\" style=\"font-size:10px\">"+esc(r.option)+"</td>"
         +"<td class=\"bld\">"+esc(r.size)+"</td>"
         +"<td class=\"r\">"+q+"</td>"
+        +(r.site==="tune"?"":"<td class=\"r cl-sl\" title=\"결제금액에 이미 반영됨\">"+(r.point?"-₩"+won(r.point):"")+"</td>")
         +"<td class=\"r\">₩"+won(r.site==="tune"?r.lineOrig:r.paid)+"</td>"
         +"<td class=\"r\" style=\"color:#2563eb\""+(r.priceEst?" title=\"TUNE가 상품별 배분값을 주지 않아 금액 비율로 나눈 추정값\"":"")+">"+(r.site==="tune"?(r.orderDc?"-₩"+won(r.orderDc)+(r.priceEst?" <span style=\"color:#d97706\">(추정)</span>":""):""):(r.cardDc?"-₩"+won(r.cardDc):""))+"</td>"
-        +"<td class=\"r cl-sl\">"+(r.point?"₩"+won(r.point):"")+"</td>"
         +"<td class=\"r cl-gn bld\">₩"+won(tot)+"</td>"
         +"<td class=\"r cl-am\">₩"+won(Math.round(tot/q))+"</td></tr>";
     });
@@ -4927,7 +4928,7 @@ dl.innerHTML=h;}
       +"<div class=\"ord-bar\"><input type=\"text\" id=\"ord-q\" placeholder=\"브랜드·상품명·품번·주문번호 검색\" style=\"min-width:240px\">"
       +"<select id=\"ord-f\"><option value=\"\">전체</option><option value=\"new\">미등록만</option><option value=\"chg\">상태변경만</option><option value=\"reg\">등록됨만</option></select>"
       +"<label class=\"ck\"><input type=\"checkbox\" id=\"ord-claim\""+(c.showClaim?" checked":"")+">취소/반품 표시</label>"
-      +"<label class=\"ck\" title=\"끄면 매입가 = 무신사 '즉시 할인가'(결제금액 - 카드 즉시할인)\"><input type=\"checkbox\" id=\"ord-pt\""+(c.withPoint?" checked":"")+">매입가에 적립금 사용액 더하기</label>"
+      +"<span style=\"font-size:11px;color:#94a3b8\" title=\"무신사 결제금액에는 적립금 사용액이 이미 빠져 있습니다\">매입가 = 결제금액 − 카드즉시할인 (무신사 '즉시 할인가', 적립금은 결제금액에 이미 차감)</span>"
       +"<label class=\"ck\" title=\"확장이 설치된 PC에서 페이지를 열면 3시간마다 최근 90일 주문을 확인해, 이미 등록된 줄의 상태(배송완료·반품·취소)와 메모를 자동으로 바꿉니다. 새 줄은 추가하지 않습니다.\"><input type=\"checkbox\" id=\"ord-auto\""+(c.noAuto?"":" checked")+">반품·배송상태 자동 반영</label>"
       +"<span style=\"flex:1\"></span><button class=\"bp\" id=\"ord-save\" disabled>선택 항목 매입 DB 반영</button></div>"
       +"<div id=\"ord-tw\"></div></div>";
@@ -4940,7 +4941,7 @@ dl.innerHTML=h;}
     $("ord-load").onclick=load;
     $("ord-q").oninput=render;$("ord-f").onchange=render;
     $("ord-claim").onchange=function(){var x=cfg();x.showClaim=this.checked;saveCfg(x);render();};
-    $("ord-pt").onchange=function(){var x=cfg();x.withPoint=this.checked;delete x.noPoint;saveCfg(x);render();};
+
     $("ord-auto").onchange=function(){var x=cfg();x.noAuto=!this.checked;saveCfg(x);if(this.checked)autoSync(true);};
     $("ord-save").onclick=saveSel;
     tb.onclick=function(){GT("ord");};
@@ -5377,8 +5378,9 @@ dl.innerHTML=h;}
 /* ===== LEESFACT 버전 표시 =====
    업데이트할 때마다 APP_VERSION / CHANGELOG 맨 위에 한 줄 추가 (확장프로그램 버전과 같은 번호로 맞춤) */
 (function(){
-  var APP_VERSION="1.3.3";
+  var APP_VERSION="1.3.4";
   var CHANGELOG=[
+    {v:"1.3.4",d:"2026-11-27",t:"구매내역 관리(무신사): 적립금을 매입가에 더하던 계산 수정 — 매입가 = 결제금액 − 카드즉시할인(무신사 즉시 할인가). 결제금액에 적립금이 이미 빠져 있어 적립금은 -로 참고 표시, '적립금 더하기' 옵션 제거. 이미 저장된 무신사 매입 중 손대지 않은 줄은 새로고침 시 '매입가 정정'으로 자동 수정"},
     {v:"1.3.3",d:"2026-11-25",t:"스마트스토어 품번 = 상품명 맨 끝 단어 우선 매칭 (하이픈 없는 품번도 인식), 매출 추가 시 SKU MASTER에 없는 품번 자동 등록, 주문 현황 품번 칸 같은 규칙"},
     {v:"1.3.2",d:"2026-11-25",t:"스마트스토어 정산 화면 정리(한글 항목·합계 카드·합계 줄·0인 항목 숨김), 고객문의·API 조회도 한글 항목, 엑셀 머리글 한글"},
     {v:"1.3.1",d:"2026-11-25",t:"스마트스토어 표 칸 잘림 수정 (내용 너비로 표시, 좌우 스크롤, 머리글 고정)"},
